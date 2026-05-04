@@ -36,7 +36,7 @@ from reportlab.lib.units import cm
 from reportlab.platypus import (
     BaseDocTemplate, PageTemplate, Frame,
     Paragraph, Spacer, PageBreak, ListFlowable, ListItem, Image,
-    KeepTogether,
+    KeepTogether, Table, TableStyle,
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 
@@ -430,6 +430,119 @@ def es_inicio_bloque_consejo(texto_plano):
     return limpio in (":::consejo", "::: consejo", ":::dm", "::: dm")
 
 
+def _pt_word(longitud):
+    if longitud is None:
+        return 0
+    try:
+        return float(longitud.pt)
+    except Exception:
+        return 0
+
+
+def _es_lista_parrafo(parrafo):
+    nombre = (parrafo.style.name or "").lower()
+    if "list" in nombre or "lista" in nombre:
+        return True
+    propiedades = parrafo._p.find(qn("w:pPr"))
+    return propiedades is not None and propiedades.find(qn("w:numPr")) is not None
+
+
+def _nivel_lista_parrafo(parrafo):
+    propiedades = parrafo._p.find(qn("w:pPr"))
+    if propiedades is not None:
+        num_pr = propiedades.find(qn("w:numPr"))
+        if num_pr is not None:
+            ilvl = num_pr.find(qn("w:ilvl"))
+            if ilvl is not None:
+                try:
+                    return max(0, int(ilvl.get(qn("w:val")) or 0))
+                except (TypeError, ValueError):
+                    pass
+
+    nombre = (parrafo.style.name or "").lower()
+    match = re.search(r"(?:list|lista)[^\d]*(\d+)$", nombre)
+    if match:
+        return max(0, int(match.group(1)) - 1)
+    return 0
+
+
+def _item_caja_desde_parrafo(parrafo, texto_html):
+    return {
+        "html": texto_html,
+        "es_lista": _es_lista_parrafo(parrafo),
+        "nivel_lista": _nivel_lista_parrafo(parrafo),
+        "left_indent": _pt_word(parrafo.paragraph_format.left_indent),
+        "first_line_indent": _pt_word(parrafo.paragraph_format.first_line_indent),
+    }
+
+
+def _estilo_interno_caja(estilo_base, item, sufijo):
+    estilo = ParagraphStyle(
+        name=f"{estilo_base.name}Interno{sufijo}",
+        parent=estilo_base,
+        leftIndent=0,
+        rightIndent=0,
+        firstLineIndent=0,
+        spaceBefore=0,
+        spaceAfter=6,
+        borderWidth=0,
+        borderPadding=0,
+        backColor=None,
+    )
+
+    if item["es_lista"]:
+        nivel = item["nivel_lista"]
+        indent_word = max(0, item["left_indent"])
+        indent_base = max(16 + nivel * 14, 12 + indent_word)
+        estilo.leftIndent = indent_base
+        estilo.firstLineIndent = -10
+        estilo.spaceAfter = 3
+    else:
+        estilo.leftIndent = max(0, item["left_indent"])
+        estilo.firstLineIndent = item["first_line_indent"]
+    return estilo
+
+
+def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
+    contenido = []
+    primer_bloque = True
+    indice = 0
+
+    for parte in partes:
+        if parte is None:
+            if contenido and not isinstance(contenido[-1], Spacer):
+                contenido.append(Spacer(1, 6))
+            continue
+
+        html = (parte.get("html") or "").strip()
+        if not html:
+            continue
+
+        if primer_bloque and decorador is not None:
+            html = decorador(html)
+
+        estilo = _estilo_interno_caja(estilo_base, parte, indice)
+        bullet_text = "•" if parte["es_lista"] else None
+        contenido.append(Paragraph(html, estilo, bulletText=bullet_text))
+        primer_bloque = False
+        indice += 1
+
+    if not contenido:
+        return None
+
+    tabla = Table([[contenido]], colWidths=[ancho_total], hAlign="LEFT")
+    tabla.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), estilo_base.backColor),
+        ("BOX", (0, 0), (-1, -1), estilo_base.borderWidth, estilo_base.borderColor),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    return KeepTogether([Spacer(1, 4), tabla, Spacer(1, 8)])
+
+
 class DocConTOC(BaseDocTemplate):
     """DocTemplate que notifica entradas a la TOC al pasar por H1/H2."""
     def __init__(self, filename, **kw):
@@ -560,81 +673,64 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
     def vaciar_citas():
         if citas_pendientes:
-            html = "<br/><br/>".join(citas_pendientes)
-            historia.append(KeepTogether(
-                Paragraph(html, estilos["CitaCaja"])
-            ))
+            caja = _renderizar_caja(citas_pendientes, estilos["CitaCaja"], ancho_util)
+            if caja is not None:
+                historia.append(caja)
             citas_pendientes.clear()
 
     def vaciar_consejos():
         nonlocal vacios_desde_ultimo_consejo
         if consejos_pendientes:
-            html = "<br/><br/>".join(consejos_pendientes)
-            historia.append(KeepTogether(
-                Paragraph(decorar_consejo_dm_html(html), estilos["ConsejoDM"])
-            ))
+            caja = _renderizar_caja(
+                consejos_pendientes,
+                estilos["ConsejoDM"],
+                ancho_util,
+                decorador=decorar_consejo_dm_html,
+            )
+            if caja is not None:
+                historia.append(caja)
             consejos_pendientes.clear()
         vacios_desde_ultimo_consejo = 0
 
     def vaciar_infos():
         nonlocal vacios_desde_ultima_info
         if infos_pendientes:
-            html = "<br/><br/>".join(infos_pendientes)
-            historia.append(KeepTogether(
-                Paragraph(decorar_info_adicional_html(html), estilos["InfoAdicional"])
-            ))
+            caja = _renderizar_caja(
+                infos_pendientes,
+                estilos["InfoAdicional"],
+                ancho_util,
+                decorador=decorar_info_adicional_html,
+            )
+            if caja is not None:
+                historia.append(caja)
             infos_pendientes.clear()
         vacios_desde_ultima_info = 0
-
-    def _normalizar_html_info(partes):
-        piezas = []
-        ultimo_fue_salto = False
-        for parte in partes:
-            if parte is None:
-                if not ultimo_fue_salto:
-                    piezas.append("")
-                    ultimo_fue_salto = True
-                continue
-            texto = (parte or "").strip()
-            if not texto:
-                continue
-            piezas.append(texto)
-            ultimo_fue_salto = False
-        return "<br/><br/>".join(piezas)
-
-    def _normalizar_html_consejo(partes):
-        piezas = []
-        ultimo_fue_salto = False
-        for parte in partes:
-            if parte is None:
-                if not ultimo_fue_salto:
-                    piezas.append("")
-                    ultimo_fue_salto = True
-                continue
-            texto = (parte or "").strip()
-            if not texto:
-                continue
-            piezas.append(texto)
-            ultimo_fue_salto = False
-        return "<br/><br/>".join(piezas)
 
     def emitir_consejo_manual():
         nonlocal dentro_consejo_manual
         if consejo_manual_buffer:
-            html = _normalizar_html_consejo(consejo_manual_buffer)
-            historia.append(KeepTogether(
-                Paragraph(decorar_consejo_dm_html(html), estilos["ConsejoDM"])
-            ))
+            caja = _renderizar_caja(
+                consejo_manual_buffer,
+                estilos["ConsejoDM"],
+                ancho_util,
+                decorador=decorar_consejo_dm_html,
+            )
+            if caja is not None:
+                historia.append(caja)
             consejo_manual_buffer.clear()
         dentro_consejo_manual = False
 
     def emitir_info_adicional():
         nonlocal dentro_info
         if info_buffer:
-            html = _normalizar_html_info(info_buffer)
-            historia.append(KeepTogether(
-                Paragraph(decorar_info_adicional_html(html), estilos["InfoAdicional"])
-            ))
+            caja = _renderizar_caja(
+                info_buffer,
+                estilos["InfoAdicional"],
+                ancho_util,
+                decorador=decorar_info_adicional_html,
+            )
+            if caja is not None:
+                historia.append(caja)
             info_buffer.clear()
         dentro_info = False
 
@@ -719,19 +815,15 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         es_lista = clave == "Lista" or (
             parrafo.style.name and "List Bullet" in parrafo.style.name
         )
+        es_lista = es_lista or _es_lista_parrafo(parrafo)
+        item_caja = _item_caja_desde_parrafo(parrafo, texto_html)
 
         if dentro_info:
-            if es_lista:
-                info_buffer.append(f"• {texto_html}")
-            else:
-                info_buffer.append(texto_html)
+            info_buffer.append(item_caja)
             continue
 
         if dentro_consejo_manual:
-            if es_lista:
-                consejo_manual_buffer.append(f"• {texto_html}")
-            else:
-                consejo_manual_buffer.append(texto_html)
+            consejo_manual_buffer.append(item_caja)
             continue
 
         # 2) Consejo para el DM → caja azul (formato de un solo párrafo)
@@ -740,7 +832,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             emitir_consejo_manual()
             vaciar_citas()
             vaciar_lista()
-            consejos_pendientes.append(texto_html)
+            consejos_pendientes.append(item_caja)
             vacios_desde_ultimo_consejo = 0
             continue
 
@@ -749,12 +841,24 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_consejos()
             vaciar_citas()
             vaciar_lista()
-            infos_pendientes.append(texto_html)
+            infos_pendientes.append(item_caja)
             vacios_desde_ultima_info = 0
             continue
 
         # 3) Listas
         if es_lista:
+            if consejos_pendientes:
+                consejos_pendientes.append(item_caja)
+                vacios_desde_ultimo_consejo = 0
+                continue
+            if infos_pendientes:
+                infos_pendientes.append(item_caja)
+                vacios_desde_ultima_info = 0
+                continue
+            if citas_pendientes:
+                citas_pendientes.append(item_caja)
+                vacios_desde_ultima_cita = 0
+                continue
             vaciar_consejos()
             vaciar_infos()
             emitir_consejo_manual()
@@ -769,7 +873,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_consejos()
             vaciar_infos()
             emitir_consejo_manual()
-            citas_pendientes.append(texto_html)
+            citas_pendientes.append(item_caja)
             vacios_desde_ultima_cita = 0
             continue
         else:
