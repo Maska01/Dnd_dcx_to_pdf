@@ -29,7 +29,7 @@ Usa los **estilos de Word** para que el script reconozca cada parte:
 | **Normal** | Texto justificado |
 | **Cita** (Quote) | 🟨 Caja amarilla con texto negro |
 | **Información adicional** o prefijo `INFORMACIÓN ADICIONAL:` | 🟩 Caja verde-azulada con marcador `[i]` |
-| Párrafo que empieza con `CONSEJO PARA EL DM` | 🟦 Caja azul con texto azul |
+| **Consejos** o párrafo que empieza con `CONSEJO PARA EL DM` | 🟦 Caja azul con texto azul |
 | Lista con viñetas | Lista con viñetas |
 | Hipervínculos embebidos | Enlaces clicables en el PDF |
 
@@ -39,18 +39,10 @@ respetan en el PDF, también dentro de las cajas.
 ### Consejo para el DM
 Tienes **tres formas** de marcar un Consejo del DM:
 
-**1) Bloque delimitado por `#` (recomendado para varios párrafos / listas):**
-Pon una `#` al principio del primer párrafo y otra `#` al final del último.
-Todo lo que esté entre las dos almohadillas (texto, listas, negritas…) entrará
-en la misma caja azul.
-
-```
-#Consejo para el DM (Interacción Social): Wesley es escurridizo. Pide a los
-jugadores una Prueba de Sabiduría (Perspicacia) CD 14...
-
-- Si venden la estatua: ...
-- Si rompen la estatua: ...#
-```
+**1) Recomendado: estilo de párrafo `Consejos`**
+Si creas en Word un estilo con ese nombre (o similar, por ejemplo
+`Consejo DM`), el script lo detecta y lo convierte en una caja azul de
+Consejo para el DM.
 
 **2) Párrafo único que empieza por `CONSEJO PARA EL DM`:**
 Escribe un párrafo Normal que empiece exactamente así:
