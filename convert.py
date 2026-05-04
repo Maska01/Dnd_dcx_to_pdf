@@ -10,7 +10,7 @@ Convención del documento Word:
     - Estilo "Título 2" (Heading 2)  -> Sección (entra en TOC)
     - Estilo "Título 3" (Heading 3)  -> Subsección
     - Estilo "Cita"   (Quote)        -> Caja AMARILLA con texto negro
-    - Párrafo que empiece con "CONSEJO DEL DM" -> Caja AZUL con texto azul
+    - Párrafo que empiece con "CONSEJO PARA EL DM" -> Caja AZUL con texto azul
     - Estilo "Normal"                -> Párrafo de texto justificado
     - Listas con viñetas             -> Listas
     - Imágenes embebidas             -> Se insertan automáticamente
@@ -42,7 +42,7 @@ from reportlab.platypus.tableofcontents import TableOfContents
 COLOR_PRIMARIO   = HexColor("#8B0000")   # rojo oscuro (títulos)
 COLOR_SECUNDARIO = HexColor("#1a1a1a")
 
-# Caja "Consejo del DM" (azul)
+# Caja "Consejo para el DM" (azul)
 COLOR_AZUL_TEXTO = HexColor("#1F3A93")
 COLOR_AZUL_BORDE = HexColor("#5B8DEF")
 COLOR_AZUL_FONDO = HexColor("#EAF1FB")
@@ -110,7 +110,7 @@ def construir_estilos():
         borderColor=COLOR_AMA_BORDE, borderWidth=1, borderRadius=8,
         borderPadding=12, backColor=COLOR_AMA_FONDO,
     ))
-    # Caja AZUL (Consejo del DM)
+    # Caja AZUL (Consejo para el DM)
     estilos.add(ParagraphStyle(
         name="ConsejoDM",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
@@ -212,9 +212,9 @@ def imagen_flowable(blob, ancho_max):
 
 def es_consejo_dm(texto_plano):
     # Quita asteriscos, espacios y comillas iniciales para tolerar formatos
-    # tipo markdown (**CONSEJO DEL DM...**).
+    # tipo markdown (**CONSEJO PARA EL DM...**).
     limpio = texto_plano.lstrip(" *_“\"'\t").lower()
-    return limpio.startswith("consejo del dm")
+    return limpio.startswith("consejo para el dm")
 
 
 class DocConTOC(BaseDocTemplate):
@@ -347,7 +347,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             historia.append(Spacer(1, 4))
             continue
 
-        # 2) Consejo del DM → caja azul
+        # 2) Consejo para el DM → caja azul
         if es_consejo_dm(texto_plano):
             vaciar_citas()
             vaciar_lista()

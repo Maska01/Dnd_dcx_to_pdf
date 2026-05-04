@@ -28,16 +28,16 @@ Usa los **estilos de Word** para que el script reconozca cada parte:
 | **Título 3** | Subsección |
 | **Normal** | Texto justificado |
 | **Cita** (Quote) | 🟨 Caja amarilla con texto negro |
-| Párrafo que empieza con `CONSEJO DEL DM` | 🟦 Caja azul con texto azul |
+| Párrafo que empieza con `CONSEJO PARA EL DM` | 🟦 Caja azul con texto azul |
 | Lista con viñetas | Lista con viñetas |
 
 Dentro de cualquier párrafo puedes usar **negrita**, *cursiva* o subrayado y se
 respetan en el PDF, también dentro de las cajas.
 
-### Consejo del DM
+### Consejo para el DM
 Escribe un párrafo Normal que empiece exactamente así:
 
-> **CONSEJO DEL DM (REGLAS 5.5):** Entrega a tus jugadores el "Cartel de Persona Desaparecida"...
+> **CONSEJO PARA EL DM (REGLAS 5.5):** Entrega a tus jugadores el "Cartel de Persona Desaparecida"...
 
 El script lo detecta automáticamente y lo encierra en la caja azul.
 
