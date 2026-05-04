@@ -348,15 +348,33 @@ class DocConTOC(BaseDocTemplate):
         frame = Frame(self.leftMargin, self.bottomMargin,
                       self.width, self.height, id="normal")
         self.addPageTemplates([PageTemplate(id="Todo", frames=frame)])
+        self._bookmark_counter = 0
+
+    def _crear_bookmark(self, texto):
+        self._bookmark_counter += 1
+        texto_limpio = re.sub(r"\s+", "-", texto.strip())
+        texto_limpio = re.sub(r"[^\w\-]", "", texto_limpio, flags=re.UNICODE)
+        texto_limpio = texto_limpio[:60] or "seccion"
+        return f"bookmark-{self._bookmark_counter}-{texto_limpio}"
 
     def afterFlowable(self, flowable):
         if isinstance(flowable, Paragraph):
             estilo = flowable.style.name
             texto = flowable.getPlainText()
             if estilo == "H1":
+                bookmark = self._crear_bookmark(texto)
+                self.canv.bookmarkPage(bookmark)
+                self.canv.addOutlineEntry(texto, bookmark, level=0, closed=False)
                 self.notify("TOCEntry", (0, texto, self.page))
             elif estilo == "H2":
+                bookmark = self._crear_bookmark(texto)
+                self.canv.bookmarkPage(bookmark)
+                self.canv.addOutlineEntry(texto, bookmark, level=1, closed=False)
                 self.notify("TOCEntry", (1, texto, self.page))
+            elif estilo == "H3":
+                bookmark = self._crear_bookmark(texto)
+                self.canv.bookmarkPage(bookmark)
+                self.canv.addOutlineEntry(texto, bookmark, level=2, closed=False)
 
 
 def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
