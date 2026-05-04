@@ -536,6 +536,22 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             infos_pendientes.clear()
         vacios_desde_ultima_info = 0
 
+    def _normalizar_html_info(partes):
+        piezas = []
+        ultimo_fue_salto = False
+        for parte in partes:
+            if parte is None:
+                if not ultimo_fue_salto:
+                    piezas.append("")
+                    ultimo_fue_salto = True
+                continue
+            texto = (parte or "").strip()
+            if not texto:
+                continue
+            piezas.append(texto)
+            ultimo_fue_salto = False
+        return "<br/><br/>".join(piezas)
+
     def emitir_consejo():
         nonlocal dentro_consejo
         if consejo_buffer:
@@ -549,7 +565,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
     def emitir_info_adicional():
         nonlocal dentro_info
         if info_buffer:
-            html = "<br/><br/>".join(info_buffer)
+            html = _normalizar_html_info(info_buffer)
             historia.append(KeepTogether(
                 Paragraph(decorar_info_adicional_html(html), estilos["InfoAdicional"])
             ))
@@ -590,6 +606,9 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             continue
 
         if not texto_html.strip():
+            if dentro_info:
+                info_buffer.append(None)
+                continue
             # Párrafo vacío: si superamos el umbral, cerramos la caja de citas.
             if citas_pendientes:
                 vacios_desde_ultima_cita += 1

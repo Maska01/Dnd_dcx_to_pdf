@@ -93,6 +93,22 @@ Este detalle añade contexto opcional para enriquecer la escena.
 Todo lo que quede entre `:::info` y `:::` se convertirá en una sola caja de
 información adicional.
 
+Este formato es el más robusto para mezclar:
+- párrafos normales,
+- enlaces,
+- viñetas,
+- y pequeños espacios en blanco entre bloques de texto.
+
+### Límite importante de `:::info`
+Las imágenes no se incrustan dentro de la misma caja de `Información adicional`.
+Si el script encuentra una imagen, la trata como un elemento independiente del
+PDF y eso corta el bloque actual.
+
+En la práctica:
+- texto + enlaces + listas dentro de `:::info` → sí se mantienen juntos;
+- imagen dentro del tramo `:::info` → la imagen sale fuera de la caja y el
+    bloque se interrumpe.
+
 ### Imágenes
 Pega las imágenes en el Word donde quieras. El script las extrae y las coloca
 en el PDF en el mismo punto, escaladas al ancho útil de la página.
