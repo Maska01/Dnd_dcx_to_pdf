@@ -646,9 +646,11 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
     vacios_desde_ultima_cita = 0   # nº de párrafos vacíos vistos tras la última cita
     MAX_VACIOS_FUSION_CITA = 2     # hasta 2 saltos de renglón => misma caja
     consejos_pendientes = []       # buffer de consejos consecutivos a fusionar
+    modo_consejos = None           # "estilo" | "prefijo"
     vacios_desde_ultimo_consejo = 0
     MAX_VACIOS_FUSION_CONSEJO = 2  # hasta 2 saltos de renglón => misma caja
     infos_pendientes = []          # buffer de infos consecutivas a fusionar
+    modo_infos = None              # "estilo" | "prefijo"
     vacios_desde_ultima_info = 0   # nº de párrafos vacíos vistos tras la última info
     MAX_VACIOS_FUSION_INFO = 2     # hasta 2 saltos de renglón => misma caja
 
@@ -679,7 +681,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             citas_pendientes.clear()
 
     def vaciar_consejos():
-        nonlocal vacios_desde_ultimo_consejo
+        nonlocal vacios_desde_ultimo_consejo, modo_consejos
         if consejos_pendientes:
             caja = _renderizar_caja(
                 consejos_pendientes,
@@ -691,9 +693,10 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 historia.append(caja)
             consejos_pendientes.clear()
         vacios_desde_ultimo_consejo = 0
+        modo_consejos = None
 
     def vaciar_infos():
-        nonlocal vacios_desde_ultima_info
+        nonlocal vacios_desde_ultima_info, modo_infos
         if infos_pendientes:
             caja = _renderizar_caja(
                 infos_pendientes,
@@ -705,6 +708,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 historia.append(caja)
             infos_pendientes.clear()
         vacios_desde_ultima_info = 0
+        modo_infos = None
 
     def emitir_consejo_manual():
         nonlocal dentro_consejo_manual
@@ -812,6 +816,10 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             continue
 
         clave = estilo_para_parrafo(parrafo)
+        consejo_por_estilo = clave == "ConsejoDM"
+        consejo_por_prefijo = es_consejo_dm(texto_plano)
+        info_por_estilo = clave == "InfoAdicional"
+        info_por_prefijo = es_info_adicional(texto_plano)
         es_lista = clave == "Lista" or (
             parrafo.style.name and "List Bullet" in parrafo.style.name
         )
@@ -827,31 +835,39 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             continue
 
         # 2) Consejo para el DM → caja azul (formato de un solo párrafo)
-        if clave == "ConsejoDM" or es_consejo_dm(texto_plano):
+        if consejo_por_estilo or consejo_por_prefijo:
+            nuevo_modo_consejo = "estilo" if consejo_por_estilo else "prefijo"
+            if consejos_pendientes and modo_consejos != nuevo_modo_consejo:
+                vaciar_consejos()
             vaciar_infos()
             emitir_consejo_manual()
             vaciar_citas()
             vaciar_lista()
             consejos_pendientes.append(item_caja)
+            modo_consejos = nuevo_modo_consejo
             vacios_desde_ultimo_consejo = 0
             continue
 
         # 2.5) Información adicional → caja verde-azulada
-        if clave == "InfoAdicional" or es_info_adicional(texto_plano):
+        if info_por_estilo or info_por_prefijo:
+            nuevo_modo_info = "estilo" if info_por_estilo else "prefijo"
+            if infos_pendientes and modo_infos != nuevo_modo_info:
+                vaciar_infos()
             vaciar_consejos()
             vaciar_citas()
             vaciar_lista()
             infos_pendientes.append(item_caja)
+            modo_infos = nuevo_modo_info
             vacios_desde_ultima_info = 0
             continue
 
         # 3) Listas
         if es_lista:
-            if consejos_pendientes:
+            if consejos_pendientes and modo_consejos != "prefijo":
                 consejos_pendientes.append(item_caja)
                 vacios_desde_ultimo_consejo = 0
                 continue
-            if infos_pendientes:
+            if infos_pendientes and modo_infos != "prefijo":
                 infos_pendientes.append(item_caja)
                 vacios_desde_ultima_info = 0
                 continue
