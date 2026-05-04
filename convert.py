@@ -339,10 +339,40 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
     print(f"✅ PDF generado: {pdf_path}")
 
 
+def _seleccionar_archivo_dialogo(titulo, filetypes, modo="abrir", initialfile=None):
+    """Abre un diálogo de Windows para seleccionar un archivo.
+
+    modo: "abrir" (askopenfilename) o "guardar" (asksaveasfilename).
+    Devuelve la ruta como str, o "" si el usuario cancela.
+    """
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except ImportError:
+        print("⚠️  tkinter no está disponible; no se puede abrir el diálogo.")
+        return ""
+
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    try:
+        if modo == "guardar":
+            ruta = filedialog.asksaveasfilename(
+                title=titulo, filetypes=filetypes,
+                defaultextension=filetypes[0][1].replace("*", ""),
+                initialfile=initialfile,
+            )
+        else:
+            ruta = filedialog.askopenfilename(title=titulo, filetypes=filetypes)
+    finally:
+        root.destroy()
+    return ruta or ""
+
+
 def main():
     parser = argparse.ArgumentParser(description="Convierte un .docx a PDF estilo Aventura.")
-    parser.add_argument("entrada", help="Archivo .docx de entrada")
-    parser.add_argument("salida", help="Archivo .pdf de salida")
+    parser.add_argument("entrada", nargs="?", help="Archivo .docx de entrada (si se omite se abre un diálogo)")
+    parser.add_argument("salida", nargs="?", help="Archivo .pdf de salida (si se omite se abre un diálogo)")
     parser.add_argument("--titulo", help="Título de la portada (opcional)")
     parser.add_argument("--subtitulo", help="Subtítulo de la portada (opcional)")
     parser.add_argument("--autor", help="Autor (opcional)")
@@ -350,11 +380,39 @@ def main():
                         help=f"Ruta a la imagen de portada (por defecto: {IMAGEN_PORTADA_DEFAULT})")
     args = parser.parse_args()
 
-    entrada = Path(args.entrada)
+    # --- Entrada: si no se pasa por CLI, pedirla con diálogo de Windows ---
+    if args.entrada:
+        entrada = Path(args.entrada)
+    else:
+        print("📂 Selecciona el archivo Word de entrada...")
+        ruta = _seleccionar_archivo_dialogo(
+            "Selecciona el archivo Word de entrada",
+            [("Documentos Word", "*.docx"), ("Todos los archivos", "*.*")],
+            modo="abrir",
+        )
+        if not ruta:
+            raise SystemExit("❌ No se seleccionó ningún archivo de entrada.")
+        entrada = Path(ruta)
+
     if not entrada.exists():
         raise SystemExit(f"No se encontró el archivo: {entrada}")
 
-    construir_pdf(entrada, Path(args.salida),
+    # --- Salida: si no se pasa por CLI, pedirla con diálogo de Windows ---
+    if args.salida:
+        salida = Path(args.salida)
+    else:
+        print("💾 Selecciona dónde guardar el PDF...")
+        ruta = _seleccionar_archivo_dialogo(
+            "Guardar PDF como...",
+            [("Archivo PDF", "*.pdf"), ("Todos los archivos", "*.*")],
+            modo="guardar",
+            initialfile=entrada.with_suffix(".pdf").name,
+        )
+        if not ruta:
+            raise SystemExit("❌ No se seleccionó ruta de salida.")
+        salida = Path(ruta)
+
+    construir_pdf(entrada, salida,
                   titulo=args.titulo, autor=args.autor,
                   subtitulo=args.subtitulo, imagen_portada=args.portada)
 
