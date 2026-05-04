@@ -26,10 +26,12 @@ from pathlib import Path
 
 from docx import Document
 from docx.oxml.ns import qn
+from docx.table import Table as DocxTable
+from docx.text.paragraph import Paragraph as DocxParagraph
 from PIL import Image as PILImage
 
 from reportlab.lib.colors import HexColor, black
-from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
+from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
@@ -58,6 +60,21 @@ COLOR_AMA_FONDO  = HexColor("#FBF3DC")
 COLOR_INFO_TEXTO = HexColor("#0F4C5C")
 COLOR_INFO_BORDE = HexColor("#2A9D8F")
 COLOR_INFO_FONDO = HexColor("#E6F7F5")
+
+# Caja "Enemigo" (rojo)
+COLOR_ENEMIGO_TEXTO = HexColor("#7A1C1C")
+COLOR_ENEMIGO_BORDE = HexColor("#C0392B")
+COLOR_ENEMIGO_FONDO = HexColor("#FDECEC")
+
+# Caja "NPC" (gris)
+COLOR_NPC_TEXTO = HexColor("#444444")
+COLOR_NPC_BORDE = HexColor("#8D99AE")
+COLOR_NPC_FONDO = HexColor("#F1F3F5")
+
+# Caja "Aliado" (verde)
+COLOR_ALIADO_TEXTO = HexColor("#1E5631")
+COLOR_ALIADO_BORDE = HexColor("#4CAF50")
+COLOR_ALIADO_FONDO = HexColor("#EAF7EE")
 
 FUENTE_TITULO = "Helvetica-Bold"
 FUENTE_TEXTO  = "Helvetica"
@@ -136,6 +153,33 @@ def construir_estilos():
         spaceBefore=12, spaceAfter=12,
         borderColor=COLOR_AZUL_BORDE, borderWidth=1, borderRadius=8,
         borderPadding=5, backColor=COLOR_AZUL_FONDO,
+    ))
+    estilos.add(ParagraphStyle(
+        name="NPCBox",
+        fontName=FUENTE_TEXTO, fontSize=11, leading=15,
+        textColor=COLOR_NPC_TEXTO, alignment=TA_JUSTIFY,
+        leftIndent=10, rightIndent=10,
+        spaceBefore=12, spaceAfter=12,
+        borderColor=COLOR_NPC_BORDE, borderWidth=1, borderRadius=8,
+        borderPadding=5, backColor=COLOR_NPC_FONDO,
+    ))
+    estilos.add(ParagraphStyle(
+        name="EnemigoBox",
+        fontName=FUENTE_TEXTO, fontSize=11, leading=15,
+        textColor=COLOR_ENEMIGO_TEXTO, alignment=TA_JUSTIFY,
+        leftIndent=10, rightIndent=10,
+        spaceBefore=12, spaceAfter=12,
+        borderColor=COLOR_ENEMIGO_BORDE, borderWidth=1, borderRadius=8,
+        borderPadding=5, backColor=COLOR_ENEMIGO_FONDO,
+    ))
+    estilos.add(ParagraphStyle(
+        name="AliadoBox",
+        fontName=FUENTE_TEXTO, fontSize=11, leading=15,
+        textColor=COLOR_ALIADO_TEXTO, alignment=TA_JUSTIFY,
+        leftIndent=10, rightIndent=10,
+        spaceBefore=12, spaceAfter=12,
+        borderColor=COLOR_ALIADO_BORDE, borderWidth=1, borderRadius=8,
+        borderPadding=5, backColor=COLOR_ALIADO_FONDO,
     ))
     estilos.add(ParagraphStyle(
         name="TOCTitulo",
@@ -547,6 +591,21 @@ def es_inicio_bloque_cita(texto_plano):
     return limpio in (":::cita", "::: cita", ":::quote", "::: quote")
 
 
+def es_inicio_bloque_npc(texto_plano):
+    limpio = texto_plano.strip().lower()
+    return limpio in (":::npc", "::: npc")
+
+
+def es_inicio_bloque_enemigo(texto_plano):
+    limpio = texto_plano.strip().lower()
+    return limpio in (":::enemigo", "::: enemigo", ":::enemy", "::: enemy")
+
+
+def es_inicio_bloque_aliado(texto_plano):
+    limpio = texto_plano.strip().lower()
+    return limpio in (":::aliado", "::: aliado", ":::ally", "::: ally")
+
+
 def es_fin_bloque_manual(texto_plano):
     return texto_plano.strip() == ":::"
 
@@ -616,9 +675,95 @@ def _item_caja_imagen(blob):
     }
 
 
+def _item_caja_tabla(tabla_docx):
+    return {
+        "tipo": "tabla",
+        "tabla": tabla_docx,
+    }
+
+
 def _agregar_imagenes_a_buffer(buffer, blobs):
     for blob in blobs:
         buffer.append(_item_caja_imagen(blob))
+
+
+def _iterar_elementos_documento(doc_word):
+    for child in doc_word.element.body.iterchildren():
+        if child.tag == qn("w:p"):
+            yield "parrafo", DocxParagraph(child, doc_word)
+        elif child.tag == qn("w:tbl"):
+            yield "tabla", DocxTable(child, doc_word)
+
+
+def _html_celda_docx(celda):
+    partes = []
+    for parrafo in celda.paragraphs:
+        html = runs_a_html(parrafo).strip()
+        if html:
+            partes.append(html)
+    return "<br/><br/>".join(partes) if partes else "&nbsp;"
+
+
+def _tabla_docx_a_flowable(tabla_docx, ancho_max, estilo_base):
+    filas = []
+    max_cols = 0
+    for fila in tabla_docx.rows:
+        celdas = [_html_celda_docx(celda) for celda in fila.cells]
+        filas.append(celdas)
+        max_cols = max(max_cols, len(celdas))
+
+    if not filas or max_cols == 0:
+        return None
+
+    estilo_celda = ParagraphStyle(
+        name=f"{estilo_base.name}TablaCelda",
+        parent=estilo_base,
+        alignment=TA_LEFT,
+        leftIndent=0,
+        rightIndent=0,
+        firstLineIndent=0,
+        spaceBefore=0,
+        spaceAfter=0,
+        borderWidth=0,
+        borderPadding=0,
+        backColor=None,
+    )
+
+    datos = []
+    for fila in filas:
+        fila_ext = fila + ["&nbsp;"] * (max_cols - len(fila))
+        datos.append([Paragraph(celda_html, estilo_celda) for celda_html in fila_ext])
+
+    ancho_col = ancho_max / max_cols
+    tabla = Table(datos, colWidths=[ancho_col] * max_cols, hAlign="LEFT")
+    tabla.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.75, estilo_base.borderColor),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("BACKGROUND", (0, 0), (-1, 0), estilo_base.borderColor),
+        ("TEXTCOLOR", (0, 0), (-1, 0), estilo_base.backColor),
+        ("BACKGROUND", (0, 1), (-1, -1), estilo_base.backColor),
+    ]))
+    return tabla
+
+
+def _decorador_titulo_simple(titulo, color):
+    return f'<font color="#{color.hexval()[2:]}"><b>{titulo}</b></font><br/>'
+
+
+def decorar_npc_html(texto_html):
+    return _decorador_titulo_simple("NPC", COLOR_NPC_TEXTO) + texto_html
+
+
+def decorar_enemigo_html(texto_html):
+    return _decorador_titulo_simple("Enemigo", COLOR_ENEMIGO_TEXTO) + texto_html
+
+
+def decorar_aliado_html(texto_html):
+    return _decorador_titulo_simple("Aliado", COLOR_ALIADO_TEXTO) + texto_html
 
 
 def _estilo_interno_caja(estilo_base, item, sufijo):
@@ -657,6 +802,19 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
     for parte in partes:
         if parte is None:
             if contenido and not isinstance(contenido[-1], Spacer):
+                contenido.append(Spacer(1, 6))
+            continue
+
+        if parte.get("tipo") == "tabla":
+            if primer_bloque and decorador is not None:
+                estilo = _estilo_interno_caja(estilo_base, _item_caja_plano(""), indice)
+                contenido.append(Paragraph(decorador(""), estilo))
+                primer_bloque = False
+                indice += 1
+
+            tabla = _tabla_docx_a_flowable(parte.get("tabla"), ancho_interno, estilo_base)
+            if tabla is not None:
+                contenido.append(tabla)
                 contenido.append(Spacer(1, 6))
             continue
 
@@ -818,6 +976,12 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
     dentro_consejo_manual = False
     cita_manual_buffer = []        # buffer de párrafos dentro de :::cita ... :::
     dentro_cita_manual = False
+    npc_manual_buffer = []         # buffer de párrafos dentro de :::npc ... :::
+    dentro_npc_manual = False
+    enemigo_manual_buffer = []     # buffer de párrafos dentro de :::enemigo ... :::
+    dentro_enemigo_manual = False
+    aliado_manual_buffer = []      # buffer de párrafos dentro de :::aliado ... :::
+    dentro_aliado_manual = False
     info_buffer = []               # buffer de párrafos dentro de :::info ... :::
     dentro_info = False
 
@@ -899,6 +1063,48 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             cita_manual_buffer.clear()
         dentro_cita_manual = False
 
+    def emitir_npc_manual():
+        nonlocal dentro_npc_manual
+        if npc_manual_buffer:
+            caja = _renderizar_caja(
+                npc_manual_buffer,
+                estilos["NPCBox"],
+                ancho_util,
+                decorador=decorar_npc_html,
+            )
+            if caja is not None:
+                historia.append(caja)
+            npc_manual_buffer.clear()
+        dentro_npc_manual = False
+
+    def emitir_enemigo_manual():
+        nonlocal dentro_enemigo_manual
+        if enemigo_manual_buffer:
+            caja = _renderizar_caja(
+                enemigo_manual_buffer,
+                estilos["EnemigoBox"],
+                ancho_util,
+                decorador=decorar_enemigo_html,
+            )
+            if caja is not None:
+                historia.append(caja)
+            enemigo_manual_buffer.clear()
+        dentro_enemigo_manual = False
+
+    def emitir_aliado_manual():
+        nonlocal dentro_aliado_manual
+        if aliado_manual_buffer:
+            caja = _renderizar_caja(
+                aliado_manual_buffer,
+                estilos["AliadoBox"],
+                ancho_util,
+                decorador=decorar_aliado_html,
+            )
+            if caja is not None:
+                historia.append(caja)
+            aliado_manual_buffer.clear()
+        dentro_aliado_manual = False
+
     def emitir_info_adicional():
         nonlocal dentro_info
         if info_buffer:
@@ -913,7 +1119,43 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             info_buffer.clear()
         dentro_info = False
 
-    for parrafo in doc_word.paragraphs:
+    for tipo_elemento, elemento in _iterar_elementos_documento(doc_word):
+        if tipo_elemento == "tabla":
+            tabla_docx = elemento
+            item_tabla = _item_caja_tabla(tabla_docx)
+
+            if dentro_info:
+                info_buffer.append(item_tabla)
+                continue
+            if dentro_consejo_manual:
+                consejo_manual_buffer.append(item_tabla)
+                continue
+            if dentro_cita_manual:
+                cita_manual_buffer.append(item_tabla)
+                continue
+            if dentro_npc_manual:
+                npc_manual_buffer.append(item_tabla)
+                continue
+            if dentro_enemigo_manual:
+                enemigo_manual_buffer.append(item_tabla)
+                continue
+            if dentro_aliado_manual:
+                aliado_manual_buffer.append(item_tabla)
+                continue
+
+            vaciar_consejos()
+            vaciar_infos()
+            emitir_info_adicional()
+            emitir_consejo_manual()
+            emitir_cita_manual()
+            emitir_npc_manual()
+            emitir_enemigo_manual()
+            emitir_aliado_manual()
+            vaciar_citas()
+            vaciar_lista()
+            continue
+
+        parrafo = elemento
         # 1) Imágenes embebidas en el párrafo
         imgs = extraer_imagenes_de_parrafo(parrafo, doc_word)
 
@@ -925,6 +1167,9 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_infos()
             emitir_consejo_manual()
             emitir_cita_manual()
+            emitir_npc_manual()
+            emitir_enemigo_manual()
+            emitir_aliado_manual()
             vaciar_citas()
             vaciar_lista()
             dentro_info = True
@@ -936,6 +1181,9 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_infos()
             emitir_info_adicional()
             emitir_cita_manual()
+            emitir_npc_manual()
+            emitir_enemigo_manual()
+            emitir_aliado_manual()
             vaciar_citas()
             vaciar_lista()
             dentro_consejo_manual = True
@@ -947,10 +1195,55 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_infos()
             emitir_info_adicional()
             emitir_consejo_manual()
+            emitir_npc_manual()
+            emitir_enemigo_manual()
+            emitir_aliado_manual()
             vaciar_citas()
             vaciar_lista()
             dentro_cita_manual = True
             cita_manual_buffer.clear()
+            continue
+
+        if es_inicio_bloque_npc(texto_plano):
+            vaciar_consejos()
+            vaciar_infos()
+            emitir_info_adicional()
+            emitir_consejo_manual()
+            emitir_cita_manual()
+            emitir_enemigo_manual()
+            emitir_aliado_manual()
+            vaciar_citas()
+            vaciar_lista()
+            dentro_npc_manual = True
+            npc_manual_buffer.clear()
+            continue
+
+        if es_inicio_bloque_enemigo(texto_plano):
+            vaciar_consejos()
+            vaciar_infos()
+            emitir_info_adicional()
+            emitir_consejo_manual()
+            emitir_cita_manual()
+            emitir_npc_manual()
+            emitir_aliado_manual()
+            vaciar_citas()
+            vaciar_lista()
+            dentro_enemigo_manual = True
+            enemigo_manual_buffer.clear()
+            continue
+
+        if es_inicio_bloque_aliado(texto_plano):
+            vaciar_consejos()
+            vaciar_infos()
+            emitir_info_adicional()
+            emitir_consejo_manual()
+            emitir_cita_manual()
+            emitir_npc_manual()
+            emitir_enemigo_manual()
+            vaciar_citas()
+            vaciar_lista()
+            dentro_aliado_manual = True
+            aliado_manual_buffer.clear()
             continue
 
         if es_fin_bloque_manual(texto_plano) and dentro_info:
@@ -965,12 +1258,33 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             emitir_cita_manual()
             continue
 
+        if es_fin_bloque_manual(texto_plano) and dentro_npc_manual:
+            emitir_npc_manual()
+            continue
+
+        if es_fin_bloque_manual(texto_plano) and dentro_enemigo_manual:
+            emitir_enemigo_manual()
+            continue
+
+        if es_fin_bloque_manual(texto_plano) and dentro_aliado_manual:
+            emitir_aliado_manual()
+            continue
+
         if not texto_html.strip() and not imgs:
             if dentro_consejo_manual:
                 consejo_manual_buffer.append(None)
                 continue
             if dentro_cita_manual:
                 cita_manual_buffer.append(None)
+                continue
+            if dentro_npc_manual:
+                npc_manual_buffer.append(None)
+                continue
+            if dentro_enemigo_manual:
+                enemigo_manual_buffer.append(None)
+                continue
+            if dentro_aliado_manual:
+                aliado_manual_buffer.append(None)
                 continue
             if dentro_info:
                 info_buffer.append(None)
@@ -992,7 +1306,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_lista()
             # Dentro de un bloque #...# las líneas vacías se ignoran
             # (no rompen el bloque; ya separamos con <br/><br/>).
-            if not dentro_info and not dentro_consejo_manual and not dentro_cita_manual:
+            if not dentro_info and not dentro_consejo_manual and not dentro_cita_manual and not dentro_npc_manual and not dentro_enemigo_manual and not dentro_aliado_manual:
                 historia.append(Spacer(1, 4))
             continue
 
@@ -1006,6 +1320,48 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         )
         es_lista = es_lista or _es_lista_parrafo(parrafo)
         item_caja = _item_caja_desde_parrafo(parrafo, texto_html)
+
+        if dentro_info:
+            if texto_html.strip():
+                info_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(info_buffer, imgs)
+            continue
+
+        if dentro_consejo_manual:
+            if texto_html.strip():
+                consejo_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(consejo_manual_buffer, imgs)
+            continue
+
+        if dentro_cita_manual:
+            if texto_html.strip():
+                cita_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(cita_manual_buffer, imgs)
+            continue
+
+        if dentro_npc_manual:
+            if texto_html.strip():
+                npc_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(npc_manual_buffer, imgs)
+            continue
+
+        if dentro_enemigo_manual:
+            if texto_html.strip():
+                enemigo_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(enemigo_manual_buffer, imgs)
+            continue
+
+        if dentro_aliado_manual:
+            if texto_html.strip():
+                aliado_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(aliado_manual_buffer, imgs)
+            continue
 
         if imgs and not texto_html.strip():
             if consejos_pendientes:
@@ -1077,6 +1433,27 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 cita_manual_buffer.append(item_caja)
             if imgs:
                 _agregar_imagenes_a_buffer(cita_manual_buffer, imgs)
+            continue
+
+        if dentro_npc_manual:
+            if texto_html.strip():
+                npc_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(npc_manual_buffer, imgs)
+            continue
+
+        if dentro_enemigo_manual:
+            if texto_html.strip():
+                enemigo_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(enemigo_manual_buffer, imgs)
+            continue
+
+        if dentro_aliado_manual:
+            if texto_html.strip():
+                aliado_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(aliado_manual_buffer, imgs)
             continue
 
         # 2) Consejo para el DM → caja azul (formato de un solo párrafo)
@@ -1182,6 +1559,9 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
     emitir_consejo_manual()
     emitir_cita_manual()
+    emitir_npc_manual()
+    emitir_enemigo_manual()
+    emitir_aliado_manual()
     emitir_info_adicional()
     vaciar_consejos()
     vaciar_infos()

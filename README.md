@@ -136,16 +136,61 @@ Este formato es el más robusto para mezclar:
 La misma robustez aplica a `:::consejo` y `:::cita`.
 
 ### Imágenes dentro de recuadros
-Los bloques manuales `:::info`, `:::consejo` y `:::cita` ya pueden contener
-imágenes dentro del mismo recuadro. Si insertas una imagen entre dos párrafos
-del bloque, el PDF la mantiene dentro de la caja.
+Los bloques manuales `:::info`, `:::consejo`, `:::cita`, `:::npc`,
+`:::enemigo` y `:::aliado` ya pueden contener imágenes dentro del mismo
+recuadro. Si insertas una imagen entre dos párrafos del bloque, el PDF la
+mantiene dentro de la caja.
 
 En la práctica:
-- texto + enlaces + listas + imágenes dentro de `:::info`, `:::consejo` o
-    `:::cita` → se mantienen juntos;
+- texto + enlaces + listas + imágenes dentro de cualquiera de esos bloques →
+    se mantienen juntos;
 - si una secuencia de `Cita`, `Consejos` o `Información adicional` ya está
     abierta, un párrafo que solo tenga una imagen también puede quedar dentro del
     recuadro activo.
+
+### Bloques especiales: NPC, enemigo y aliado
+Estos tres tipos solo se activan mediante bloque manual. No usan estilo de
+párrafo ni prefijos automáticos.
+
+#### NPC
+```text
+:::npc
+Nombre: Jim Hopper
+
+- Sheriff de Hawkins
+- Protector y desconfiado
+
+| También puedes insertar una tabla en Word dentro del bloque |
+:::
+```
+
+#### Enemigo
+```text
+:::enemigo
+Demogorgon
+
+- Acecha desde el Otro Lado.
+- Ataca cuando detecta sangre.
+:::
+```
+
+#### Aliado
+```text
+:::aliado
+Once
+
+- Puede ayudarte en escenas críticas.
+- Funciona muy bien como apoyo narrativo.
+:::
+```
+
+Los tres siguen la misma lógica robusta que `:::info`, `:::consejo` y
+`:::cita`:
+- conservan párrafos normales,
+- conservan viñetas y sangrías,
+- conservan imágenes dentro del cuadro,
+- admiten tablas de Word dentro del mismo recuadro,
+- y toleran pequeños espacios en blanco entre bloques de contenido.
 
 ### Imágenes
 Pega las imágenes en el Word donde quieras. El script las extrae y las coloca
