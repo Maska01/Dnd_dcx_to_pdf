@@ -323,7 +323,7 @@ def es_info_adicional(texto_plano):
 
 def decorar_info_adicional_html(texto_html):
     etiqueta = (
-        f'<font color="#{COLOR_INFO_BORDE.hexval()[2:]}"><b>[i] Información adicional:</b></font> '
+        f'<font color="#{COLOR_INFO_BORDE.hexval()[2:]}"><b>[i] Información adicional</b></font><br/>'
     )
     patrones = [
         r'^\s*(información adicional|informacion adicional|info adicional|dato adicional)\s*:\s*',
@@ -495,6 +495,9 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
     citas_pendientes = []          # buffer de citas consecutivas a fusionar
     vacios_desde_ultima_cita = 0   # nº de párrafos vacíos vistos tras la última cita
     MAX_VACIOS_FUSION_CITA = 2     # hasta 2 saltos de renglón => misma caja
+    infos_pendientes = []          # buffer de infos consecutivas a fusionar
+    vacios_desde_ultima_info = 0   # nº de párrafos vacíos vistos tras la última info
+    MAX_VACIOS_FUSION_INFO = 2     # hasta 2 saltos de renglón => misma caja
 
     consejo_buffer = []            # buffer de párrafos dentro de un bloque #...#
     dentro_consejo = False
@@ -523,6 +526,16 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             ))
             citas_pendientes.clear()
 
+    def vaciar_infos():
+        nonlocal vacios_desde_ultima_info
+        if infos_pendientes:
+            html = "<br/><br/>".join(infos_pendientes)
+            historia.append(KeepTogether(
+                Paragraph(decorar_info_adicional_html(html), estilos["InfoAdicional"])
+            ))
+            infos_pendientes.clear()
+        vacios_desde_ultima_info = 0
+
     def emitir_consejo():
         nonlocal dentro_consejo
         if consejo_buffer:
@@ -548,6 +561,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         imgs = extraer_imagenes_de_parrafo(parrafo, doc_word)
         if imgs:
             # Las imágenes interrumpen cualquier bloque abierto
+            vaciar_infos()
             emitir_info_adicional()
             emitir_consejo()
             vaciar_citas()
@@ -563,6 +577,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         texto_plano = parrafo.text or ""
 
         if es_inicio_bloque_info(texto_plano):
+            vaciar_infos()
             emitir_consejo()
             vaciar_citas()
             vaciar_lista()
@@ -581,6 +596,10 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 if vacios_desde_ultima_cita > MAX_VACIOS_FUSION_CITA:
                     vaciar_citas()
                     vacios_desde_ultima_cita = 0
+            if infos_pendientes:
+                vacios_desde_ultima_info += 1
+                if vacios_desde_ultima_info > MAX_VACIOS_FUSION_INFO:
+                    vaciar_infos()
             vaciar_lista()
             # Dentro de un bloque #...# las líneas vacías se ignoran
             # (no rompen el bloque; ya separamos con <br/><br/>).
@@ -610,12 +629,14 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
             def _emitir_fuera_acumulado():
                 """Emite lo acumulado fuera del consejo respetando estilo del párrafo."""
+                nonlocal vacios_desde_ultima_info
                 contenido = "".join(html_fuera_partes).strip()
                 html_fuera_partes.clear()
                 if not contenido:
                     return
                 if es_consejo_dm(re.sub(r"<[^>]+>", "", contenido)):
                     # Formato 'CONSEJO PARA EL DM' clásico (un solo párrafo)
+                    vaciar_infos()
                     vaciar_citas()
                     vaciar_lista()
                     historia.append(KeepTogether(
@@ -625,23 +646,24 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 if es_info_adicional(re.sub(r"<[^>]+>", "", contenido)):
                     vaciar_citas()
                     vaciar_lista()
-                    historia.append(KeepTogether(
-                        Paragraph(decorar_info_adicional_html(contenido), estilos["InfoAdicional"])
-                    ))
+                    infos_pendientes.append(contenido)
+                    vacios_desde_ultima_info = 0
                     return
                 if es_lista:
+                    vaciar_infos()
                     vaciar_citas()
                     items_lista_actual.append(contenido)
                 elif clave == "CitaCaja":
+                    vaciar_infos()
                     vaciar_lista()
                     citas_pendientes.append(contenido)
                 elif clave == "InfoAdicional":
                     vaciar_citas()
                     vaciar_lista()
-                    historia.append(KeepTogether(
-                        Paragraph(decorar_info_adicional_html(contenido), estilos["InfoAdicional"])
-                    ))
+                    infos_pendientes.append(contenido)
+                    vacios_desde_ultima_info = 0
                 else:
+                    vaciar_infos()
                     vaciar_citas()
                     vaciar_lista()
                     historia.append(Paragraph(contenido, estilos[clave]))
@@ -684,6 +706,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
         # 2) Consejo para el DM → caja azul (formato de un solo párrafo)
         if es_consejo_dm(texto_plano):
+            vaciar_infos()
             vaciar_citas()
             vaciar_lista()
             historia.append(KeepTogether(
@@ -695,13 +718,13 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         if clave == "InfoAdicional" or es_info_adicional(texto_plano):
             vaciar_citas()
             vaciar_lista()
-            historia.append(KeepTogether(
-                Paragraph(decorar_info_adicional_html(texto_html), estilos["InfoAdicional"])
-            ))
+            infos_pendientes.append(texto_html)
+            vacios_desde_ultima_info = 0
             continue
 
         # 3) Listas
         if es_lista:
+            vaciar_infos()
             vaciar_citas()
             items_lista_actual.append(texto_html)
             continue
@@ -710,11 +733,13 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
         # 4) Citas → caja amarilla (se fusionan citas consecutivas)
         if clave == "CitaCaja":
+            vaciar_infos()
             citas_pendientes.append(texto_html)
             vacios_desde_ultima_cita = 0
             continue
         else:
             # Cualquier otro contenido cierra el bloque de citas
+            vaciar_infos()
             vaciar_citas()
             vacios_desde_ultima_cita = 0
 
@@ -723,6 +748,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
     emitir_consejo()
     emitir_info_adicional()
+    vaciar_infos()
     vaciar_citas()
     vaciar_lista()
 
