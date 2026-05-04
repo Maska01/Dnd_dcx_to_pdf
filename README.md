@@ -28,6 +28,7 @@ Usa los **estilos de Word** para que el script reconozca cada parte:
 | **Título 3** | Subsección |
 | **Normal** | Texto justificado |
 | **Cita** (Quote) | 🟨 Caja amarilla con texto negro |
+| **Información adicional** o prefijo `INFORMACIÓN ADICIONAL:` | 🟩 Caja verde-azulada con marcador `[i]` |
 | Párrafo que empieza con `CONSEJO PARA EL DM` | 🟦 Caja azul con texto azul |
 | Lista con viñetas | Lista con viñetas |
 | Hipervínculos embebidos | Enlaces clicables en el PDF |
@@ -60,6 +61,37 @@ El script lo detecta automáticamente y lo encierra en la caja azul.
 
 ### Citas
 Aplica el estilo **Cita** al párrafo en Word → saldrá en caja amarilla.
+
+### Información adicional
+Para información útil pero opcional, tienes **tres formas**:
+
+**1) Recomendado: estilo de párrafo `Información adicional`**
+Si creas en Word un estilo con ese nombre (o similar, por ejemplo
+`Info adicional`), el script lo detecta y lo convierte en una caja
+verde-azulada con el marcador `[i] Información adicional:`.
+
+**2) Alternativa rápida: prefijo de texto**
+Escribe un párrafo Normal que empiece así:
+
+> **INFORMACIÓN ADICIONAL:** Este detalle puede ayudarte a enriquecer la escena, pero no es obligatorio usarlo.
+
+El script lo detecta automáticamente y lo mete en la caja informativa.
+
+**3) Bloque manual delimitado: `:::info` ... `:::`**
+Si quieres que la caja abarque varios párrafos o incluso listas, puedes abrir y
+cerrar el bloque manualmente:
+
+```text
+:::info
+Este detalle añade contexto opcional para enriquecer la escena.
+
+- Puedes usarlo como pista secundaria.
+- También puedes omitirlo si quieres ir al grano.
+:::
+```
+
+Todo lo que quede entre `:::info` y `:::` se convertirá en una sola caja de
+información adicional.
 
 ### Imágenes
 Pega las imágenes en el Word donde quieras. El script las extrae y las coloca

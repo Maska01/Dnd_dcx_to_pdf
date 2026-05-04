@@ -10,6 +10,7 @@ Convención del documento Word:
     - Estilo "Título 2" (Heading 2)  -> Sección (entra en TOC)
     - Estilo "Título 3" (Heading 3)  -> Subsección
     - Estilo "Cita"   (Quote)        -> Caja AMARILLA con texto negro
+    - Estilo "Información adicional" o prefijo equivalente -> Caja verde-azulada
     - Párrafo que empiece con "CONSEJO PARA EL DM" -> Caja AZUL con texto azul
     - Estilo "Normal"                -> Párrafo de texto justificado
     - Listas con viñetas             -> Listas
@@ -51,6 +52,11 @@ COLOR_AZUL_FONDO = HexColor("#EAF1FB")
 COLOR_AMA_TEXTO  = HexColor("#000000")
 COLOR_AMA_BORDE  = HexColor("#D9B96A")
 COLOR_AMA_FONDO  = HexColor("#FBF3DC")
+
+# Caja "Información adicional" (verde azulado)
+COLOR_INFO_TEXTO = HexColor("#0F4C5C")
+COLOR_INFO_BORDE = HexColor("#2A9D8F")
+COLOR_INFO_FONDO = HexColor("#E6F7F5")
 
 FUENTE_TITULO = "Helvetica-Bold"
 FUENTE_TEXTO  = "Helvetica"
@@ -110,6 +116,16 @@ def construir_estilos():
         borderColor=COLOR_AMA_BORDE, borderWidth=1, borderRadius=8,
         borderPadding=5, backColor=COLOR_AMA_FONDO,
     ))
+    # Caja VERDE-AZULADA (Información adicional útil, no obligatoria)
+    estilos.add(ParagraphStyle(
+        name="InfoAdicional",
+        fontName=FUENTE_TEXTO, fontSize=11, leading=15,
+        textColor=COLOR_INFO_TEXTO, alignment=TA_JUSTIFY,
+        leftIndent=10, rightIndent=10,
+        spaceBefore=12, spaceAfter=12,
+        borderColor=COLOR_INFO_BORDE, borderWidth=1, borderRadius=8,
+        borderPadding=5, backColor=COLOR_INFO_FONDO,
+    ))
     # Caja AZUL (Consejo para el DM)
     estilos.add(ParagraphStyle(
         name="ConsejoDM",
@@ -136,6 +152,9 @@ def estilo_para_parrafo(p):
         return "H2"
     if "heading 3" in nombre or "título 3" in nombre or "titulo 3" in nombre:
         return "H3"
+    if ("información adicional" in nombre or "informacion adicional" in nombre or
+            "info adicional" in nombre):
+        return "InfoAdicional"
     if "quote" in nombre or "cita" in nombre:
         return "CitaCaja"
     if "list" in nombre or "lista" in nombre:
@@ -292,6 +311,39 @@ def es_consejo_dm(texto_plano):
     return limpio.startswith("consejo para el dm")
 
 
+def es_info_adicional(texto_plano):
+    limpio = texto_plano.lstrip(" *_“\"'\t").lower()
+    return (
+        limpio.startswith("información adicional")
+        or limpio.startswith("informacion adicional")
+        or limpio.startswith("info adicional")
+        or limpio.startswith("dato adicional")
+    )
+
+
+def decorar_info_adicional_html(texto_html):
+    etiqueta = (
+        f'<font color="#{COLOR_INFO_BORDE.hexval()[2:]}"><b>[i] Información adicional:</b></font> '
+    )
+    patrones = [
+        r'^\s*(información adicional|informacion adicional|info adicional|dato adicional)\s*:\s*',
+    ]
+    for patron in patrones:
+        reemplazado = re.sub(patron, etiqueta, texto_html, count=1, flags=re.IGNORECASE)
+        if reemplazado != texto_html:
+            return reemplazado
+    return etiqueta + texto_html
+
+
+def es_inicio_bloque_info(texto_plano):
+    limpio = texto_plano.strip().lower()
+    return limpio in (":::info", "::: info", ":::informacion", ":::información")
+
+
+def es_fin_bloque_info(texto_plano):
+    return texto_plano.strip() == ":::"
+
+
 def _split_html_balanceado(html, sep="#"):
     """Divide `html` por `sep` manteniendo balanceadas las etiquetas.
 
@@ -446,6 +498,8 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
     consejo_buffer = []            # buffer de párrafos dentro de un bloque #...#
     dentro_consejo = False
+    info_buffer = []               # buffer de párrafos dentro de :::info ... :::
+    dentro_info = False
 
     def _texto_plano_limpio(s):
         # Quita espacios, asteriscos y caracteres de formato comunes.
@@ -479,11 +533,22 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             consejo_buffer.clear()
         dentro_consejo = False
 
+    def emitir_info_adicional():
+        nonlocal dentro_info
+        if info_buffer:
+            html = "<br/><br/>".join(info_buffer)
+            historia.append(KeepTogether(
+                Paragraph(decorar_info_adicional_html(html), estilos["InfoAdicional"])
+            ))
+            info_buffer.clear()
+        dentro_info = False
+
     for parrafo in doc_word.paragraphs:
         # 1) Imágenes embebidas en el párrafo
         imgs = extraer_imagenes_de_parrafo(parrafo, doc_word)
         if imgs:
             # Las imágenes interrumpen cualquier bloque abierto
+            emitir_info_adicional()
             emitir_consejo()
             vaciar_citas()
             vaciar_lista()
@@ -497,6 +562,18 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         texto_html = runs_a_html(parrafo)
         texto_plano = parrafo.text or ""
 
+        if es_inicio_bloque_info(texto_plano):
+            emitir_consejo()
+            vaciar_citas()
+            vaciar_lista()
+            dentro_info = True
+            info_buffer.clear()
+            continue
+
+        if es_fin_bloque_info(texto_plano):
+            emitir_info_adicional()
+            continue
+
         if not texto_html.strip():
             # Párrafo vacío: si superamos el umbral, cerramos la caja de citas.
             if citas_pendientes:
@@ -507,7 +584,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_lista()
             # Dentro de un bloque #...# las líneas vacías se ignoran
             # (no rompen el bloque; ya separamos con <br/><br/>).
-            if not dentro_consejo:
+            if not dentro_consejo and not dentro_info:
                 historia.append(Spacer(1, 4))
             continue
 
@@ -515,6 +592,13 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         es_lista = clave == "Lista" or (
             parrafo.style.name and "List Bullet" in parrafo.style.name
         )
+
+        if dentro_info:
+            if es_lista:
+                info_buffer.append(f"• {texto_html}")
+            else:
+                info_buffer.append(texto_html)
+            continue
 
         # ---------- Bloques delimitados por # ... # (también inline) ----------
         if "#" in texto_html or dentro_consejo:
@@ -538,12 +622,25 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                         Paragraph(contenido, estilos["ConsejoDM"])
                     ))
                     return
+                if es_info_adicional(re.sub(r"<[^>]+>", "", contenido)):
+                    vaciar_citas()
+                    vaciar_lista()
+                    historia.append(KeepTogether(
+                        Paragraph(decorar_info_adicional_html(contenido), estilos["InfoAdicional"])
+                    ))
+                    return
                 if es_lista:
                     vaciar_citas()
                     items_lista_actual.append(contenido)
                 elif clave == "CitaCaja":
                     vaciar_lista()
                     citas_pendientes.append(contenido)
+                elif clave == "InfoAdicional":
+                    vaciar_citas()
+                    vaciar_lista()
+                    historia.append(KeepTogether(
+                        Paragraph(decorar_info_adicional_html(contenido), estilos["InfoAdicional"])
+                    ))
                 else:
                     vaciar_citas()
                     vaciar_lista()
@@ -594,6 +691,15 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             ))
             continue
 
+        # 2.5) Información adicional → caja verde-azulada
+        if clave == "InfoAdicional" or es_info_adicional(texto_plano):
+            vaciar_citas()
+            vaciar_lista()
+            historia.append(KeepTogether(
+                Paragraph(decorar_info_adicional_html(texto_html), estilos["InfoAdicional"])
+            ))
+            continue
+
         # 3) Listas
         if es_lista:
             vaciar_citas()
@@ -616,6 +722,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         historia.append(Paragraph(texto_html, estilos[clave]))
 
     emitir_consejo()
+    emitir_info_adicional()
     vaciar_citas()
     vaciar_lista()
 
