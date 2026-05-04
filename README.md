@@ -76,6 +76,24 @@ en la línea del encabezado.
 ### Citas
 Aplica el estilo **Cita** al párrafo en Word → saldrá en caja amarilla.
 
+También puedes crear una cita manual de varios párrafos con:
+
+```text
+:::cita
+Este texto irá dentro de una sola caja amarilla.
+
+- Puedes mezclar varios párrafos.
+- También listas y enlaces.
+:::
+```
+
+Todo lo que quede entre `:::cita` y `:::` se convierte en una sola caja de cita.
+Este formato sigue la misma lógica robusta que `:::info` y `:::consejo`:
+- conserva párrafos normales,
+- conserva viñetas y sangrías,
+- tolera pequeños espacios en blanco entre párrafos,
+- y corta el bloque correctamente si aparece una imagen.
+
 ### Información adicional
 Para información útil pero opcional, tienes **tres formas**:
 
@@ -113,14 +131,17 @@ Este formato es el más robusto para mezclar:
 - viñetas,
 - y pequeños espacios en blanco entre bloques de texto.
 
-### Límite importante de `:::info`
-Las imágenes no se incrustan dentro de la misma caja de `Información adicional`.
-Si el script encuentra una imagen, la trata como un elemento independiente del
-PDF y eso corta el bloque actual.
+La misma robustez aplica a `:::consejo` y `:::cita`.
+
+### Límite importante de los bloques manuales
+Las imágenes no se incrustan dentro de la misma caja de `:::info`,
+`:::consejo` o `:::cita`. Si el script encuentra una imagen, la trata como un
+elemento independiente del PDF y eso corta el bloque actual.
 
 En la práctica:
-- texto + enlaces + listas dentro de `:::info` → sí se mantienen juntos;
-- imagen dentro del tramo `:::info` → la imagen sale fuera de la caja y el
+- texto + enlaces + listas dentro de `:::info`, `:::consejo` o `:::cita` → sí
+    se mantienen juntos;
+- imagen dentro de uno de esos bloques → la imagen sale fuera de la caja y el
     bloque se interrumpe.
 
 ### Imágenes

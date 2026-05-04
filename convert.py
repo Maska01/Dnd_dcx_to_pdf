@@ -314,6 +314,118 @@ def es_consejo_dm(texto_plano):
     return limpio.startswith("consejo para el dm")
 
 
+def _dividir_html_en_salto(html, numero_saltos):
+    if numero_saltos <= 0:
+        return html, ""
+
+    tokens = re.split(r"(<[^>]+>)", html)
+    izquierda = []
+    derecha = []
+    pila_izquierda = []
+    pila_derecha = []
+    tags_en_split = []
+    saltos_vistos = 0
+    dividido = False
+    derecha_iniciada = False
+
+    def _parsear_tag(tag):
+        inner = tag[1:-1].strip()
+        nombre = inner.lstrip("/").split()[0].lower() if inner else ""
+        if nombre.startswith("br"):
+            nombre = "br"
+        es_cierre = inner.startswith("/")
+        es_autocierre = inner.endswith("/") or nombre == "br"
+        return nombre, es_cierre, es_autocierre
+
+    def _actualizar_pila(pila, nombre, es_cierre, es_autocierre, tag):
+        if es_cierre:
+            for k in range(len(pila) - 1, -1, -1):
+                if pila[k][0] == nombre:
+                    del pila[k]
+                    break
+        elif not es_autocierre and nombre:
+            pila.append((nombre, tag))
+
+    for token in tokens:
+        if token == "":
+            continue
+
+        es_tag = token.startswith("<") and token.endswith(">")
+        if not es_tag:
+            if dividido:
+                if not derecha_iniciada and tags_en_split:
+                    derecha.extend(tag for _, tag in tags_en_split)
+                derecha_iniciada = True
+                derecha.append(token)
+            else:
+                izquierda.append(token)
+            continue
+
+        nombre, es_cierre, es_autocierre = _parsear_tag(token)
+        if not dividido and nombre == "br":
+            saltos_vistos += 1
+            if saltos_vistos >= numero_saltos:
+                tags_en_split = list(pila_izquierda)
+                pila_derecha = list(tags_en_split)
+                dividido = True
+                continue
+            izquierda.append(token)
+            continue
+
+        if dividido:
+            if nombre == "br" and not derecha_iniciada:
+                continue
+            if not derecha_iniciada and tags_en_split:
+                derecha.extend(tag for _, tag in tags_en_split)
+            derecha_iniciada = True
+            derecha.append(token)
+            _actualizar_pila(pila_derecha, nombre, es_cierre, es_autocierre, token)
+        else:
+            izquierda.append(token)
+            _actualizar_pila(pila_izquierda, nombre, es_cierre, es_autocierre, token)
+
+    if not dividido:
+        return html, ""
+
+    for nombre, _ in reversed(tags_en_split):
+        izquierda.append(f"</{nombre}>")
+    for nombre, _ in reversed(pila_derecha):
+        derecha.append(f"</{nombre}>")
+
+    return "".join(izquierda).rstrip(), "".join(derecha).lstrip()
+
+
+def _buscar_prefijo_embebido(texto_plano, detector):
+    lineas = re.split(r"\r\n|\r|\n", texto_plano or "")
+    if len(lineas) < 2:
+        return None
+
+    hay_contenido_antes = False
+    saltos_previos = 0
+    for linea in lineas:
+        if detector(linea):
+            if hay_contenido_antes:
+                return saltos_previos
+        elif linea.strip():
+            hay_contenido_antes = True
+        saltos_previos += 1
+    return None
+
+
+def _extraer_bloque_prefijo_embebido(texto_html, texto_plano, detector):
+    numero_saltos = _buscar_prefijo_embebido(texto_plano, detector)
+    if numero_saltos is None:
+        return None
+
+    antes_html, bloque_html = _dividir_html_en_salto(texto_html, numero_saltos)
+    lineas = re.split(r"\r\n|\r|\n", texto_plano or "")
+    antes_plano = "\n".join(lineas[:numero_saltos]).strip()
+    bloque_plano = "\n".join(lineas[numero_saltos:]).lstrip()
+    if not antes_html.strip() or not bloque_html.strip() or not bloque_plano.strip():
+        return None
+    return antes_html, antes_plano, bloque_html, bloque_plano
+
+
 def _quitar_prefijo_visible_html(html, visible_chars):
     if visible_chars <= 0:
         return html
@@ -430,6 +542,15 @@ def es_inicio_bloque_consejo(texto_plano):
     return limpio in (":::consejo", "::: consejo", ":::dm", "::: dm")
 
 
+def es_inicio_bloque_cita(texto_plano):
+    limpio = texto_plano.strip().lower()
+    return limpio in (":::cita", "::: cita", ":::quote", "::: quote")
+
+
+def es_fin_bloque_manual(texto_plano):
+    return texto_plano.strip() == ":::"
+
+
 def _pt_word(longitud):
     if longitud is None:
         return 0
@@ -473,6 +594,16 @@ def _item_caja_desde_parrafo(parrafo, texto_html):
         "nivel_lista": _nivel_lista_parrafo(parrafo),
         "left_indent": _pt_word(parrafo.paragraph_format.left_indent),
         "first_line_indent": _pt_word(parrafo.paragraph_format.first_line_indent),
+    }
+
+
+def _item_caja_plano(texto_html):
+    return {
+        "html": texto_html,
+        "es_lista": False,
+        "nivel_lista": 0,
+        "left_indent": 0,
+        "first_line_indent": 0,
     }
 
 
@@ -656,6 +787,8 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
     consejo_manual_buffer = []     # buffer de párrafos dentro de :::consejo ... :::
     dentro_consejo_manual = False
+    cita_manual_buffer = []        # buffer de párrafos dentro de :::cita ... :::
+    dentro_cita_manual = False
     info_buffer = []               # buffer de párrafos dentro de :::info ... :::
     dentro_info = False
 
@@ -724,6 +857,19 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             consejo_manual_buffer.clear()
         dentro_consejo_manual = False
 
+    def emitir_cita_manual():
+        nonlocal dentro_cita_manual
+        if cita_manual_buffer:
+            caja = _renderizar_caja(
+                cita_manual_buffer,
+                estilos["CitaCaja"],
+                ancho_util,
+            )
+            if caja is not None:
+                historia.append(caja)
+            cita_manual_buffer.clear()
+        dentro_cita_manual = False
+
     def emitir_info_adicional():
         nonlocal dentro_info
         if info_buffer:
@@ -747,6 +893,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_infos()
             emitir_info_adicional()
             emitir_consejo_manual()
+            emitir_cita_manual()
             vaciar_citas()
             vaciar_lista()
             for blob in imgs:
@@ -763,6 +910,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_consejos()
             vaciar_infos()
             emitir_consejo_manual()
+            emitir_cita_manual()
             vaciar_citas()
             vaciar_lista()
             dentro_info = True
@@ -773,23 +921,42 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_consejos()
             vaciar_infos()
             emitir_info_adicional()
+            emitir_cita_manual()
             vaciar_citas()
             vaciar_lista()
             dentro_consejo_manual = True
             consejo_manual_buffer.clear()
             continue
 
-        if es_fin_bloque_info(texto_plano) and dentro_info:
+        if es_inicio_bloque_cita(texto_plano):
+            vaciar_consejos()
+            vaciar_infos()
+            emitir_info_adicional()
+            emitir_consejo_manual()
+            vaciar_citas()
+            vaciar_lista()
+            dentro_cita_manual = True
+            cita_manual_buffer.clear()
+            continue
+
+        if es_fin_bloque_manual(texto_plano) and dentro_info:
             emitir_info_adicional()
             continue
 
-        if es_fin_bloque_info(texto_plano) and dentro_consejo_manual:
+        if es_fin_bloque_manual(texto_plano) and dentro_consejo_manual:
             emitir_consejo_manual()
+            continue
+
+        if es_fin_bloque_manual(texto_plano) and dentro_cita_manual:
+            emitir_cita_manual()
             continue
 
         if not texto_html.strip():
             if dentro_consejo_manual:
                 consejo_manual_buffer.append(None)
+                continue
+            if dentro_cita_manual:
+                cita_manual_buffer.append(None)
                 continue
             if dentro_info:
                 info_buffer.append(None)
@@ -811,7 +978,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_lista()
             # Dentro de un bloque #...# las líneas vacías se ignoran
             # (no rompen el bloque; ya separamos con <br/><br/>).
-            if not dentro_info and not dentro_consejo_manual:
+            if not dentro_info and not dentro_consejo_manual and not dentro_cita_manual:
                 historia.append(Spacer(1, 4))
             continue
 
@@ -826,12 +993,49 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         es_lista = es_lista or _es_lista_parrafo(parrafo)
         item_caja = _item_caja_desde_parrafo(parrafo, texto_html)
 
+        if clave not in ("ConsejoDM", "InfoAdicional", "CitaCaja"):
+            bloque_embebido = _extraer_bloque_prefijo_embebido(texto_html, texto_plano, es_consejo_dm)
+            tipo_bloque_embebido = "consejo"
+            if bloque_embebido is None:
+                bloque_embebido = _extraer_bloque_prefijo_embebido(texto_html, texto_plano, es_info_adicional)
+                tipo_bloque_embebido = "info"
+            if bloque_embebido is not None:
+                antes_html, antes_plano, bloque_html, bloque_plano = bloque_embebido
+                vaciar_consejos()
+                vaciar_infos()
+                emitir_info_adicional()
+                emitir_consejo_manual()
+                emitir_cita_manual()
+                vaciar_citas()
+
+                if es_lista:
+                    items_lista_actual.append(antes_html)
+                else:
+                    vaciar_lista()
+                    historia.append(Paragraph(antes_html, estilos[clave]))
+
+                vaciar_lista()
+                item_bloque = _item_caja_plano(bloque_html)
+                if tipo_bloque_embebido == "consejo":
+                    consejos_pendientes.append(item_bloque)
+                    modo_consejos = "prefijo"
+                    vacios_desde_ultimo_consejo = 0
+                else:
+                    infos_pendientes.append(item_bloque)
+                    modo_infos = "prefijo"
+                    vacios_desde_ultima_info = 0
+                continue
+
         if dentro_info:
             info_buffer.append(item_caja)
             continue
 
         if dentro_consejo_manual:
             consejo_manual_buffer.append(item_caja)
+            continue
+
+        if dentro_cita_manual:
+            cita_manual_buffer.append(item_caja)
             continue
 
         # 2) Consejo para el DM → caja azul (formato de un solo párrafo)
@@ -841,9 +1045,11 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 vaciar_consejos()
             vaciar_infos()
             emitir_consejo_manual()
+            emitir_cita_manual()
             vaciar_citas()
             vaciar_lista()
-            consejos_pendientes.append(item_caja)
+            item_consejo = item_caja if consejo_por_estilo else _item_caja_plano(texto_html)
+            consejos_pendientes.append(item_consejo)
             modo_consejos = nuevo_modo_consejo
             vacios_desde_ultimo_consejo = 0
             continue
@@ -856,6 +1062,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_consejos()
             vaciar_citas()
             vaciar_lista()
+            emitir_cita_manual()
             infos_pendientes.append(item_caja)
             modo_infos = nuevo_modo_info
             vacios_desde_ultima_info = 0
@@ -878,6 +1085,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_consejos()
             vaciar_infos()
             emitir_consejo_manual()
+            emitir_cita_manual()
             vaciar_citas()
             items_lista_actual.append(texto_html)
             continue
@@ -889,6 +1097,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_consejos()
             vaciar_infos()
             emitir_consejo_manual()
+            emitir_cita_manual()
             citas_pendientes.append(item_caja)
             vacios_desde_ultima_cita = 0
             continue
@@ -897,6 +1106,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_consejos()
             vaciar_infos()
             emitir_consejo_manual()
+            emitir_cita_manual()
             vaciar_citas()
             vacios_desde_ultima_cita = 0
 
@@ -904,6 +1114,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         historia.append(Paragraph(texto_html, estilos[clave]))
 
     emitir_consejo_manual()
+    emitir_cita_manual()
     emitir_info_adicional()
     vaciar_consejos()
     vaciar_infos()
