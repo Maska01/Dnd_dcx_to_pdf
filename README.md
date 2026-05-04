@@ -30,6 +30,7 @@ Usa los **estilos de Word** para que el script reconozca cada parte:
 | **Cita** (Quote) | 🟨 Caja amarilla con texto negro |
 | Párrafo que empieza con `CONSEJO PARA EL DM` | 🟦 Caja azul con texto azul |
 | Lista con viñetas | Lista con viñetas |
+| Hipervínculos embebidos | Enlaces clicables en el PDF |
 
 Dentro de cualquier párrafo puedes usar **negrita**, *cursiva* o subrayado y se
 respetan en el PDF, también dentro de las cajas.
@@ -63,6 +64,10 @@ Aplica el estilo **Cita** al párrafo en Word → saldrá en caja amarilla.
 ### Imágenes
 Pega las imágenes en el Word donde quieras. El script las extrae y las coloca
 en el PDF en el mismo punto, escaladas al ancho útil de la página.
+
+### Enlaces
+Si insertas un hipervínculo real en Word, el script intenta conservarlo en el
+PDF como enlace clicable, manteniendo además el texto azul y subrayado.
 
 ## Tabla de contenidos
 Se genera automáticamente desde los Título 1 y Título 2.

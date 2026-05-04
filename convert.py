@@ -106,9 +106,9 @@ def construir_estilos():
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_AMA_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
-        spaceBefore=10, spaceAfter=10,
+        spaceBefore=12, spaceAfter=12,
         borderColor=COLOR_AMA_BORDE, borderWidth=1, borderRadius=8,
-        borderPadding=12, backColor=COLOR_AMA_FONDO,
+        borderPadding=5, backColor=COLOR_AMA_FONDO,
     ))
     # Caja AZUL (Consejo para el DM)
     estilos.add(ParagraphStyle(
@@ -116,9 +116,9 @@ def construir_estilos():
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_AZUL_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
-        spaceBefore=10, spaceAfter=10,
+        spaceBefore=12, spaceAfter=12,
         borderColor=COLOR_AZUL_BORDE, borderWidth=1, borderRadius=8,
-        borderPadding=12, backColor=COLOR_AZUL_FONDO,
+        borderPadding=5, backColor=COLOR_AZUL_FONDO,
     ))
     estilos.add(ParagraphStyle(
         name="TOCTitulo",
@@ -155,27 +155,102 @@ def _markdown_inline_a_html(texto):
     return texto
 
 
+def _escapar_html(texto):
+    return (texto.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;"))
+
+
+def _escapar_atributo_html(texto):
+    return _escapar_html(texto).replace('"', '&quot;')
+
+
+def _texto_run_xml(run_xml):
+    partes = []
+    for nodo in run_xml.iter():
+        if nodo.tag == qn("w:t"):
+            partes.append(nodo.text or "")
+        elif nodo.tag == qn("w:tab"):
+            partes.append("    ")
+        elif nodo.tag in (qn("w:br"), qn("w:cr")):
+            partes.append("<br/>")
+    return "".join(partes)
+
+
+def _run_xml_a_html(run_xml):
+    texto = _texto_run_xml(run_xml)
+    if not texto:
+        return "", False
+
+    usa_formato = False
+    if "<br/>" not in texto:
+        texto = _escapar_html(texto)
+
+    propiedades = run_xml.find(qn("w:rPr"))
+    if propiedades is not None:
+        if propiedades.find(qn("w:b")) is not None:
+            texto = f"<b>{texto}</b>"
+            usa_formato = True
+        if propiedades.find(qn("w:i")) is not None:
+            texto = f"<i>{texto}</i>"
+            usa_formato = True
+        if propiedades.find(qn("w:u")) is not None:
+            texto = f"<u>{texto}</u>"
+            usa_formato = True
+    return texto, usa_formato
+
+
+def _hipervinculo_xml_a_html(hipervinculo_xml, doc_part):
+    partes = []
+    usa_formato = False
+
+    for run_xml in hipervinculo_xml.findall(qn("w:r")):
+        html_run, formato_run = _run_xml_a_html(run_xml)
+        if html_run:
+            partes.append(html_run)
+        usa_formato = usa_formato or formato_run
+
+    texto_html = "".join(partes)
+    if not texto_html:
+        return "", usa_formato
+
+    rel_id = hipervinculo_xml.get(qn("r:id"))
+    anchor = hipervinculo_xml.get(qn("w:anchor"))
+    destino = ""
+    if rel_id and rel_id in doc_part.rels:
+        destino = doc_part.rels[rel_id].target_ref or ""
+    elif anchor:
+        destino = f"#{anchor}"
+
+    if not destino:
+        return texto_html, usa_formato
+
+    destino = _escapar_atributo_html(destino)
+    texto_html = (
+        f'<link href="{destino}">'
+        f'<u><font color="#0563C1">{texto_html}</font></u>'
+        f'</link>'
+    )
+    return texto_html, True
+
+
 def runs_a_html(parrafo):
-    """Convierte runs (negrita/cursiva/subrayado) a HTML para ReportLab."""
+    """Convierte párrafos Word a HTML para ReportLab, incluyendo links."""
     partes = []
     algun_formato_run = False
-    for r in parrafo.runs:
-        texto = r.text or ""
-        if not texto:
-            continue
-        texto = (texto.replace("&", "&amp;")
-                      .replace("<", "&lt;")
-                      .replace(">", "&gt;"))
-        if r.bold:
-            texto = f"<b>{texto}</b>"
-            algun_formato_run = True
-        if r.italic:
-            texto = f"<i>{texto}</i>"
-            algun_formato_run = True
-        if r.underline:
-            texto = f"<u>{texto}</u>"
-            algun_formato_run = True
-        partes.append(texto)
+
+    for nodo in parrafo._p.iterchildren():
+        if nodo.tag == qn("w:r"):
+            html_run, formato_run = _run_xml_a_html(nodo)
+            if html_run:
+                partes.append(html_run)
+            algun_formato_run = algun_formato_run or formato_run
+        elif nodo.tag == qn("w:hyperlink"):
+            html_link, formato_link = _hipervinculo_xml_a_html(nodo, parrafo.part)
+            if html_link:
+                partes.append(html_link)
+            algun_formato_run = algun_formato_run or formato_link
+
     html = "".join(partes)
     # Si Word no marcó nada en negrita/cursiva, interpretar markdown inline (**...**, *...*).
     if not algun_formato_run and ("*" in html):
@@ -474,10 +549,12 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                         # Cerramos consejo
                         emitir_consejo()
                     else:
-                        # Abrimos consejo: vaciamos otros buffers
-                        # pero NO emitimos aún la parte 'fuera' acumulada
-                        # porque puede haber más texto fuera tras cerrar.
-                        pass
+                        # Abrimos consejo: primero emitimos el contenido normal
+                        # acumulado hasta este punto y luego vaciamos buffers
+                        # para que el cuadro azul salga exactamente en orden.
+                        _emitir_fuera_acumulado()
+                        vaciar_citas()
+                        vaciar_lista()
                     estado_dentro = not estado_dentro
 
             # Al terminar el párrafo:
