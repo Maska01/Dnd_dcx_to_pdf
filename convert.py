@@ -19,6 +19,7 @@ Convención del documento Word:
 import argparse
 import io
 import os
+import re
 from pathlib import Path
 
 from docx import Document
@@ -142,9 +143,22 @@ def estilo_para_parrafo(p):
     return "Cuerpo"
 
 
+def _markdown_inline_a_html(texto):
+    """Convierte **negrita** y *cursiva* (estilo markdown) a HTML.
+
+    Se aplica solo si el texto no contiene ya etiquetas <b>/<i> de los runs.
+    """
+    # **texto** -> <b>texto</b>  (no codicioso, sin saltos de línea)
+    texto = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", texto)
+    # *texto* -> <i>texto</i>  (evita coincidir con ** restantes)
+    texto = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<i>\1</i>", texto)
+    return texto
+
+
 def runs_a_html(parrafo):
     """Convierte runs (negrita/cursiva/subrayado) a HTML para ReportLab."""
     partes = []
+    algun_formato_run = False
     for r in parrafo.runs:
         texto = r.text or ""
         if not texto:
@@ -154,12 +168,19 @@ def runs_a_html(parrafo):
                       .replace(">", "&gt;"))
         if r.bold:
             texto = f"<b>{texto}</b>"
+            algun_formato_run = True
         if r.italic:
             texto = f"<i>{texto}</i>"
+            algun_formato_run = True
         if r.underline:
             texto = f"<u>{texto}</u>"
+            algun_formato_run = True
         partes.append(texto)
-    return "".join(partes)
+    html = "".join(partes)
+    # Si Word no marcó nada en negrita/cursiva, interpretar markdown inline (**...**, *...*).
+    if not algun_formato_run and ("*" in html):
+        html = _markdown_inline_a_html(html)
+    return html
 
 
 def extraer_imagenes_de_parrafo(parrafo, doc_word):
@@ -190,7 +211,10 @@ def imagen_flowable(blob, ancho_max):
 
 
 def es_consejo_dm(texto_plano):
-    return texto_plano.strip().lower().startswith("consejo del dm")
+    # Quita asteriscos, espacios y comillas iniciales para tolerar formatos
+    # tipo markdown (**CONSEJO DEL DM...**).
+    limpio = texto_plano.lstrip(" *_“\"'\t").lower()
+    return limpio.startswith("consejo del dm")
 
 
 class DocConTOC(BaseDocTemplate):
