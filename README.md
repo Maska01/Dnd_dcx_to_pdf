@@ -37,7 +37,7 @@ Dentro de cualquier párrafo puedes usar **negrita**, *cursiva* o subrayado y se
 respetan en el PDF, también dentro de las cajas.
 
 ### Consejo para el DM
-Tienes **dos formas** de marcar un Consejo del DM:
+Tienes **tres formas** de marcar un Consejo del DM:
 
 **1) Bloque delimitado por `#` (recomendado para varios párrafos / listas):**
 Pon una `#` al principio del primer párrafo y otra `#` al final del último.
@@ -58,6 +58,28 @@ Escribe un párrafo Normal que empiece exactamente así:
 > **CONSEJO PARA EL DM (REGLAS 5.5):** Entrega a tus jugadores el "Cartel de Persona Desaparecida"...
 
 El script lo detecta automáticamente y lo encierra en la caja azul.
+
+**3) Bloque manual delimitado: `:::consejo` ... `:::`**
+Si quieres que la caja abarque varios párrafos, enlaces o listas, puedes abrir
+y cerrar el bloque manualmente:
+
+```text
+:::consejo
+Consejo para el DM: Usa esta escena para subir la tensión.
+
+- Puedes introducir una pista falsa.
+- También puedes acelerar el ritmo si la mesa ya entendió la idea.
+:::
+```
+
+Todo lo que quede entre `:::consejo` y `:::` se convertirá en una sola caja de
+Consejo para el DM.
+
+Además, el encabezado **`Consejo para el DM`** siempre saldrá en una línea
+aparte. Si el contenido ya empieza por esa frase, el script la separa del resto
+del texto y **no la repite**. Si incluyes un subtítulo como
+`Consejo para el DM (Motivación Adicional):`, ese subtítulo también se conserva
+en la línea del encabezado.
 
 ### Citas
 Aplica el estilo **Cita** al párrafo en Word → saldrá en caja amarilla.

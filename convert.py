@@ -311,6 +311,84 @@ def es_consejo_dm(texto_plano):
     return limpio.startswith("consejo para el dm")
 
 
+def _quitar_prefijo_visible_html(html, visible_chars):
+    if visible_chars <= 0:
+        return html
+
+    resultado = []
+    pila_tags = []
+    chars_restantes = visible_chars
+    iniciado = False
+    i = 0
+    n = len(html)
+
+    while i < n:
+        if html[i] == "<":
+            j = html.find(">", i)
+            if j == -1:
+                break
+            tag = html[i:j + 1]
+            inner = tag[1:-1].strip()
+
+            if inner.startswith("/"):
+                nombre = inner[1:].split()[0].lower()
+                for k in range(len(pila_tags) - 1, -1, -1):
+                    if pila_tags[k][0] == nombre:
+                        del pila_tags[k]
+                        break
+                if iniciado:
+                    resultado.append(tag)
+            elif not inner.endswith("/") and not inner.startswith("!"):
+                nombre = inner.split()[0].lower()
+                if nombre not in ("br",):
+                    pila_tags.append((nombre, tag))
+                if iniciado:
+                    resultado.append(tag)
+            else:
+                if iniciado:
+                    resultado.append(tag)
+            i = j + 1
+            continue
+
+        if chars_restantes > 0:
+            chars_restantes -= 1
+            if chars_restantes == 0:
+                iniciado = True
+                resultado.extend(tag for _, tag in pila_tags)
+            i += 1
+            continue
+
+        if not iniciado:
+            iniciado = True
+            resultado.extend(tag for _, tag in pila_tags)
+
+        resultado.append(html[i])
+        i += 1
+
+    return "".join(resultado).lstrip()
+
+
+def decorar_consejo_dm_html(texto_html):
+    texto_plano = re.sub(r"<[^>]+>", "", texto_html)
+    match = re.match(
+        r'^\s*(?P<prefijo>consejo para el dm)\s*(?P<detalle>\([^)]*\))?\s*:?\s*',
+        texto_plano,
+        flags=re.IGNORECASE,
+    )
+    titulo = "Consejo para el DM"
+    cuerpo = texto_html
+    if match:
+        detalle = (match.group("detalle") or "").strip()
+        if detalle:
+            titulo = f"{titulo} {detalle}"
+        cuerpo = _quitar_prefijo_visible_html(texto_html, len(match.group(0)))
+
+    etiqueta = (
+        f'<font color="#{COLOR_AZUL_TEXTO.hexval()[2:]}"><b>{titulo}</b></font><br/>'
+    )
+    return etiqueta + cuerpo
+
+
 def es_info_adicional(texto_plano):
     limpio = texto_plano.lstrip(" *_“\"'\t").lower()
     return (
@@ -342,6 +420,11 @@ def es_inicio_bloque_info(texto_plano):
 
 def es_fin_bloque_info(texto_plano):
     return texto_plano.strip() == ":::"
+
+
+def es_inicio_bloque_consejo(texto_plano):
+    limpio = texto_plano.strip().lower()
+    return limpio in (":::consejo", "::: consejo", ":::dm", "::: dm")
 
 
 def _split_html_balanceado(html, sep="#"):
@@ -501,6 +584,8 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
     consejo_buffer = []            # buffer de párrafos dentro de un bloque #...#
     dentro_consejo = False
+    consejo_manual_buffer = []     # buffer de párrafos dentro de :::consejo ... :::
+    dentro_consejo_manual = False
     info_buffer = []               # buffer de párrafos dentro de :::info ... :::
     dentro_info = False
 
@@ -552,15 +637,41 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             ultimo_fue_salto = False
         return "<br/><br/>".join(piezas)
 
+    def _normalizar_html_consejo(partes):
+        piezas = []
+        ultimo_fue_salto = False
+        for parte in partes:
+            if parte is None:
+                if not ultimo_fue_salto:
+                    piezas.append("")
+                    ultimo_fue_salto = True
+                continue
+            texto = (parte or "").strip()
+            if not texto:
+                continue
+            piezas.append(texto)
+            ultimo_fue_salto = False
+        return "<br/><br/>".join(piezas)
+
     def emitir_consejo():
         nonlocal dentro_consejo
         if consejo_buffer:
             html = "<br/><br/>".join(consejo_buffer)
             historia.append(KeepTogether(
-                Paragraph(html, estilos["ConsejoDM"])
+                Paragraph(decorar_consejo_dm_html(html), estilos["ConsejoDM"])
             ))
             consejo_buffer.clear()
         dentro_consejo = False
+
+    def emitir_consejo_manual():
+        nonlocal dentro_consejo_manual
+        if consejo_manual_buffer:
+            html = _normalizar_html_consejo(consejo_manual_buffer)
+            historia.append(KeepTogether(
+                Paragraph(decorar_consejo_dm_html(html), estilos["ConsejoDM"])
+            ))
+            consejo_manual_buffer.clear()
+        dentro_consejo_manual = False
 
     def emitir_info_adicional():
         nonlocal dentro_info
@@ -579,6 +690,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             # Las imágenes interrumpen cualquier bloque abierto
             vaciar_infos()
             emitir_info_adicional()
+            emitir_consejo_manual()
             emitir_consejo()
             vaciar_citas()
             vaciar_lista()
@@ -594,6 +706,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
         if es_inicio_bloque_info(texto_plano):
             vaciar_infos()
+            emitir_consejo_manual()
             emitir_consejo()
             vaciar_citas()
             vaciar_lista()
@@ -601,11 +714,28 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             info_buffer.clear()
             continue
 
-        if es_fin_bloque_info(texto_plano):
+        if es_inicio_bloque_consejo(texto_plano):
+            vaciar_infos()
+            emitir_info_adicional()
+            emitir_consejo()
+            vaciar_citas()
+            vaciar_lista()
+            dentro_consejo_manual = True
+            consejo_manual_buffer.clear()
+            continue
+
+        if es_fin_bloque_info(texto_plano) and dentro_info:
             emitir_info_adicional()
             continue
 
+        if es_fin_bloque_info(texto_plano) and dentro_consejo_manual:
+            emitir_consejo_manual()
+            continue
+
         if not texto_html.strip():
+            if dentro_consejo_manual:
+                consejo_manual_buffer.append(None)
+                continue
             if dentro_info:
                 info_buffer.append(None)
                 continue
@@ -622,7 +752,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_lista()
             # Dentro de un bloque #...# las líneas vacías se ignoran
             # (no rompen el bloque; ya separamos con <br/><br/>).
-            if not dentro_consejo and not dentro_info:
+            if not dentro_consejo and not dentro_info and not dentro_consejo_manual:
                 historia.append(Spacer(1, 4))
             continue
 
@@ -636,6 +766,13 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 info_buffer.append(f"• {texto_html}")
             else:
                 info_buffer.append(texto_html)
+            continue
+
+        if dentro_consejo_manual:
+            if es_lista:
+                consejo_manual_buffer.append(f"• {texto_html}")
+            else:
+                consejo_manual_buffer.append(texto_html)
             continue
 
         # ---------- Bloques delimitados por # ... # (también inline) ----------
@@ -656,10 +793,11 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 if es_consejo_dm(re.sub(r"<[^>]+>", "", contenido)):
                     # Formato 'CONSEJO PARA EL DM' clásico (un solo párrafo)
                     vaciar_infos()
+                    emitir_consejo_manual()
                     vaciar_citas()
                     vaciar_lista()
                     historia.append(KeepTogether(
-                        Paragraph(contenido, estilos["ConsejoDM"])
+                        Paragraph(decorar_consejo_dm_html(contenido), estilos["ConsejoDM"])
                     ))
                     return
                 if es_info_adicional(re.sub(r"<[^>]+>", "", contenido)):
@@ -670,10 +808,12 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                     return
                 if es_lista:
                     vaciar_infos()
+                    emitir_consejo_manual()
                     vaciar_citas()
                     items_lista_actual.append(contenido)
                 elif clave == "CitaCaja":
                     vaciar_infos()
+                    emitir_consejo_manual()
                     vaciar_lista()
                     citas_pendientes.append(contenido)
                 elif clave == "InfoAdicional":
@@ -683,6 +823,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                     vacios_desde_ultima_info = 0
                 else:
                     vaciar_infos()
+                    emitir_consejo_manual()
                     vaciar_citas()
                     vaciar_lista()
                     historia.append(Paragraph(contenido, estilos[clave]))
@@ -726,10 +867,11 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         # 2) Consejo para el DM → caja azul (formato de un solo párrafo)
         if es_consejo_dm(texto_plano):
             vaciar_infos()
+            emitir_consejo_manual()
             vaciar_citas()
             vaciar_lista()
             historia.append(KeepTogether(
-                Paragraph(texto_html, estilos["ConsejoDM"])
+                Paragraph(decorar_consejo_dm_html(texto_html), estilos["ConsejoDM"])
             ))
             continue
 
@@ -744,6 +886,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         # 3) Listas
         if es_lista:
             vaciar_infos()
+            emitir_consejo_manual()
             vaciar_citas()
             items_lista_actual.append(texto_html)
             continue
@@ -753,12 +896,14 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         # 4) Citas → caja amarilla (se fusionan citas consecutivas)
         if clave == "CitaCaja":
             vaciar_infos()
+            emitir_consejo_manual()
             citas_pendientes.append(texto_html)
             vacios_desde_ultima_cita = 0
             continue
         else:
             # Cualquier otro contenido cierra el bloque de citas
             vaciar_infos()
+            emitir_consejo_manual()
             vaciar_citas()
             vacios_desde_ultima_cita = 0
 
@@ -766,6 +911,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         historia.append(Paragraph(texto_html, estilos[clave]))
 
     emitir_consejo()
+    emitir_consejo_manual()
     emitir_info_adicional()
     vaciar_infos()
     vaciar_citas()
