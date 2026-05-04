@@ -35,6 +35,22 @@ Dentro de cualquier párrafo puedes usar **negrita**, *cursiva* o subrayado y se
 respetan en el PDF, también dentro de las cajas.
 
 ### Consejo para el DM
+Tienes **dos formas** de marcar un Consejo del DM:
+
+**1) Bloque delimitado por `#` (recomendado para varios párrafos / listas):**
+Pon una `#` al principio del primer párrafo y otra `#` al final del último.
+Todo lo que esté entre las dos almohadillas (texto, listas, negritas…) entrará
+en la misma caja azul.
+
+```
+#Consejo para el DM (Interacción Social): Wesley es escurridizo. Pide a los
+jugadores una Prueba de Sabiduría (Perspicacia) CD 14...
+
+- Si venden la estatua: ...
+- Si rompen la estatua: ...#
+```
+
+**2) Párrafo único que empieza por `CONSEJO PARA EL DM`:**
 Escribe un párrafo Normal que empiece exactamente así:
 
 > **CONSEJO PARA EL DM (REGLAS 5.5):** Entrega a tus jugadores el "Cartel de Persona Desaparecida"...

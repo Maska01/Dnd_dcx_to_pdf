@@ -217,6 +217,55 @@ def es_consejo_dm(texto_plano):
     return limpio.startswith("consejo para el dm")
 
 
+def _split_html_balanceado(html, sep="#"):
+    """Divide `html` por `sep` manteniendo balanceadas las etiquetas.
+
+    Si una etiqueta queda abierta al llegar a `sep`, se cierra antes del corte
+    y se reabre al inicio del siguiente segmento. Esto evita HTML inválido
+    cuando el separador cae dentro de un <b>, <i>, <u>...
+    """
+    partes = []
+    pila = []          # nombres de etiquetas abiertas (en orden)
+    actual = []
+    i = 0
+    n = len(html)
+    while i < n:
+        ch = html[i]
+        if ch == "<":
+            j = html.find(">", i)
+            if j == -1:
+                actual.append(html[i:])
+                break
+            tag = html[i:j + 1]
+            actual.append(tag)
+            inner = tag[1:-1].strip()
+            if inner.startswith("/"):
+                nombre = inner[1:].split()[0].lower()
+                # Cerrar la última coincidencia
+                for k in range(len(pila) - 1, -1, -1):
+                    if pila[k] == nombre:
+                        del pila[k]
+                        break
+            elif not inner.endswith("/") and not inner.startswith("!"):
+                nombre = inner.split()[0].lower()
+                # br es auto-cerrada en HTML, no la apilamos
+                if nombre not in ("br",):
+                    pila.append(nombre)
+            i = j + 1
+        elif ch == sep:
+            cierres = "".join(f"</{t}>" for t in reversed(pila))
+            aperturas = "".join(f"<{t}>" for t in pila)
+            actual.append(cierres)
+            partes.append("".join(actual))
+            actual = [aperturas]
+            i += 1
+        else:
+            actual.append(ch)
+            i += 1
+    partes.append("".join(actual))
+    return partes
+
+
 class DocConTOC(BaseDocTemplate):
     """DocTemplate que notifica entradas a la TOC al pasar por H1/H2."""
     def __init__(self, filename, **kw):
@@ -302,6 +351,13 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
     vacios_desde_ultima_cita = 0   # nº de párrafos vacíos vistos tras la última cita
     MAX_VACIOS_FUSION_CITA = 2     # hasta 2 saltos de renglón => misma caja
 
+    consejo_buffer = []            # buffer de párrafos dentro de un bloque #...#
+    dentro_consejo = False
+
+    def _texto_plano_limpio(s):
+        # Quita espacios, asteriscos y caracteres de formato comunes.
+        return s.strip(" \t*_")
+
     def vaciar_lista():
         if items_lista_actual:
             historia.append(ListFlowable(
@@ -320,10 +376,22 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             ))
             citas_pendientes.clear()
 
+    def emitir_consejo():
+        nonlocal dentro_consejo
+        if consejo_buffer:
+            html = "<br/><br/>".join(consejo_buffer)
+            historia.append(KeepTogether(
+                Paragraph(html, estilos["ConsejoDM"])
+            ))
+            consejo_buffer.clear()
+        dentro_consejo = False
+
     for parrafo in doc_word.paragraphs:
         # 1) Imágenes embebidas en el párrafo
         imgs = extraer_imagenes_de_parrafo(parrafo, doc_word)
         if imgs:
+            # Las imágenes interrumpen cualquier bloque abierto
+            emitir_consejo()
             vaciar_citas()
             vaciar_lista()
             for blob in imgs:
@@ -344,10 +412,85 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                     vaciar_citas()
                     vacios_desde_ultima_cita = 0
             vaciar_lista()
-            historia.append(Spacer(1, 4))
+            # Dentro de un bloque #...# las líneas vacías se ignoran
+            # (no rompen el bloque; ya separamos con <br/><br/>).
+            if not dentro_consejo:
+                historia.append(Spacer(1, 4))
             continue
 
-        # 2) Consejo para el DM → caja azul
+        clave = estilo_para_parrafo(parrafo)
+        es_lista = clave == "Lista" or (
+            parrafo.style.name and "List Bullet" in parrafo.style.name
+        )
+
+        # ---------- Bloques delimitados por # ... # (también inline) ----------
+        if "#" in texto_html or dentro_consejo:
+            # Partimos el HTML por '#' manteniendo etiquetas balanceadas.
+            segmentos = _split_html_balanceado(texto_html, "#")
+            estado_dentro = dentro_consejo
+            # Texto "fuera" que se acumula para reemitir como párrafo/bullet original
+            html_fuera_partes = []
+
+            def _emitir_fuera_acumulado():
+                """Emite lo acumulado fuera del consejo respetando estilo del párrafo."""
+                contenido = "".join(html_fuera_partes).strip()
+                html_fuera_partes.clear()
+                if not contenido:
+                    return
+                if es_consejo_dm(re.sub(r"<[^>]+>", "", contenido)):
+                    # Formato 'CONSEJO PARA EL DM' clásico (un solo párrafo)
+                    vaciar_citas()
+                    vaciar_lista()
+                    historia.append(KeepTogether(
+                        Paragraph(contenido, estilos["ConsejoDM"])
+                    ))
+                    return
+                if es_lista:
+                    vaciar_citas()
+                    items_lista_actual.append(contenido)
+                elif clave == "CitaCaja":
+                    vaciar_lista()
+                    citas_pendientes.append(contenido)
+                else:
+                    vaciar_citas()
+                    vaciar_lista()
+                    historia.append(Paragraph(contenido, estilos[clave]))
+
+            for i, seg in enumerate(segmentos):
+                if estado_dentro:
+                    # Trozo dentro del consejo
+                    if seg.strip():
+                        consejo_buffer.append(seg)
+                else:
+                    # Trozo fuera del consejo: acumular para reemitirlo entero
+                    if seg:
+                        html_fuera_partes.append(seg)
+
+                # Si no es el último, hay un '#': alternamos estado y, si
+                # cerramos el consejo, lo emitimos; si lo abrimos, primero
+                # volcamos lo acumulado fuera.
+                if i < len(segmentos) - 1:
+                    if estado_dentro:
+                        # Cerramos consejo
+                        emitir_consejo()
+                    else:
+                        # Abrimos consejo: vaciamos otros buffers
+                        # pero NO emitimos aún la parte 'fuera' acumulada
+                        # porque puede haber más texto fuera tras cerrar.
+                        pass
+                    estado_dentro = not estado_dentro
+
+            # Al terminar el párrafo:
+            dentro_consejo = estado_dentro
+            # Volcar la parte 'fuera' acumulada (si la hay) como el párrafo original
+            _emitir_fuera_acumulado()
+
+            # Si el párrafo dejó el consejo abierto, añadimos un separador entre
+            # párrafos (los siguientes se concatenan con <br/><br/>).
+            continue
+        # ---------- Fin bloques # ... # ----------
+
+        # 2) Consejo para el DM → caja azul (formato de un solo párrafo)
         if es_consejo_dm(texto_plano):
             vaciar_citas()
             vaciar_lista()
@@ -356,10 +499,8 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             ))
             continue
 
-        clave = estilo_para_parrafo(parrafo)
-
         # 3) Listas
-        if clave == "Lista" or (parrafo.style.name and "List Bullet" in parrafo.style.name):
+        if es_lista:
             vaciar_citas()
             items_lista_actual.append(texto_html)
             continue
@@ -379,6 +520,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         # 5) Resto: H1/H2/H3/Cuerpo
         historia.append(Paragraph(texto_html, estilos[clave]))
 
+    emitir_consejo()
     vaciar_citas()
     vaciar_lista()
 
