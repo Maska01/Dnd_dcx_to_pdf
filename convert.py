@@ -298,6 +298,9 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
     # ---------- Contenido ----------
     items_lista_actual = []
+    citas_pendientes = []          # buffer de citas consecutivas a fusionar
+    vacios_desde_ultima_cita = 0   # nº de párrafos vacíos vistos tras la última cita
+    MAX_VACIOS_FUSION_CITA = 2     # hasta 2 saltos de renglón => misma caja
 
     def vaciar_lista():
         if items_lista_actual:
@@ -309,10 +312,19 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             historia.append(Spacer(1, 6))
             items_lista_actual.clear()
 
+    def vaciar_citas():
+        if citas_pendientes:
+            html = "<br/><br/>".join(citas_pendientes)
+            historia.append(KeepTogether(
+                Paragraph(html, estilos["CitaCaja"])
+            ))
+            citas_pendientes.clear()
+
     for parrafo in doc_word.paragraphs:
         # 1) Imágenes embebidas en el párrafo
         imgs = extraer_imagenes_de_parrafo(parrafo, doc_word)
         if imgs:
+            vaciar_citas()
             vaciar_lista()
             for blob in imgs:
                 fl = imagen_flowable(blob, ancho_util)
@@ -325,12 +337,19 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         texto_plano = parrafo.text or ""
 
         if not texto_html.strip():
+            # Párrafo vacío: si superamos el umbral, cerramos la caja de citas.
+            if citas_pendientes:
+                vacios_desde_ultima_cita += 1
+                if vacios_desde_ultima_cita > MAX_VACIOS_FUSION_CITA:
+                    vaciar_citas()
+                    vacios_desde_ultima_cita = 0
             vaciar_lista()
             historia.append(Spacer(1, 4))
             continue
 
         # 2) Consejo del DM → caja azul
         if es_consejo_dm(texto_plano):
+            vaciar_citas()
             vaciar_lista()
             historia.append(KeepTogether(
                 Paragraph(texto_html, estilos["ConsejoDM"])
@@ -341,21 +360,26 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
         # 3) Listas
         if clave == "Lista" or (parrafo.style.name and "List Bullet" in parrafo.style.name):
+            vaciar_citas()
             items_lista_actual.append(texto_html)
             continue
         else:
             vaciar_lista()
 
-        # 4) Citas → caja amarilla
+        # 4) Citas → caja amarilla (se fusionan citas consecutivas)
         if clave == "CitaCaja":
-            historia.append(KeepTogether(
-                Paragraph(texto_html, estilos["CitaCaja"])
-            ))
+            citas_pendientes.append(texto_html)
+            vacios_desde_ultima_cita = 0
             continue
+        else:
+            # Cualquier otro contenido cierra el bloque de citas
+            vaciar_citas()
+            vacios_desde_ultima_cita = 0
 
         # 5) Resto: H1/H2/H3/Cuerpo
         historia.append(Paragraph(texto_html, estilos[clave]))
 
+    vaciar_citas()
     vaciar_lista()
 
     # multiBuild: necesario para que la TOC se rellene en una segunda pasada
