@@ -6,8 +6,8 @@ Uso:
     python convert.py entrada.docx salida.pdf --titulo "Mi Aventura" --autor "Tu Nombre"
 
 Convención del documento Word:
-    - Estilo "Título 1" (Heading 1)  -> Capítulo (entra en TOC)
-    - Estilo "Título 2" (Heading 2)  -> Sección (entra en TOC)
+    - Estilo "Título 1" (Heading 1)  -> Capítulo (entra en el índice)
+    - Estilo "Título 2" (Heading 2)  -> Sección (entra en el índice)
     - Estilo "Título 3" (Heading 3)  -> Subsección
     - Estilo "Cita"   (Quote)        -> Caja AMARILLA con texto negro
     - Estilo "Información adicional" o prefijo equivalente -> Caja verde-azulada
@@ -26,8 +26,8 @@ from pathlib import Path
 
 from docx import Document
 from docx.oxml.ns import qn
-from docx.table import Table as DocxTable
-from docx.text.paragraph import Paragraph as DocxParagraph
+from docx.table import Table as TablaDocx
+from docx.text.paragraph import Paragraph as ParrafoDocx
 from PIL import Image as PILImage
 
 from reportlab.lib.colors import HexColor, black
@@ -82,7 +82,7 @@ TAMANO_PAGINA = A4
 MARGEN        = 2 * cm
 
 # Ruta de ejemplo para la imagen de portada (cámbiala cuando tengas la tuya)
-IMAGEN_PORTADA_DEFAULT = r"C:\ruta\a\tu\imagen_portada.jpg"
+IMAGEN_PORTADA_PREDETERMINADA = r"C:\ruta\a\tu\imagen_portada.jpg"
 # ==================================================================
 
 
@@ -126,7 +126,7 @@ def construir_estilos():
     ))
     # Caja AMARILLA (Citas)
     estilos.add(ParagraphStyle(
-        name="CitaCaja",
+        name="CajaCita",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_AMA_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
@@ -136,7 +136,7 @@ def construir_estilos():
     ))
     # Caja VERDE-AZULADA (Información adicional útil, no obligatoria)
     estilos.add(ParagraphStyle(
-        name="InfoAdicional",
+        name="CajaInfoAdicional",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_INFO_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
@@ -146,7 +146,7 @@ def construir_estilos():
     ))
     # Caja AZUL (Consejo para el DM)
     estilos.add(ParagraphStyle(
-        name="ConsejoDM",
+        name="CajaConsejoDm",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_AZUL_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
@@ -155,7 +155,7 @@ def construir_estilos():
         borderPadding=5, backColor=COLOR_AZUL_FONDO,
     ))
     estilos.add(ParagraphStyle(
-        name="NPCBox",
+        name="CajaNpc",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_NPC_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
@@ -164,7 +164,7 @@ def construir_estilos():
         borderPadding=5, backColor=COLOR_NPC_FONDO,
     ))
     estilos.add(ParagraphStyle(
-        name="EnemigoBox",
+        name="CajaEnemigo",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_ENEMIGO_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
@@ -173,7 +173,7 @@ def construir_estilos():
         borderPadding=5, backColor=COLOR_ENEMIGO_FONDO,
     ))
     estilos.add(ParagraphStyle(
-        name="AliadoBox",
+        name="CajaAliado",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_ALIADO_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
@@ -182,7 +182,7 @@ def construir_estilos():
         borderPadding=5, backColor=COLOR_ALIADO_FONDO,
     ))
     estilos.add(ParagraphStyle(
-        name="TOCTitulo",
+        name="TituloIndice",
         fontName=FUENTE_TITULO, fontSize=22, leading=26,
         textColor=COLOR_PRIMARIO, alignment=TA_CENTER, spaceAfter=20,
     ))
@@ -199,18 +199,18 @@ def estilo_para_parrafo(p):
         return "H3"
     if ("información adicional" in nombre or "informacion adicional" in nombre or
             "info adicional" in nombre):
-        return "InfoAdicional"
+        return "CajaInfoAdicional"
     if "consejos" in nombre or "consejo dm" in nombre or "consejo para el dm" in nombre:
-        return "ConsejoDM"
+        return "CajaConsejoDm"
     if "quote" in nombre or "cita" in nombre:
-        return "CitaCaja"
+        return "CajaCita"
     if "list" in nombre or "lista" in nombre:
         return "Lista"
     return "Cuerpo"
 
 
-def _markdown_inline_a_html(texto):
-    """Convierte **negrita** y *cursiva* (estilo markdown) a HTML.
+def _markdown_en_linea_a_html(texto):
+    """Convierte **negrita** y *cursiva* (estilo Markdown) a HTML.
 
     Se aplica solo si el texto no contiene ya etiquetas <b>/<i> de los runs.
     """
@@ -231,9 +231,9 @@ def _escapar_atributo_html(texto):
     return _escapar_html(texto).replace('"', '&quot;')
 
 
-def _texto_run_xml(run_xml):
+def _texto_de_segmento_xml(segmento_xml):
     partes = []
-    for nodo in run_xml.iter():
+    for nodo in segmento_xml.iter():
         if nodo.tag == qn("w:t"):
             partes.append(nodo.text or "")
         elif nodo.tag == qn("w:tab"):
@@ -243,8 +243,8 @@ def _texto_run_xml(run_xml):
     return "".join(partes)
 
 
-def _run_xml_a_html(run_xml):
-    texto = _texto_run_xml(run_xml)
+def _segmento_xml_a_html(segmento_xml):
+    texto = _texto_de_segmento_xml(segmento_xml)
     if not texto:
         return "", False
 
@@ -252,7 +252,7 @@ def _run_xml_a_html(run_xml):
     if "<br/>" not in texto:
         texto = _escapar_html(texto)
 
-    propiedades = run_xml.find(qn("w:rPr"))
+    propiedades = segmento_xml.find(qn("w:rPr"))
     if propiedades is not None:
         if propiedades.find(qn("w:b")) is not None:
             texto = f"<b>{texto}</b>"
@@ -266,15 +266,15 @@ def _run_xml_a_html(run_xml):
     return texto, usa_formato
 
 
-def _hipervinculo_xml_a_html(hipervinculo_xml, doc_part):
+def _hipervinculo_xml_a_html(hipervinculo_xml, parte_documento):
     partes = []
     usa_formato = False
 
-    for run_xml in hipervinculo_xml.findall(qn("w:r")):
-        html_run, formato_run = _run_xml_a_html(run_xml)
-        if html_run:
-            partes.append(html_run)
-        usa_formato = usa_formato or formato_run
+    for segmento_xml in hipervinculo_xml.findall(qn("w:r")):
+        html_segmento, formato_segmento = _segmento_xml_a_html(segmento_xml)
+        if html_segmento:
+            partes.append(html_segmento)
+        usa_formato = usa_formato or formato_segmento
 
     texto_html = "".join(partes)
     if not texto_html:
@@ -283,8 +283,8 @@ def _hipervinculo_xml_a_html(hipervinculo_xml, doc_part):
     rel_id = hipervinculo_xml.get(qn("r:id"))
     anchor = hipervinculo_xml.get(qn("w:anchor"))
     destino = ""
-    if rel_id and rel_id in doc_part.rels:
-        destino = doc_part.rels[rel_id].target_ref or ""
+    if rel_id and rel_id in parte_documento.rels:
+        destino = parte_documento.rels[rel_id].target_ref or ""
     elif anchor:
         destino = f"#{anchor}"
 
@@ -300,41 +300,41 @@ def _hipervinculo_xml_a_html(hipervinculo_xml, doc_part):
     return texto_html, True
 
 
-def runs_a_html(parrafo):
-    """Convierte párrafos Word a HTML para ReportLab, incluyendo links."""
+def parrafo_a_html(parrafo):
+    """Convierte párrafos de Word a HTML para ReportLab, incluyendo enlaces."""
     partes = []
     algun_formato_run = False
 
     for nodo in parrafo._p.iterchildren():
         if nodo.tag == qn("w:r"):
-            html_run, formato_run = _run_xml_a_html(nodo)
-            if html_run:
-                partes.append(html_run)
-            algun_formato_run = algun_formato_run or formato_run
+            html_segmento, formato_segmento = _segmento_xml_a_html(nodo)
+            if html_segmento:
+                partes.append(html_segmento)
+            algun_formato_run = algun_formato_run or formato_segmento
         elif nodo.tag == qn("w:hyperlink"):
-            html_link, formato_link = _hipervinculo_xml_a_html(nodo, parrafo.part)
-            if html_link:
-                partes.append(html_link)
-            algun_formato_run = algun_formato_run or formato_link
+            html_enlace, formato_enlace = _hipervinculo_xml_a_html(nodo, parrafo.part)
+            if html_enlace:
+                partes.append(html_enlace)
+            algun_formato_run = algun_formato_run or formato_enlace
 
     html = "".join(partes)
-    # Si Word no marcó nada en negrita/cursiva, interpretar markdown inline (**...**, *...*).
+    # Si Word no marcó nada en negrita/cursiva, interpretar Markdown en línea (**...**, *...*).
     if not algun_formato_run and ("*" in html):
-        html = _markdown_inline_a_html(html)
+        html = _markdown_en_linea_a_html(html)
     return html
 
 
-def extraer_imagenes_de_parrafo(parrafo, doc_word):
+def extraer_imagenes_de_parrafo(parrafo, documento_word):
     """Devuelve lista de bytes con las imágenes embebidas en el párrafo."""
     imagenes = []
     for blip in parrafo._element.findall(".//" + qn("a:blip")):
         rId = blip.get(qn("r:embed"))
-        if rId and rId in doc_word.part.related_parts:
-            imagenes.append(doc_word.part.related_parts[rId].blob)
+        if rId and rId in documento_word.part.related_parts:
+            imagenes.append(documento_word.part.related_parts[rId].blob)
     return imagenes
 
 
-def imagen_flowable(blob, ancho_max):
+def crear_flujo_imagen(blob, ancho_max):
     """Crea un Image escalado para que entre en la página."""
     bio = io.BytesIO(blob)
     try:
@@ -353,7 +353,7 @@ def imagen_flowable(blob, ancho_max):
 
 def es_consejo_dm(texto_plano):
     # Quita asteriscos, espacios y comillas iniciales para tolerar formatos
-    # tipo markdown (**CONSEJO PARA EL DM...**).
+    # tipo Markdown (**CONSEJO PARA EL DM...**).
     limpio = texto_plano.lstrip(" *_“\"'\t").lower()
     return limpio.startswith("consejo para el dm")
 
@@ -470,13 +470,13 @@ def _extraer_bloque_prefijo_embebido(texto_html, texto_plano, detector):
     return antes_html, antes_plano, bloque_html, bloque_plano
 
 
-def _quitar_prefijo_visible_html(html, visible_chars):
-    if visible_chars <= 0:
+def _quitar_prefijo_visible_en_html(html, caracteres_visibles):
+    if caracteres_visibles <= 0:
         return html
 
     resultado = []
     pila_tags = []
-    chars_restantes = visible_chars
+    caracteres_restantes = caracteres_visibles
     iniciado = False
     i = 0
     n = len(html)
@@ -509,9 +509,9 @@ def _quitar_prefijo_visible_html(html, visible_chars):
             i = j + 1
             continue
 
-        if chars_restantes > 0:
-            chars_restantes -= 1
-            if chars_restantes == 0:
+        if caracteres_restantes > 0:
+            caracteres_restantes -= 1
+            if caracteres_restantes == 0:
                 iniciado = True
                 resultado.extend(tag for _, tag in pila_tags)
             i += 1
@@ -540,7 +540,7 @@ def decorar_consejo_dm_html(texto_html):
         detalle = (match.group("detalle") or "").strip()
         if detalle:
             titulo = f"{titulo} {detalle}"
-        cuerpo = _quitar_prefijo_visible_html(texto_html, len(match.group(0)))
+        cuerpo = _quitar_prefijo_visible_en_html(texto_html, len(match.group(0)))
 
     etiqueta = (
         f'<font color="#{COLOR_AZUL_TEXTO.hexval()[2:]}"><b>{titulo}</b></font><br/>'
@@ -610,7 +610,7 @@ def es_fin_bloque_manual(texto_plano):
     return texto_plano.strip() == ":::"
 
 
-def _pt_word(longitud):
+def _puntos_word(longitud):
     if longitud is None:
         return 0
     try:
@@ -652,8 +652,8 @@ def _item_caja_desde_parrafo(parrafo, texto_html):
         "html": texto_html,
         "es_lista": _es_lista_parrafo(parrafo),
         "nivel_lista": _nivel_lista_parrafo(parrafo),
-        "left_indent": _pt_word(parrafo.paragraph_format.left_indent),
-        "first_line_indent": _pt_word(parrafo.paragraph_format.first_line_indent),
+        "sangria_izquierda": _puntos_word(parrafo.paragraph_format.left_indent),
+        "sangria_primera_linea": _puntos_word(parrafo.paragraph_format.first_line_indent),
     }
 
 
@@ -663,8 +663,8 @@ def _item_caja_plano(texto_html):
         "html": texto_html,
         "es_lista": False,
         "nivel_lista": 0,
-        "left_indent": 0,
-        "first_line_indent": 0,
+        "sangria_izquierda": 0,
+        "sangria_primera_linea": 0,
     }
 
 
@@ -682,33 +682,33 @@ def _item_caja_tabla(tabla_docx):
     }
 
 
-def _agregar_imagenes_a_buffer(buffer, blobs):
-    for blob in blobs:
-        buffer.append(_item_caja_imagen(blob))
+def _agregar_imagenes_a_bloque(bloque, imagenes):
+    for blob in imagenes:
+        bloque.append(_item_caja_imagen(blob))
 
 
-def _iterar_elementos_documento(doc_word):
-    for child in doc_word.element.body.iterchildren():
+def _iterar_elementos_documento(documento_word):
+    for child in documento_word.element.body.iterchildren():
         if child.tag == qn("w:p"):
-            yield "parrafo", DocxParagraph(child, doc_word)
+            yield "parrafo", ParrafoDocx(child, documento_word)
         elif child.tag == qn("w:tbl"):
-            yield "tabla", DocxTable(child, doc_word)
+            yield "tabla", TablaDocx(child, documento_word)
 
 
-def _html_celda_docx(celda):
+def _celda_docx_a_html(celda):
     partes = []
     for parrafo in celda.paragraphs:
-        html = runs_a_html(parrafo).strip()
+        html = parrafo_a_html(parrafo).strip()
         if html:
             partes.append(html)
     return "<br/><br/>".join(partes) if partes else "&nbsp;"
 
 
-def _tabla_docx_a_flowable(tabla_docx, ancho_max, estilo_base):
+def _tabla_docx_a_flujo(tabla_docx, ancho_max, estilo_base):
     filas = []
     max_cols = 0
     for fila in tabla_docx.rows:
-        celdas = [_html_celda_docx(celda) for celda in fila.cells]
+        celdas = [_celda_docx_a_html(celda) for celda in fila.cells]
         filas.append(celdas)
         max_cols = max(max_cols, len(celdas))
 
@@ -750,20 +750,20 @@ def _tabla_docx_a_flowable(tabla_docx, ancho_max, estilo_base):
     return tabla
 
 
-def _decorador_titulo_simple(titulo, color):
+def _crear_titulo_decorado(titulo, color):
     return f'<font color="#{color.hexval()[2:]}"><b>{titulo}</b></font><br/>'
 
 
-def decorar_npc_html(texto_html):
-    return _decorador_titulo_simple("NPC", COLOR_NPC_TEXTO) + texto_html
+def decorar_npc_en_html(texto_html):
+    return _crear_titulo_decorado("NPC", COLOR_NPC_TEXTO) + texto_html
 
 
-def decorar_enemigo_html(texto_html):
-    return _decorador_titulo_simple("Enemigo", COLOR_ENEMIGO_TEXTO) + texto_html
+def decorar_enemigo_en_html(texto_html):
+    return _crear_titulo_decorado("Enemigo", COLOR_ENEMIGO_TEXTO) + texto_html
 
 
-def decorar_aliado_html(texto_html):
-    return _decorador_titulo_simple("Aliado", COLOR_ALIADO_TEXTO) + texto_html
+def decorar_aliado_en_html(texto_html):
+    return _crear_titulo_decorado("Aliado", COLOR_ALIADO_TEXTO) + texto_html
 
 
 def _estilo_interno_caja(estilo_base, item, sufijo):
@@ -782,14 +782,14 @@ def _estilo_interno_caja(estilo_base, item, sufijo):
 
     if item["es_lista"]:
         nivel = item["nivel_lista"]
-        indent_word = max(0, item["left_indent"])
-        indent_base = max(16 + nivel * 14, 12 + indent_word)
-        estilo.leftIndent = indent_base
+        sangria_word = max(0, item["sangria_izquierda"])
+        sangria_base = max(16 + nivel * 14, 12 + sangria_word)
+        estilo.leftIndent = sangria_base
         estilo.firstLineIndent = -10
         estilo.spaceAfter = 3
     else:
-        estilo.leftIndent = max(0, item["left_indent"])
-        estilo.firstLineIndent = item["first_line_indent"]
+        estilo.leftIndent = max(0, item["sangria_izquierda"])
+        estilo.firstLineIndent = item["sangria_primera_linea"]
     return estilo
 
 
@@ -812,7 +812,7 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
                 primer_bloque = False
                 indice += 1
 
-            tabla = _tabla_docx_a_flowable(parte.get("tabla"), ancho_interno, estilo_base)
+            tabla = _tabla_docx_a_flujo(parte.get("tabla"), ancho_interno, estilo_base)
             if tabla is not None:
                 contenido.append(tabla)
                 contenido.append(Spacer(1, 6))
@@ -825,10 +825,10 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
                 primer_bloque = False
                 indice += 1
 
-            fl = imagen_flowable(parte.get("blob"), ancho_interno)
-            if fl is not None:
-                fl.hAlign = "CENTER"
-                contenido.append(fl)
+            flujo_imagen = crear_flujo_imagen(parte.get("blob"), ancho_interno)
+            if flujo_imagen is not None:
+                flujo_imagen.hAlign = "CENTER"
+                contenido.append(flujo_imagen)
                 contenido.append(Spacer(1, 6))
             continue
 
@@ -861,49 +861,49 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
     return KeepTogether([Spacer(1, 4), tabla, Spacer(1, 8)])
 
 
-class DocConTOC(BaseDocTemplate):
-    """DocTemplate que notifica entradas a la TOC al pasar por H1/H2."""
+class DocumentoConIndice(BaseDocTemplate):
+    """Plantilla de documento que notifica entradas al índice al pasar por H1 y H2."""
     def __init__(self, filename, **kw):
         super().__init__(filename, **kw)
         frame = Frame(self.leftMargin, self.bottomMargin,
                       self.width, self.height, id="normal")
         self.addPageTemplates([PageTemplate(id="Todo", frames=frame)])
-        self._bookmark_counter = 0
+        self._contador_marcadores = 0
 
-    def _crear_bookmark(self, texto):
-        self._bookmark_counter += 1
+    def _crear_marcador(self, texto):
+        self._contador_marcadores += 1
         texto_limpio = re.sub(r"\s+", "-", texto.strip())
         texto_limpio = re.sub(r"[^\w\-]", "", texto_limpio, flags=re.UNICODE)
         texto_limpio = texto_limpio[:60] or "seccion"
-        return f"bookmark-{self._bookmark_counter}-{texto_limpio}"
+        return f"marcador-{self._contador_marcadores}-{texto_limpio}"
 
     def afterFlowable(self, flowable):
         if isinstance(flowable, Paragraph):
             estilo = flowable.style.name
             texto = flowable.getPlainText()
             if estilo == "H1":
-                bookmark = self._crear_bookmark(texto)
-                self.canv.bookmarkPage(bookmark)
-                self.canv.addOutlineEntry(texto, bookmark, level=0, closed=False)
+                marcador = self._crear_marcador(texto)
+                self.canv.bookmarkPage(marcador)
+                self.canv.addOutlineEntry(texto, marcador, level=0, closed=False)
                 self.notify("TOCEntry", (0, texto, self.page))
             elif estilo == "H2":
-                bookmark = self._crear_bookmark(texto)
-                self.canv.bookmarkPage(bookmark)
-                self.canv.addOutlineEntry(texto, bookmark, level=1, closed=False)
+                marcador = self._crear_marcador(texto)
+                self.canv.bookmarkPage(marcador)
+                self.canv.addOutlineEntry(texto, marcador, level=1, closed=False)
                 self.notify("TOCEntry", (1, texto, self.page))
             elif estilo == "H3":
-                bookmark = self._crear_bookmark(texto)
-                self.canv.bookmarkPage(bookmark)
-                self.canv.addOutlineEntry(texto, bookmark, level=2, closed=False)
+                marcador = self._crear_marcador(texto)
+                self.canv.bookmarkPage(marcador)
+                self.canv.addOutlineEntry(texto, marcador, level=2, closed=False)
 
 
-def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
+def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                   subtitulo=None, imagen_portada=None):
-    doc_word = Document(docx_path)
+    documento_word = Document(ruta_docx)
     estilos = construir_estilos()
 
-    pdf = DocConTOC(
-        str(pdf_path),
+    documento_pdf = DocumentoConIndice(
+        str(ruta_pdf),
         pagesize=TAMANO_PAGINA,
         leftMargin=MARGEN, rightMargin=MARGEN,
         topMargin=MARGEN, bottomMargin=MARGEN,
@@ -921,12 +921,12 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 with PILImage.open(imagen_portada) as im:
                     w, h = im.size
                 ratio = (h / w) if w else 1
-                img = Image(imagen_portada,
-                            width=ancho_util,
-                            height=ancho_util * ratio)
-                img.hAlign = "CENTER"
+                imagen_portada_flujo = Image(imagen_portada,
+                                             width=ancho_util,
+                                             height=ancho_util * ratio)
+                imagen_portada_flujo.hAlign = "CENTER"
                 historia.append(Spacer(1, 1 * cm))
-                historia.append(img)
+                historia.append(imagen_portada_flujo)
                 historia.append(Spacer(1, 1 * cm))
             except Exception as e:
                 print(f"⚠️  No se pudo cargar la imagen de portada: {e}")
@@ -947,47 +947,103 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         historia.append(PageBreak())
 
     # ---------- Tabla de contenidos ----------
-    historia.append(Paragraph("Índice", estilos["TOCTitulo"]))
-    toc = TableOfContents()
-    toc.levelStyles = [
-        ParagraphStyle(name="TOC1", fontName=FUENTE_TITULO, fontSize=12,
+    historia.append(Paragraph("Índice", estilos["TituloIndice"]))
+    indice = TableOfContents()
+    indice.levelStyles = [
+        ParagraphStyle(name="IndiceNivel1", fontName=FUENTE_TITULO, fontSize=12,
                        leading=18, textColor=COLOR_PRIMARIO, leftIndent=0),
-        ParagraphStyle(name="TOC2", fontName=FUENTE_TEXTO, fontSize=11,
+        ParagraphStyle(name="IndiceNivel2", fontName=FUENTE_TEXTO, fontSize=11,
                        leading=16, textColor=COLOR_SECUNDARIO, leftIndent=18),
     ]
-    historia.append(toc)
+    historia.append(indice)
     historia.append(PageBreak())
 
     # ---------- Contenido ----------
     items_lista_actual = []
-    citas_pendientes = []          # buffer de citas consecutivas a fusionar
+    citas_pendientes = []          # bloque de citas consecutivas a fusionar
     vacios_desde_ultima_cita = 0   # nº de párrafos vacíos vistos tras la última cita
     MAX_VACIOS_FUSION_CITA = 2     # hasta 2 saltos de renglón => misma caja
-    consejos_pendientes = []       # buffer de consejos consecutivos a fusionar
+    consejos_pendientes = []       # bloque de consejos consecutivos a fusionar
     modo_consejos = None           # "estilo" | "prefijo"
     vacios_desde_ultimo_consejo = 0
     MAX_VACIOS_FUSION_CONSEJO = 2  # hasta 2 saltos de renglón => misma caja
-    infos_pendientes = []          # buffer de infos consecutivas a fusionar
+    infos_pendientes = []          # bloque de notas informativas consecutivas a fusionar
     modo_infos = None              # "estilo" | "prefijo"
     vacios_desde_ultima_info = 0   # nº de párrafos vacíos vistos tras la última info
     MAX_VACIOS_FUSION_INFO = 2     # hasta 2 saltos de renglón => misma caja
 
-    consejo_manual_buffer = []     # buffer de párrafos dentro de :::consejo ... :::
+    bloque_consejo_manual = []     # bloque de párrafos dentro de :::consejo ... :::
     dentro_consejo_manual = False
-    cita_manual_buffer = []        # buffer de párrafos dentro de :::cita ... :::
+    bloque_cita_manual = []        # bloque de párrafos dentro de :::cita ... :::
     dentro_cita_manual = False
-    npc_manual_buffer = []         # buffer de párrafos dentro de :::npc ... :::
+    bloque_npc_manual = []         # bloque de párrafos dentro de :::npc ... :::
     dentro_npc_manual = False
-    enemigo_manual_buffer = []     # buffer de párrafos dentro de :::enemigo ... :::
+    bloque_enemigo_manual = []     # bloque de párrafos dentro de :::enemigo ... :::
     dentro_enemigo_manual = False
-    aliado_manual_buffer = []      # buffer de párrafos dentro de :::aliado ... :::
+    bloque_aliado_manual = []      # bloque de párrafos dentro de :::aliado ... :::
     dentro_aliado_manual = False
-    info_buffer = []               # buffer de párrafos dentro de :::info ... :::
+    bloque_info_manual = []        # bloque de párrafos dentro de :::info ... :::
     dentro_info = False
 
-    def _texto_plano_limpio(s):
-        # Quita espacios, asteriscos y caracteres de formato comunes.
-        return s.strip(" \t*_")
+    def agregar_contenido_a_bloque_activo(item_caja, imagenes):
+        if dentro_info:
+            if item_caja is not None:
+                bloque_info_manual.append(item_caja)
+            if imagenes:
+                _agregar_imagenes_a_bloque(bloque_info_manual, imagenes)
+            return True
+        if dentro_consejo_manual:
+            if item_caja is not None:
+                bloque_consejo_manual.append(item_caja)
+            if imagenes:
+                _agregar_imagenes_a_bloque(bloque_consejo_manual, imagenes)
+            return True
+        if dentro_cita_manual:
+            if item_caja is not None:
+                bloque_cita_manual.append(item_caja)
+            if imagenes:
+                _agregar_imagenes_a_bloque(bloque_cita_manual, imagenes)
+            return True
+        if dentro_npc_manual:
+            if item_caja is not None:
+                bloque_npc_manual.append(item_caja)
+            if imagenes:
+                _agregar_imagenes_a_bloque(bloque_npc_manual, imagenes)
+            return True
+        if dentro_enemigo_manual:
+            if item_caja is not None:
+                bloque_enemigo_manual.append(item_caja)
+            if imagenes:
+                _agregar_imagenes_a_bloque(bloque_enemigo_manual, imagenes)
+            return True
+        if dentro_aliado_manual:
+            if item_caja is not None:
+                bloque_aliado_manual.append(item_caja)
+            if imagenes:
+                _agregar_imagenes_a_bloque(bloque_aliado_manual, imagenes)
+            return True
+        return False
+
+    def agregar_salto_a_bloque_activo():
+        if dentro_consejo_manual:
+            bloque_consejo_manual.append(None)
+            return True
+        if dentro_cita_manual:
+            bloque_cita_manual.append(None)
+            return True
+        if dentro_npc_manual:
+            bloque_npc_manual.append(None)
+            return True
+        if dentro_enemigo_manual:
+            bloque_enemigo_manual.append(None)
+            return True
+        if dentro_aliado_manual:
+            bloque_aliado_manual.append(None)
+            return True
+        if dentro_info:
+            bloque_info_manual.append(None)
+            return True
+        return False
 
     def vaciar_lista():
         if items_lista_actual:
@@ -1001,7 +1057,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
     def vaciar_citas():
         if citas_pendientes:
-            caja = _renderizar_caja(citas_pendientes, estilos["CitaCaja"], ancho_util)
+            caja = _renderizar_caja(citas_pendientes, estilos["CajaCita"], ancho_util)
             if caja is not None:
                 historia.append(caja)
             citas_pendientes.clear()
@@ -1011,7 +1067,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         if consejos_pendientes:
             caja = _renderizar_caja(
                 consejos_pendientes,
-                estilos["ConsejoDM"],
+                estilos["CajaConsejoDm"],
                 ancho_util,
                 decorador=decorar_consejo_dm_html,
             )
@@ -1026,7 +1082,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         if infos_pendientes:
             caja = _renderizar_caja(
                 infos_pendientes,
-                estilos["InfoAdicional"],
+                estilos["CajaInfoAdicional"],
                 ancho_util,
                 decorador=decorar_info_adicional_html,
             )
@@ -1038,109 +1094,93 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
     def emitir_consejo_manual():
         nonlocal dentro_consejo_manual
-        if consejo_manual_buffer:
+        if bloque_consejo_manual:
             caja = _renderizar_caja(
-                consejo_manual_buffer,
-                estilos["ConsejoDM"],
+                bloque_consejo_manual,
+                estilos["CajaConsejoDm"],
                 ancho_util,
                 decorador=decorar_consejo_dm_html,
             )
             if caja is not None:
                 historia.append(caja)
-            consejo_manual_buffer.clear()
+            bloque_consejo_manual.clear()
         dentro_consejo_manual = False
 
     def emitir_cita_manual():
         nonlocal dentro_cita_manual
-        if cita_manual_buffer:
+        if bloque_cita_manual:
             caja = _renderizar_caja(
-                cita_manual_buffer,
-                estilos["CitaCaja"],
+                bloque_cita_manual,
+                estilos["CajaCita"],
                 ancho_util,
             )
             if caja is not None:
                 historia.append(caja)
-            cita_manual_buffer.clear()
+            bloque_cita_manual.clear()
         dentro_cita_manual = False
 
     def emitir_npc_manual():
         nonlocal dentro_npc_manual
-        if npc_manual_buffer:
+        if bloque_npc_manual:
             caja = _renderizar_caja(
-                npc_manual_buffer,
-                estilos["NPCBox"],
+                bloque_npc_manual,
+                estilos["CajaNpc"],
                 ancho_util,
-                decorador=decorar_npc_html,
+                decorador=decorar_npc_en_html,
             )
             if caja is not None:
                 historia.append(caja)
-            npc_manual_buffer.clear()
+            bloque_npc_manual.clear()
         dentro_npc_manual = False
 
     def emitir_enemigo_manual():
         nonlocal dentro_enemigo_manual
-        if enemigo_manual_buffer:
+        if bloque_enemigo_manual:
             caja = _renderizar_caja(
-                enemigo_manual_buffer,
-                estilos["EnemigoBox"],
+                bloque_enemigo_manual,
+                estilos["CajaEnemigo"],
                 ancho_util,
-                decorador=decorar_enemigo_html,
+                decorador=decorar_enemigo_en_html,
             )
             if caja is not None:
                 historia.append(caja)
-            enemigo_manual_buffer.clear()
+            bloque_enemigo_manual.clear()
         dentro_enemigo_manual = False
 
     def emitir_aliado_manual():
         nonlocal dentro_aliado_manual
-        if aliado_manual_buffer:
+        if bloque_aliado_manual:
             caja = _renderizar_caja(
-                aliado_manual_buffer,
-                estilos["AliadoBox"],
+                bloque_aliado_manual,
+                estilos["CajaAliado"],
                 ancho_util,
-                decorador=decorar_aliado_html,
+                decorador=decorar_aliado_en_html,
             )
             if caja is not None:
                 historia.append(caja)
-            aliado_manual_buffer.clear()
+            bloque_aliado_manual.clear()
         dentro_aliado_manual = False
 
     def emitir_info_adicional():
         nonlocal dentro_info
-        if info_buffer:
+        if bloque_info_manual:
             caja = _renderizar_caja(
-                info_buffer,
-                estilos["InfoAdicional"],
+                bloque_info_manual,
+                estilos["CajaInfoAdicional"],
                 ancho_util,
                 decorador=decorar_info_adicional_html,
             )
             if caja is not None:
                 historia.append(caja)
-            info_buffer.clear()
+            bloque_info_manual.clear()
         dentro_info = False
 
-    for tipo_elemento, elemento in _iterar_elementos_documento(doc_word):
+    for tipo_elemento, elemento in _iterar_elementos_documento(documento_word):
         if tipo_elemento == "tabla":
             tabla_docx = elemento
             item_tabla = _item_caja_tabla(tabla_docx)
 
-            if dentro_info:
-                info_buffer.append(item_tabla)
-                continue
-            if dentro_consejo_manual:
-                consejo_manual_buffer.append(item_tabla)
-                continue
-            if dentro_cita_manual:
-                cita_manual_buffer.append(item_tabla)
-                continue
-            if dentro_npc_manual:
-                npc_manual_buffer.append(item_tabla)
-                continue
-            if dentro_enemigo_manual:
-                enemigo_manual_buffer.append(item_tabla)
-                continue
-            if dentro_aliado_manual:
-                aliado_manual_buffer.append(item_tabla)
+            if agregar_contenido_a_bloque_activo(item_tabla, []):
                 continue
 
             vaciar_consejos()
@@ -1157,9 +1197,9 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
 
         parrafo = elemento
         # 1) Imágenes embebidas en el párrafo
-        imgs = extraer_imagenes_de_parrafo(parrafo, doc_word)
+        imagenes = extraer_imagenes_de_parrafo(parrafo, documento_word)
 
-        texto_html = runs_a_html(parrafo)
+        texto_html = parrafo_a_html(parrafo)
         texto_plano = parrafo.text or ""
 
         if es_inicio_bloque_info(texto_plano):
@@ -1173,7 +1213,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_citas()
             vaciar_lista()
             dentro_info = True
-            info_buffer.clear()
+            bloque_info_manual.clear()
             continue
 
         if es_inicio_bloque_consejo(texto_plano):
@@ -1187,7 +1227,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_citas()
             vaciar_lista()
             dentro_consejo_manual = True
-            consejo_manual_buffer.clear()
+            bloque_consejo_manual.clear()
             continue
 
         if es_inicio_bloque_cita(texto_plano):
@@ -1201,7 +1241,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_citas()
             vaciar_lista()
             dentro_cita_manual = True
-            cita_manual_buffer.clear()
+            bloque_cita_manual.clear()
             continue
 
         if es_inicio_bloque_npc(texto_plano):
@@ -1215,7 +1255,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_citas()
             vaciar_lista()
             dentro_npc_manual = True
-            npc_manual_buffer.clear()
+            bloque_npc_manual.clear()
             continue
 
         if es_inicio_bloque_enemigo(texto_plano):
@@ -1229,7 +1269,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_citas()
             vaciar_lista()
             dentro_enemigo_manual = True
-            enemigo_manual_buffer.clear()
+            bloque_enemigo_manual.clear()
             continue
 
         if es_inicio_bloque_aliado(texto_plano):
@@ -1243,7 +1283,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_citas()
             vaciar_lista()
             dentro_aliado_manual = True
-            aliado_manual_buffer.clear()
+            bloque_aliado_manual.clear()
             continue
 
         if es_fin_bloque_manual(texto_plano) and dentro_info:
@@ -1270,24 +1310,8 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             emitir_aliado_manual()
             continue
 
-        if not texto_html.strip() and not imgs:
-            if dentro_consejo_manual:
-                consejo_manual_buffer.append(None)
-                continue
-            if dentro_cita_manual:
-                cita_manual_buffer.append(None)
-                continue
-            if dentro_npc_manual:
-                npc_manual_buffer.append(None)
-                continue
-            if dentro_enemigo_manual:
-                enemigo_manual_buffer.append(None)
-                continue
-            if dentro_aliado_manual:
-                aliado_manual_buffer.append(None)
-                continue
-            if dentro_info:
-                info_buffer.append(None)
+        if not texto_html.strip() and not imagenes:
+            if agregar_salto_a_bloque_activo():
                 continue
             # Párrafo vacío: si superamos el umbral, cerramos la caja de citas.
             if citas_pendientes:
@@ -1311,9 +1335,9 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             continue
 
         clave = estilo_para_parrafo(parrafo)
-        consejo_por_estilo = clave == "ConsejoDM"
+        consejo_por_estilo = clave == "CajaConsejoDm"
         consejo_por_prefijo = es_consejo_dm(texto_plano)
-        info_por_estilo = clave == "InfoAdicional"
+        info_por_estilo = clave == "CajaInfoAdicional"
         info_por_prefijo = es_info_adicional(texto_plano)
         es_lista = clave == "Lista" or (
             parrafo.style.name and "List Bullet" in parrafo.style.name
@@ -1321,63 +1345,24 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         es_lista = es_lista or _es_lista_parrafo(parrafo)
         item_caja = _item_caja_desde_parrafo(parrafo, texto_html)
 
-        if dentro_info:
-            if texto_html.strip():
-                info_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(info_buffer, imgs)
+        if agregar_contenido_a_bloque_activo(item_caja if texto_html.strip() else None, imagenes):
             continue
 
-        if dentro_consejo_manual:
-            if texto_html.strip():
-                consejo_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(consejo_manual_buffer, imgs)
-            continue
-
-        if dentro_cita_manual:
-            if texto_html.strip():
-                cita_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(cita_manual_buffer, imgs)
-            continue
-
-        if dentro_npc_manual:
-            if texto_html.strip():
-                npc_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(npc_manual_buffer, imgs)
-            continue
-
-        if dentro_enemigo_manual:
-            if texto_html.strip():
-                enemigo_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(enemigo_manual_buffer, imgs)
-            continue
-
-        if dentro_aliado_manual:
-            if texto_html.strip():
-                aliado_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(aliado_manual_buffer, imgs)
-            continue
-
-        if imgs and not texto_html.strip():
+        if imagenes and not texto_html.strip():
             if consejos_pendientes:
-                _agregar_imagenes_a_buffer(consejos_pendientes, imgs)
+                _agregar_imagenes_a_bloque(consejos_pendientes, imagenes)
                 vacios_desde_ultimo_consejo = 0
                 continue
             if infos_pendientes:
-                _agregar_imagenes_a_buffer(infos_pendientes, imgs)
+                _agregar_imagenes_a_bloque(infos_pendientes, imagenes)
                 vacios_desde_ultima_info = 0
                 continue
             if citas_pendientes:
-                _agregar_imagenes_a_buffer(citas_pendientes, imgs)
+                _agregar_imagenes_a_bloque(citas_pendientes, imagenes)
                 vacios_desde_ultima_cita = 0
                 continue
 
-        if clave not in ("ConsejoDM", "InfoAdicional", "CitaCaja"):
+        if clave not in ("CajaConsejoDm", "CajaInfoAdicional", "CajaCita"):
             bloque_embebido = _extraer_bloque_prefijo_embebido(texto_html, texto_plano, es_consejo_dm)
             tipo_bloque_embebido = "consejo"
             if bloque_embebido is None:
@@ -1402,59 +1387,17 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 item_bloque = _item_caja_plano(bloque_html)
                 if tipo_bloque_embebido == "consejo":
                     consejos_pendientes.append(item_bloque)
-                    if imgs:
-                        _agregar_imagenes_a_buffer(consejos_pendientes, imgs)
+                    if imagenes:
+                        _agregar_imagenes_a_bloque(consejos_pendientes, imagenes)
                     modo_consejos = "prefijo"
                     vacios_desde_ultimo_consejo = 0
                 else:
                     infos_pendientes.append(item_bloque)
-                    if imgs:
-                        _agregar_imagenes_a_buffer(infos_pendientes, imgs)
+                    if imagenes:
+                        _agregar_imagenes_a_bloque(infos_pendientes, imagenes)
                     modo_infos = "prefijo"
                     vacios_desde_ultima_info = 0
                 continue
-
-        if dentro_info:
-            if texto_html.strip():
-                info_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(info_buffer, imgs)
-            continue
-
-        if dentro_consejo_manual:
-            if texto_html.strip():
-                consejo_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(consejo_manual_buffer, imgs)
-            continue
-
-        if dentro_cita_manual:
-            if texto_html.strip():
-                cita_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(cita_manual_buffer, imgs)
-            continue
-
-        if dentro_npc_manual:
-            if texto_html.strip():
-                npc_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(npc_manual_buffer, imgs)
-            continue
-
-        if dentro_enemigo_manual:
-            if texto_html.strip():
-                enemigo_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(enemigo_manual_buffer, imgs)
-            continue
-
-        if dentro_aliado_manual:
-            if texto_html.strip():
-                aliado_manual_buffer.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(aliado_manual_buffer, imgs)
-            continue
 
         # 2) Consejo para el DM → caja azul (formato de un solo párrafo)
         if consejo_por_estilo or consejo_por_prefijo:
@@ -1469,8 +1412,8 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             item_consejo = item_caja if consejo_por_estilo else _item_caja_plano(texto_html)
             if texto_html.strip():
                 consejos_pendientes.append(item_consejo)
-            if imgs:
-                _agregar_imagenes_a_buffer(consejos_pendientes, imgs)
+            if imagenes:
+                _agregar_imagenes_a_bloque(consejos_pendientes, imagenes)
             modo_consejos = nuevo_modo_consejo
             vacios_desde_ultimo_consejo = 0
             continue
@@ -1486,8 +1429,8 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             emitir_cita_manual()
             if texto_html.strip():
                 infos_pendientes.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(infos_pendientes, imgs)
+            if imagenes:
+                _agregar_imagenes_a_bloque(infos_pendientes, imagenes)
             modo_infos = nuevo_modo_info
             vacios_desde_ultima_info = 0
             continue
@@ -1497,22 +1440,22 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             if consejos_pendientes and modo_consejos != "prefijo":
                 if texto_html.strip():
                     consejos_pendientes.append(item_caja)
-                if imgs:
-                    _agregar_imagenes_a_buffer(consejos_pendientes, imgs)
+                if imagenes:
+                    _agregar_imagenes_a_bloque(consejos_pendientes, imagenes)
                 vacios_desde_ultimo_consejo = 0
                 continue
             if infos_pendientes and modo_infos != "prefijo":
                 if texto_html.strip():
                     infos_pendientes.append(item_caja)
-                if imgs:
-                    _agregar_imagenes_a_buffer(infos_pendientes, imgs)
+                if imagenes:
+                    _agregar_imagenes_a_bloque(infos_pendientes, imagenes)
                 vacios_desde_ultima_info = 0
                 continue
             if citas_pendientes:
                 if texto_html.strip():
                     citas_pendientes.append(item_caja)
-                if imgs:
-                    _agregar_imagenes_a_buffer(citas_pendientes, imgs)
+                if imagenes:
+                    _agregar_imagenes_a_bloque(citas_pendientes, imagenes)
                 vacios_desde_ultima_cita = 0
                 continue
             vaciar_consejos()
@@ -1526,15 +1469,15 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_lista()
 
         # 4) Citas → caja amarilla (se fusionan citas consecutivas)
-        if clave == "CitaCaja":
+        if clave == "CajaCita":
             vaciar_consejos()
             vaciar_infos()
             emitir_consejo_manual()
             emitir_cita_manual()
             if texto_html.strip():
                 citas_pendientes.append(item_caja)
-            if imgs:
-                _agregar_imagenes_a_buffer(citas_pendientes, imgs)
+            if imagenes:
+                _agregar_imagenes_a_bloque(citas_pendientes, imagenes)
             vacios_desde_ultima_cita = 0
             continue
         else:
@@ -1549,12 +1492,12 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         # 5) Resto: H1/H2/H3/Cuerpo
         if texto_html.strip():
             historia.append(Paragraph(texto_html, estilos[clave]))
-        if imgs:
-            for blob in imgs:
-                fl = imagen_flowable(blob, ancho_util)
-                if fl is not None:
+        if imagenes:
+            for blob in imagenes:
+                flujo_imagen = crear_flujo_imagen(blob, ancho_util)
+                if flujo_imagen is not None:
                     historia.append(Spacer(1, 6))
-                    historia.append(fl)
+                    historia.append(flujo_imagen)
                     historia.append(Spacer(1, 6))
 
     emitir_consejo_manual()
@@ -1568,12 +1511,12 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
     vaciar_citas()
     vaciar_lista()
 
-    # multiBuild: necesario para que la TOC se rellene en una segunda pasada
-    pdf.multiBuild(historia)
-    print(f"✅ PDF generado: {pdf_path}")
+    # multiBuild: necesario para que el índice se rellene en una segunda pasada
+    documento_pdf.multiBuild(historia)
+    print(f"✅ PDF generado: {ruta_pdf}")
 
 
-def _seleccionar_archivo_dialogo(titulo, filetypes, modo="abrir", initialfile=None):
+def _seleccionar_archivo_dialogo(titulo, tipos_archivo, modo="abrir", archivo_inicial=None):
     """Abre un diálogo de Windows para seleccionar un archivo.
 
     modo: "abrir" (askopenfilename) o "guardar" (asksaveasfilename).
@@ -1592,26 +1535,26 @@ def _seleccionar_archivo_dialogo(titulo, filetypes, modo="abrir", initialfile=No
     try:
         if modo == "guardar":
             ruta = filedialog.asksaveasfilename(
-                title=titulo, filetypes=filetypes,
-                defaultextension=filetypes[0][1].replace("*", ""),
-                initialfile=initialfile,
+                title=titulo, filetypes=tipos_archivo,
+                defaultextension=tipos_archivo[0][1].replace("*", ""),
+                initialfile=archivo_inicial,
             )
         else:
-            ruta = filedialog.askopenfilename(title=titulo, filetypes=filetypes)
+            ruta = filedialog.askopenfilename(title=titulo, filetypes=tipos_archivo)
     finally:
         root.destroy()
     return ruta or ""
 
 
-def main():
+def principal():
     parser = argparse.ArgumentParser(description="Convierte un .docx a PDF estilo Aventura.")
     parser.add_argument("entrada", nargs="?", help="Archivo .docx de entrada (si se omite se abre un diálogo)")
     parser.add_argument("salida", nargs="?", help="Archivo .pdf de salida (si se omite se abre un diálogo)")
     parser.add_argument("--titulo", help="Título de la portada (opcional)")
     parser.add_argument("--subtitulo", help="Subtítulo de la portada (opcional)")
     parser.add_argument("--autor", help="Autor (opcional)")
-    parser.add_argument("--portada", default=IMAGEN_PORTADA_DEFAULT,
-                        help=f"Ruta a la imagen de portada (por defecto: {IMAGEN_PORTADA_DEFAULT})")
+    parser.add_argument("--portada", default=IMAGEN_PORTADA_PREDETERMINADA,
+                        help=f"Ruta a la imagen de portada (por defecto: {IMAGEN_PORTADA_PREDETERMINADA})")
     args = parser.parse_args()
 
     # --- Entrada: si no se pasa por CLI, pedirla con diálogo de Windows ---
@@ -1640,7 +1583,7 @@ def main():
             "Guardar PDF como...",
             [("Archivo PDF", "*.pdf"), ("Todos los archivos", "*.*")],
             modo="guardar",
-            initialfile=entrada.with_suffix(".pdf").name,
+            archivo_inicial=entrada.with_suffix(".pdf").name,
         )
         if not ruta:
             raise SystemExit("❌ No se seleccionó ruta de salida.")
@@ -1652,4 +1595,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    principal()

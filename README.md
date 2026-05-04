@@ -1,11 +1,15 @@
 # Word → PDF estilo Aventura
 
+Conversor de `.docx` a PDF pensado para aventuras: portada, índice, títulos jerárquicos, cajas temáticas, enlaces, imágenes y tablas dentro de bloques especiales.
+
 ## Instalación
+
 ```powershell
 pip install -r requirements.txt
 ```
 
 ## Uso
+
 ```powershell
 python convert.py mi_aventura.docx mi_aventura.pdf `
     --titulo "Stranger Things" `
@@ -14,46 +18,35 @@ python convert.py mi_aventura.docx mi_aventura.pdf `
     --portada "C:\ruta\a\tu\imagen.jpg"
 ```
 
-Si no pasas `--portada`, usa la ruta de ejemplo definida en `convert.py`
-(`IMAGEN_PORTADA_DEFAULT`). Si la imagen no existe, se omite sin error.
+Si omites `--portada`, el script usa la ruta configurada en `convert.py` en `IMAGEN_PORTADA_PREDETERMINADA`. Si no encuentra esa imagen, la ignora sin fallar.
 
-## Cómo escribir el Word
+## Cómo preparar el Word
 
-Usa los **estilos de Word** para que el script reconozca cada parte:
+El conversor se apoya principalmente en los estilos de Word.
 
 | En Word | Resultado en PDF |
 |---|---|
-| **Título 1** | Capítulo (rojo, entra en el índice) |
-| **Título 2** | Sección (rojo, entra en el índice) |
+| **Título 1** | Capítulo en rojo, incluido en el índice |
+| **Título 2** | Sección en rojo, incluida en el índice |
 | **Título 3** | Subsección |
 | **Normal** | Texto justificado |
-| **Cita** (Quote) | 🟨 Caja amarilla con texto negro |
-| **Información adicional** o prefijo `INFORMACIÓN ADICIONAL:` | 🟩 Caja verde-azulada con marcador `[i]` |
-| **Consejos** o párrafo que empieza con `CONSEJO PARA EL DM` | 🟦 Caja azul con texto azul |
+| **Cita** o **Quote** | Caja amarilla |
+| **Información adicional** | Caja verde-azulada |
+| **Consejos** | Caja azul de consejo para el DM |
 | Lista con viñetas | Lista con viñetas |
-| Hipervínculos embebidos | Enlaces clicables en el PDF |
+| Hipervínculo real | Enlace clickable en el PDF |
 
-Dentro de cualquier párrafo puedes usar **negrita**, *cursiva* o subrayado y se
-respetan en el PDF, también dentro de las cajas.
+También se respetan la negrita, la cursiva y el subrayado, incluso dentro de las cajas.
+
+## Bloques y estilos especiales
 
 ### Consejo para el DM
-Tienes **tres formas** de marcar un Consejo del DM:
 
-**1) Recomendado: estilo de párrafo `Consejos`**
-Si creas en Word un estilo con ese nombre (o similar, por ejemplo
-`Consejo DM`), el script lo detecta y lo convierte en una caja azul de
-Consejo para el DM.
+Puedes generarlo de tres maneras:
 
-**2) Párrafo único que empieza por `CONSEJO PARA EL DM`:**
-Escribe un párrafo Normal que empiece exactamente así:
-
-> **CONSEJO PARA EL DM (REGLAS 5.5):** Entrega a tus jugadores el "Cartel de Persona Desaparecida"...
-
-El script lo detecta automáticamente y lo encierra en la caja azul.
-
-**3) Bloque manual delimitado: `:::consejo` ... `:::`**
-Si quieres que la caja abarque varios párrafos, enlaces o listas, puedes abrir
-y cerrar el bloque manualmente:
+1. **Con el estilo `Consejos`**
+2. **Con un párrafo que empiece por `CONSEJO PARA EL DM`**
+3. **Con un bloque manual**
 
 ```text
 :::consejo
@@ -64,55 +57,15 @@ Consejo para el DM: Usa esta escena para subir la tensión.
 :::
 ```
 
-Todo lo que quede entre `:::consejo` y `:::` se convertirá en una sola caja de
-Consejo para el DM.
-
-Además, el encabezado **`Consejo para el DM`** siempre saldrá en una línea
-aparte. Si el contenido ya empieza por esa frase, el script la separa del resto
-del texto y **no la repite**. Si incluyes un subtítulo como
-`Consejo para el DM (Motivación Adicional):`, ese subtítulo también se conserva
-en la línea del encabezado.
-
-### Citas
-Aplica el estilo **Cita** al párrafo en Word → saldrá en caja amarilla.
-
-También puedes crear una cita manual de varios párrafos con:
-
-```text
-:::cita
-Este texto irá dentro de una sola caja amarilla.
-
-- Puedes mezclar varios párrafos.
-- También listas y enlaces.
-:::
-```
-
-Todo lo que quede entre `:::cita` y `:::` se convierte en una sola caja de cita.
-Este formato sigue la misma lógica robusta que `:::info` y `:::consejo`:
-- conserva párrafos normales,
-- conserva viñetas y sangrías,
-- conserva imágenes dentro del cuadro,
-- tolera pequeños espacios en blanco entre párrafos,
-- y mantiene el bloque unido aunque haya imágenes entre párrafos.
+Si el contenido empieza por `Consejo para el DM`, el encabezado se separa y no se duplica. También se conservan subtítulos como `Consejo para el DM (Motivación Adicional):`.
 
 ### Información adicional
-Para información útil pero opcional, tienes **tres formas**:
 
-**1) Recomendado: estilo de párrafo `Información adicional`**
-Si creas en Word un estilo con ese nombre (o similar, por ejemplo
-`Info adicional`), el script lo detecta y lo convierte en una caja
-verde-azulada con el marcador `[i] Información adicional:`.
+También admite tres entradas:
 
-**2) Alternativa rápida: prefijo de texto**
-Escribe un párrafo Normal que empiece así:
-
-> **INFORMACIÓN ADICIONAL:** Este detalle puede ayudarte a enriquecer la escena, pero no es obligatorio usarlo.
-
-El script lo detecta automáticamente y lo mete en la caja informativa.
-
-**3) Bloque manual delimitado: `:::info` ... `:::`**
-Si quieres que la caja abarque varios párrafos o incluso listas, puedes abrir y
-cerrar el bloque manualmente:
+1. **Estilo `Información adicional`**
+2. **Prefijo automático**, por ejemplo `INFORMACIÓN ADICIONAL:`
+3. **Bloque manual**
 
 ```text
 :::info
@@ -123,48 +76,36 @@ Este detalle añade contexto opcional para enriquecer la escena.
 :::
 ```
 
-Todo lo que quede entre `:::info` y `:::` se convertirá en una sola caja de
-información adicional.
+### Cita
 
-Este formato es el más robusto para mezclar:
-- párrafos normales,
-- enlaces,
-- viñetas,
-- imágenes,
-- y pequeños espacios en blanco entre bloques de texto.
+Se puede crear con el estilo `Cita` o con bloque manual:
 
-La misma robustez aplica a `:::consejo` y `:::cita`.
+```text
+:::cita
+Este texto irá dentro de una sola caja amarilla.
 
-### Imágenes dentro de recuadros
-Los bloques manuales `:::info`, `:::consejo`, `:::cita`, `:::npc`,
-`:::enemigo` y `:::aliado` ya pueden contener imágenes dentro del mismo
-recuadro. Si insertas una imagen entre dos párrafos del bloque, el PDF la
-mantiene dentro de la caja.
+- Puedes mezclar varios párrafos.
+- También listas y enlaces.
+:::
+```
 
-En la práctica:
-- texto + enlaces + listas + imágenes dentro de cualquiera de esos bloques →
-    se mantienen juntos;
-- si una secuencia de `Cita`, `Consejos` o `Información adicional` ya está
-    abierta, un párrafo que solo tenga una imagen también puede quedar dentro del
-    recuadro activo.
+### NPC, enemigo y aliado
 
-### Bloques especiales: NPC, enemigo y aliado
-Estos tres tipos solo se activan mediante bloque manual. No usan estilo de
-párrafo ni prefijos automáticos.
+Estos tres cuadros especiales solo se activan con bloques manuales.
 
 #### NPC
+
 ```text
 :::npc
 Nombre: Jim Hopper
 
 - Sheriff de Hawkins
 - Protector y desconfiado
-
-| También puedes insertar una tabla en Word dentro del bloque |
 :::
 ```
 
 #### Enemigo
+
 ```text
 :::enemigo
 Demogorgon
@@ -175,6 +116,7 @@ Demogorgon
 ```
 
 #### Aliado
+
 ```text
 :::aliado
 Once
@@ -184,29 +126,49 @@ Once
 :::
 ```
 
-Los tres siguen la misma lógica robusta que `:::info`, `:::consejo` y
-`:::cita`:
-- conservan párrafos normales,
-- conservan viñetas y sangrías,
-- conservan imágenes dentro del cuadro,
-- admiten tablas de Word dentro del mismo recuadro,
-- y toleran pequeños espacios en blanco entre bloques de contenido.
+## Qué admite cada bloque manual
 
-### Imágenes
-Pega las imágenes en el Word donde quieras. El script las extrae y las coloca
-en el PDF en el mismo punto, escaladas al ancho útil de la página.
+Los bloques `:::info`, `:::consejo`, `:::cita`, `:::npc`, `:::enemigo` y `:::aliado` comparten la misma lógica de renderizado. Dentro de ellos puedes mezclar:
 
-### Enlaces
-Si insertas un hipervínculo real en Word, el script intenta conservarlo en el
-PDF como enlace clicable, manteniendo además el texto azul y subrayado.
+- párrafos normales,
+- listas con viñetas,
+- sangrías,
+- enlaces,
+- imágenes,
+- tablas de Word,
+- espacios en blanco moderados entre fragmentos.
 
-## Tabla de contenidos
-Se genera automáticamente desde los Título 1 y Título 2.
-El script hace doble pasada (`multiBuild`) para que los números de página sean correctos.
+Esto permite mantener dentro del mismo recuadro contenido compuesto, sin partirlo artificialmente.
+
+## Imágenes
+
+Las imágenes insertadas en Word se extraen y se colocan en el PDF ajustadas al ancho útil de la página.
+
+Si una imagen aparece dentro de un bloque manual, permanece dentro del mismo recuadro.
+
+## Enlaces
+
+Los hipervínculos reales de Word se conservan como enlaces clickables en el PDF y mantienen su estilo visual azul y subrayado.
+
+## Índice
+
+El índice se genera automáticamente a partir de `Título 1` y `Título 2`.
+
+El script usa `multiBuild` para recalcular la paginación y dejar los números correctos en la segunda pasada.
 
 ## Personalización
-Edita las constantes al inicio de `convert.py`:
-- `COLOR_PRIMARIO`, `COLOR_AZUL_*`, `COLOR_AMA_*`
-- `FUENTE_TITULO`, `FUENTE_TEXTO`
-- `MARGEN`, `TAMANO_PAGINA`
-- `IMAGEN_PORTADA_DEFAULT`
+
+Si quieres ajustar el estilo visual, revisa estas constantes al inicio de `convert.py`:
+
+- `COLOR_PRIMARIO`
+- `COLOR_AZUL_*`
+- `COLOR_AMA_*`
+- `COLOR_INFO_*`
+- `COLOR_NPC_*`
+- `COLOR_ENEMIGO_*`
+- `COLOR_ALIADO_*`
+- `FUENTE_TITULO`
+- `FUENTE_TEXTO`
+- `MARGEN`
+- `TAMANO_PAGINA`
+- `IMAGEN_PORTADA_PREDETERMINADA`
