@@ -589,6 +589,7 @@ def _nivel_lista_parrafo(parrafo):
 
 def _item_caja_desde_parrafo(parrafo, texto_html):
     return {
+        "tipo": "texto",
         "html": texto_html,
         "es_lista": _es_lista_parrafo(parrafo),
         "nivel_lista": _nivel_lista_parrafo(parrafo),
@@ -599,12 +600,25 @@ def _item_caja_desde_parrafo(parrafo, texto_html):
 
 def _item_caja_plano(texto_html):
     return {
+        "tipo": "texto",
         "html": texto_html,
         "es_lista": False,
         "nivel_lista": 0,
         "left_indent": 0,
         "first_line_indent": 0,
     }
+
+
+def _item_caja_imagen(blob):
+    return {
+        "tipo": "imagen",
+        "blob": blob,
+    }
+
+
+def _agregar_imagenes_a_buffer(buffer, blobs):
+    for blob in blobs:
+        buffer.append(_item_caja_imagen(blob))
 
 
 def _estilo_interno_caja(estilo_base, item, sufijo):
@@ -638,10 +652,25 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
     contenido = []
     primer_bloque = True
     indice = 0
+    ancho_interno = max(40, ancho_total - 20)
 
     for parte in partes:
         if parte is None:
             if contenido and not isinstance(contenido[-1], Spacer):
+                contenido.append(Spacer(1, 6))
+            continue
+
+        if parte.get("tipo") == "imagen":
+            if primer_bloque and decorador is not None:
+                estilo = _estilo_interno_caja(estilo_base, _item_caja_plano(""), indice)
+                contenido.append(Paragraph(decorador(""), estilo))
+                primer_bloque = False
+                indice += 1
+
+            fl = imagen_flowable(parte.get("blob"), ancho_interno)
+            if fl is not None:
+                fl.hAlign = "CENTER"
+                contenido.append(fl)
                 contenido.append(Spacer(1, 6))
             continue
 
@@ -887,21 +916,6 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
     for parrafo in doc_word.paragraphs:
         # 1) Imágenes embebidas en el párrafo
         imgs = extraer_imagenes_de_parrafo(parrafo, doc_word)
-        if imgs:
-            # Las imágenes interrumpen cualquier bloque abierto
-            vaciar_consejos()
-            vaciar_infos()
-            emitir_info_adicional()
-            emitir_consejo_manual()
-            emitir_cita_manual()
-            vaciar_citas()
-            vaciar_lista()
-            for blob in imgs:
-                fl = imagen_flowable(blob, ancho_util)
-                if fl is not None:
-                    historia.append(Spacer(1, 6))
-                    historia.append(fl)
-                    historia.append(Spacer(1, 6))
 
         texto_html = runs_a_html(parrafo)
         texto_plano = parrafo.text or ""
@@ -951,7 +965,7 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             emitir_cita_manual()
             continue
 
-        if not texto_html.strip():
+        if not texto_html.strip() and not imgs:
             if dentro_consejo_manual:
                 consejo_manual_buffer.append(None)
                 continue
@@ -993,6 +1007,20 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         es_lista = es_lista or _es_lista_parrafo(parrafo)
         item_caja = _item_caja_desde_parrafo(parrafo, texto_html)
 
+        if imgs and not texto_html.strip():
+            if consejos_pendientes:
+                _agregar_imagenes_a_buffer(consejos_pendientes, imgs)
+                vacios_desde_ultimo_consejo = 0
+                continue
+            if infos_pendientes:
+                _agregar_imagenes_a_buffer(infos_pendientes, imgs)
+                vacios_desde_ultima_info = 0
+                continue
+            if citas_pendientes:
+                _agregar_imagenes_a_buffer(citas_pendientes, imgs)
+                vacios_desde_ultima_cita = 0
+                continue
+
         if clave not in ("ConsejoDM", "InfoAdicional", "CitaCaja"):
             bloque_embebido = _extraer_bloque_prefijo_embebido(texto_html, texto_plano, es_consejo_dm)
             tipo_bloque_embebido = "consejo"
@@ -1018,24 +1046,37 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
                 item_bloque = _item_caja_plano(bloque_html)
                 if tipo_bloque_embebido == "consejo":
                     consejos_pendientes.append(item_bloque)
+                    if imgs:
+                        _agregar_imagenes_a_buffer(consejos_pendientes, imgs)
                     modo_consejos = "prefijo"
                     vacios_desde_ultimo_consejo = 0
                 else:
                     infos_pendientes.append(item_bloque)
+                    if imgs:
+                        _agregar_imagenes_a_buffer(infos_pendientes, imgs)
                     modo_infos = "prefijo"
                     vacios_desde_ultima_info = 0
                 continue
 
         if dentro_info:
-            info_buffer.append(item_caja)
+            if texto_html.strip():
+                info_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(info_buffer, imgs)
             continue
 
         if dentro_consejo_manual:
-            consejo_manual_buffer.append(item_caja)
+            if texto_html.strip():
+                consejo_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(consejo_manual_buffer, imgs)
             continue
 
         if dentro_cita_manual:
-            cita_manual_buffer.append(item_caja)
+            if texto_html.strip():
+                cita_manual_buffer.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(cita_manual_buffer, imgs)
             continue
 
         # 2) Consejo para el DM → caja azul (formato de un solo párrafo)
@@ -1049,7 +1090,10 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_citas()
             vaciar_lista()
             item_consejo = item_caja if consejo_por_estilo else _item_caja_plano(texto_html)
-            consejos_pendientes.append(item_consejo)
+            if texto_html.strip():
+                consejos_pendientes.append(item_consejo)
+            if imgs:
+                _agregar_imagenes_a_buffer(consejos_pendientes, imgs)
             modo_consejos = nuevo_modo_consejo
             vacios_desde_ultimo_consejo = 0
             continue
@@ -1063,7 +1107,10 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_citas()
             vaciar_lista()
             emitir_cita_manual()
-            infos_pendientes.append(item_caja)
+            if texto_html.strip():
+                infos_pendientes.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(infos_pendientes, imgs)
             modo_infos = nuevo_modo_info
             vacios_desde_ultima_info = 0
             continue
@@ -1071,15 +1118,24 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
         # 3) Listas
         if es_lista:
             if consejos_pendientes and modo_consejos != "prefijo":
-                consejos_pendientes.append(item_caja)
+                if texto_html.strip():
+                    consejos_pendientes.append(item_caja)
+                if imgs:
+                    _agregar_imagenes_a_buffer(consejos_pendientes, imgs)
                 vacios_desde_ultimo_consejo = 0
                 continue
             if infos_pendientes and modo_infos != "prefijo":
-                infos_pendientes.append(item_caja)
+                if texto_html.strip():
+                    infos_pendientes.append(item_caja)
+                if imgs:
+                    _agregar_imagenes_a_buffer(infos_pendientes, imgs)
                 vacios_desde_ultima_info = 0
                 continue
             if citas_pendientes:
-                citas_pendientes.append(item_caja)
+                if texto_html.strip():
+                    citas_pendientes.append(item_caja)
+                if imgs:
+                    _agregar_imagenes_a_buffer(citas_pendientes, imgs)
                 vacios_desde_ultima_cita = 0
                 continue
             vaciar_consejos()
@@ -1098,7 +1154,10 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vaciar_infos()
             emitir_consejo_manual()
             emitir_cita_manual()
-            citas_pendientes.append(item_caja)
+            if texto_html.strip():
+                citas_pendientes.append(item_caja)
+            if imgs:
+                _agregar_imagenes_a_buffer(citas_pendientes, imgs)
             vacios_desde_ultima_cita = 0
             continue
         else:
@@ -1111,7 +1170,15 @@ def construir_pdf(docx_path, pdf_path, titulo=None, autor=None,
             vacios_desde_ultima_cita = 0
 
         # 5) Resto: H1/H2/H3/Cuerpo
-        historia.append(Paragraph(texto_html, estilos[clave]))
+        if texto_html.strip():
+            historia.append(Paragraph(texto_html, estilos[clave]))
+        if imgs:
+            for blob in imgs:
+                fl = imagen_flowable(blob, ancho_util)
+                if fl is not None:
+                    historia.append(Spacer(1, 6))
+                    historia.append(fl)
+                    historia.append(Spacer(1, 6))
 
     emitir_consejo_manual()
     emitir_cita_manual()

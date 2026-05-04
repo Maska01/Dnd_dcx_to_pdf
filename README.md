@@ -91,8 +91,9 @@ Todo lo que quede entre `:::cita` y `:::` se convierte en una sola caja de cita.
 Este formato sigue la misma lógica robusta que `:::info` y `:::consejo`:
 - conserva párrafos normales,
 - conserva viñetas y sangrías,
+- conserva imágenes dentro del cuadro,
 - tolera pequeños espacios en blanco entre párrafos,
-- y corta el bloque correctamente si aparece una imagen.
+- y mantiene el bloque unido aunque haya imágenes entre párrafos.
 
 ### Información adicional
 Para información útil pero opcional, tienes **tres formas**:
@@ -129,20 +130,22 @@ Este formato es el más robusto para mezclar:
 - párrafos normales,
 - enlaces,
 - viñetas,
+- imágenes,
 - y pequeños espacios en blanco entre bloques de texto.
 
 La misma robustez aplica a `:::consejo` y `:::cita`.
 
-### Límite importante de los bloques manuales
-Las imágenes no se incrustan dentro de la misma caja de `:::info`,
-`:::consejo` o `:::cita`. Si el script encuentra una imagen, la trata como un
-elemento independiente del PDF y eso corta el bloque actual.
+### Imágenes dentro de recuadros
+Los bloques manuales `:::info`, `:::consejo` y `:::cita` ya pueden contener
+imágenes dentro del mismo recuadro. Si insertas una imagen entre dos párrafos
+del bloque, el PDF la mantiene dentro de la caja.
 
 En la práctica:
-- texto + enlaces + listas dentro de `:::info`, `:::consejo` o `:::cita` → sí
-    se mantienen juntos;
-- imagen dentro de uno de esos bloques → la imagen sale fuera de la caja y el
-    bloque se interrumpe.
+- texto + enlaces + listas + imágenes dentro de `:::info`, `:::consejo` o
+    `:::cita` → se mantienen juntos;
+- si una secuencia de `Cita`, `Consejos` o `Información adicional` ya está
+    abierta, un párrafo que solo tenga una imagen también puede quedar dentro del
+    recuadro activo.
 
 ### Imágenes
 Pega las imágenes en el Word donde quieras. El script las extrae y las coloca
