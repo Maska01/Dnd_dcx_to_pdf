@@ -496,17 +496,25 @@ def parrafo_a_html(parrafo):
 
 
 def extraer_imagenes_de_parrafo(parrafo, documento_word):
-    """Devuelve lista de bytes con las imágenes embebidas en el párrafo."""
+    """Devuelve descriptores de imágenes embebidas en el párrafo."""
     imagenes = []
     for blip in parrafo._element.findall(".//" + qn("a:blip")):
         rId = blip.get(qn("r:embed"))
         if rId and rId in documento_word.part.related_parts:
-            imagenes.append(documento_word.part.related_parts[rId].blob)
+            blob = documento_word.part.related_parts[rId].blob
+            dimensiones = _leer_dimensiones_imagen(blob)
+            if dimensiones is None:
+                continue
+            ancho_px, alto_px = dimensiones
+            imagenes.append({
+                "blob": blob,
+                "ancho_px": ancho_px,
+                "alto_px": alto_px,
+            })
     return imagenes
 
 
-def crear_flujo_imagen(blob, ancho_max, alto_max=None):
-    """Crea un `Image` escalado para que entre en el área disponible."""
+def _leer_dimensiones_imagen(blob):
     bio = io.BytesIO(blob)
     try:
         with PILImage.open(bio) as im:
@@ -515,16 +523,116 @@ def crear_flujo_imagen(blob, ancho_max, alto_max=None):
         return None
     if not w or not h:
         return None
+    return float(w), float(h)
 
+
+def crear_flujo_imagen(blob, ancho_max, alto_max=None, permitir_ampliacion=True):
+    """Crea un `Image` escalado para que entre en el área disponible."""
+    dimensiones = _leer_dimensiones_imagen(blob)
+    if dimensiones is None:
+        return None
+    w, h = dimensiones
+
+    bio = io.BytesIO(blob)
     bio.seek(0)
     escala_ancho = float(ancho_max) / float(w) if ancho_max else 1.0
     escala_alto = float(alto_max) / float(h) if alto_max else 1.0
-    escala = min(1.0, escala_ancho, escala_alto)
+    escala = min(escala_ancho, escala_alto)
+    if not permitir_ampliacion:
+        escala = min(1.0, escala)
     ancho = max(1.0, float(w) * escala)
     alto = max(1.0, float(h) * escala)
     img = Image(bio, width=ancho, height=alto)
     img.hAlign = "CENTER"
     return img
+
+
+def _item_caja_grupo_imagenes(imagenes):
+    return {
+        "tipo": "grupo_imagenes",
+        "imagenes": list(imagenes),
+    }
+
+
+def _crear_items_imagenes(imagenes):
+    if not imagenes:
+        return []
+    if len(imagenes) >= 2:
+        return [_item_caja_grupo_imagenes(imagenes)]
+    return [_item_caja_imagen(imagenes[0])]
+
+
+def _crear_fila_de_imagenes(imagenes, ancho_disponible, alto_max=None, espacio=10):
+    validas = [imagen for imagen in imagenes if imagen.get("ancho_px") and imagen.get("alto_px")]
+    if not validas:
+        return None
+
+    if len(validas) == 1:
+        return crear_flujo_imagen(
+            validas[0]["blob"],
+            ancho_disponible,
+            alto_max=alto_max,
+            permitir_ampliacion=True,
+        )
+
+    suma_relaciones = sum(imagen["ancho_px"] / imagen["alto_px"] for imagen in validas)
+    ancho_libre = max(1.0, ancho_disponible - (espacio * (len(validas) - 1)))
+    altura_objetivo = ancho_libre / suma_relaciones if suma_relaciones else 0
+    if alto_max:
+        altura_objetivo = min(altura_objetivo, float(alto_max))
+    if altura_objetivo <= 0:
+        return None
+
+    anchos = [max(1.0, (imagen["ancho_px"] / imagen["alto_px"]) * altura_objetivo) for imagen in validas]
+    ancho_minimo = min(anchos)
+    altura_minima = altura_objetivo
+
+    if altura_minima < 72 or ancho_minimo < 90:
+        return None
+
+    celdas = []
+    for imagen, ancho in zip(validas, anchos):
+        flujo = crear_flujo_imagen(
+            imagen["blob"],
+            ancho,
+            alto_max=altura_objetivo,
+            permitir_ampliacion=True,
+        )
+        if flujo is None:
+            return None
+        celdas.append(flujo)
+
+    tabla = Table([celdas], colWidths=anchos, hAlign="CENTER")
+    tabla.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("LEFTPADDING", (0, 0), (-1, -1), espacio / 2),
+        ("RIGHTPADDING", (0, 0), (-1, -1), espacio / 2),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    return tabla
+
+
+def _crear_flujos_imagenes(imagenes, ancho_disponible, alto_max=None, espacio=10):
+    if not imagenes:
+        return []
+
+    fila = _crear_fila_de_imagenes(imagenes, ancho_disponible, alto_max=alto_max, espacio=espacio)
+    if fila is not None:
+        return [fila]
+
+    flujos = []
+    for imagen in imagenes:
+        flujo = crear_flujo_imagen(
+            imagen["blob"],
+            ancho_disponible,
+            alto_max=alto_max,
+            permitir_ampliacion=True,
+        )
+        if flujo is not None:
+            flujos.append(flujo)
+    return flujos
 
 
 def es_consejo_dm(texto_plano):
@@ -844,10 +952,10 @@ def _item_caja_plano(texto_html):
     }
 
 
-def _item_caja_imagen(blob):
+def _item_caja_imagen(imagen):
     return {
         "tipo": "imagen",
-        "blob": blob,
+        "imagen": imagen,
     }
 
 
@@ -859,8 +967,8 @@ def _item_caja_tabla(tabla_docx):
 
 
 def _agregar_imagenes_a_bloque(bloque, imagenes):
-    for blob in imagenes:
-        bloque.append(_item_caja_imagen(blob))
+    for item in _crear_items_imagenes(imagenes):
+        bloque.append(item)
 
 
 def _iterar_elementos_documento(documento_word):
@@ -1042,15 +1150,43 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
                 indice += 1
 
             flujo_imagen = crear_flujo_imagen(
-                parte.get("blob"),
+                (parte.get("imagen") or {}).get("blob"),
                 ancho_interno,
                 alto_max=alto_max_imagen,
+                permitir_ampliacion=True,
             )
             if flujo_imagen is not None:
                 flujo_imagen.hAlign = "CENTER"
                 imagen_centrada = _centrar_en_fila(flujo_imagen, ancho_interno)
                 contenido.append(_agrupar_cabecera_y_bloque(cabecera, imagen_centrada, ancho_interno))
                 contenido.append(Spacer(1, 8))
+            continue
+
+        if parte.get("tipo") == "grupo_imagenes":
+            cabecera = None
+            if primer_bloque and decorador is not None:
+                cabecera = _crear_cabecera_decorada_caja(estilo_base, decorador, indice)
+                primer_bloque = False
+                indice += 1
+
+            fila_imagenes = _crear_fila_de_imagenes(
+                parte.get("imagenes") or [],
+                ancho_interno,
+                alto_max=alto_max_imagen,
+            )
+            if fila_imagenes is not None:
+                contenido.append(_agrupar_cabecera_y_bloque(cabecera, fila_imagenes, ancho_interno))
+                contenido.append(Spacer(1, 8))
+            else:
+                for flujo_imagen in _crear_flujos_imagenes(
+                    parte.get("imagenes") or [],
+                    ancho_interno,
+                    alto_max=alto_max_imagen,
+                ):
+                    imagen_centrada = _centrar_en_fila(flujo_imagen, ancho_interno)
+                    contenido.append(_agrupar_cabecera_y_bloque(cabecera, imagen_centrada, ancho_interno))
+                    cabecera = None
+                    contenido.append(Spacer(1, 8))
             continue
 
         html = (parte.get("html") or "").strip()
@@ -1743,8 +1879,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
         if texto_html.strip():
             historia.append(Paragraph(texto_html, estilos[clave]))
         if imagenes:
-            for blob in imagenes:
-                flujo_imagen = crear_flujo_imagen(blob, ancho_util)
+            flujos_imagen = _crear_flujos_imagenes(imagenes, ancho_util)
+            for flujo_imagen in flujos_imagen:
                 if flujo_imagen is not None:
                     historia.append(Spacer(1, 6))
                     historia.append(flujo_imagen)

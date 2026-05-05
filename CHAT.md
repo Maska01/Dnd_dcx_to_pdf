@@ -528,6 +528,28 @@ Validación realizada:
 - generación satisfactoria de un PDF temporal en modo `--sin-menu`,
 - sin errores reportados en `convert.py` ni en `README.md`.
 
+#### 8. Agrupación de imágenes del mismo renglón
+
+Cambio posterior aplicado después de los nuevos tamaños de página.
+
+Cambios confirmados:
+- si un mismo párrafo de Word contiene dos o más imágenes, ahora el conversor
+  intenta mantenerlas en una sola fila,
+- si el ancho útil de página y márgenes lo permite, las imágenes pueden crecer
+  para aprovechar mejor el espacio disponible,
+- si mantenerlas juntas las dejaría demasiado pequeñas o no caben dentro del
+  ancho útil, el conversor vuelve al comportamiento de separarlas por renglón,
+- esta lógica se aplica tanto al contenido normal como a imágenes dentro de
+  cajas especiales,
+- la extracción de imágenes ahora conserva dimensiones para tomar decisiones de
+  layout más precisas.
+
+Validación realizada:
+- compilación correcta,
+- generación satisfactoria de un PDF temporal con dos imágenes dentro del mismo
+  párrafo de Word,
+- sin errores reportados en `convert.py`.
+
 ### Nota para futuros traspasos a otro agente
 
 Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro
