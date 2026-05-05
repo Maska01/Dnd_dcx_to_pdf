@@ -457,6 +457,25 @@ Validación realizada:
 - generación satisfactoria de un PDF temporal en modo `--sin-menu`,
 - `README.md` actualizado para reflejar el nuevo flujo interactivo.
 
+#### 4. Ampliación del menú interactivo con página, fuentes y margen
+
+Cambio posterior aplicado después del commit `b321bbb`.
+
+Cambios confirmados:
+- el menú interactivo ahora también permite elegir el `tamaño de página`,
+  la `fuente de título`, la `fuente de texto` y el `margen`,
+- se añadieron tamaños de página predefinidos (`A4`, `A5`, `LETTER`, `LEGAL`),
+- se añadieron fuentes estándar de ReportLab como opciones seleccionables,
+- el margen se captura en centímetros con validación de rango,
+- la configuración elegida se aplica al render antes de construir estilos y
+  páginas,
+- `README.md` se actualizó para reflejar estas nuevas opciones del menú.
+
+Validación realizada:
+- compilación correcta,
+- generación satisfactoria de un PDF temporal en modo `--sin-menu`,
+- sin errores reportados en `convert.py` ni en `README.md`.
+
 ### Nota para futuros traspasos a otro agente
 
 Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro

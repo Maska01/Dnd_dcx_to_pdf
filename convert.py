@@ -32,7 +32,7 @@ from PIL import Image as PILImage
 
 from reportlab.lib.colors import HexColor, black
 from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, A5, LETTER, LEGAL
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import (
@@ -86,6 +86,28 @@ MARGEN        = 2 * cm
 IMAGEN_PORTADA_PREDETERMINADA = r"C:\ruta\a\tu\imagen_portada.jpg"
 # ==================================================================
 
+TAMANOS_PAGINA_DISPONIBLES = {
+    "A4": A4,
+    "A5": A5,
+    "LETTER": LETTER,
+    "LEGAL": LEGAL,
+}
+
+FUENTES_DISPONIBLES = [
+    "Helvetica",
+    "Helvetica-Bold",
+    "Helvetica-Oblique",
+    "Helvetica-BoldOblique",
+    "Times-Roman",
+    "Times-Bold",
+    "Times-Italic",
+    "Times-BoldItalic",
+    "Courier",
+    "Courier-Bold",
+    "Courier-Oblique",
+    "Courier-BoldOblique",
+]
+
 
 def _color_a_hex(color):
     return f"#{color.hexval()[2:].upper()}"
@@ -131,6 +153,44 @@ def obtener_configuracion_visual_predeterminada():
         "color_aliado_borde": _color_a_hex(COLOR_ALIADO_BORDE),
         "color_aliado_fondo": _color_a_hex(COLOR_ALIADO_FONDO),
     }
+
+
+def _nombre_tamano_pagina_actual():
+    for nombre, tamano in TAMANOS_PAGINA_DISPONIBLES.items():
+        if tuple(tamano) == tuple(TAMANO_PAGINA):
+            return nombre
+    return "A4"
+
+
+def obtener_configuracion_documento_predeterminada():
+    return {
+        "tamano_pagina": _nombre_tamano_pagina_actual(),
+        "fuente_titulo": FUENTE_TITULO,
+        "fuente_texto": FUENTE_TEXTO,
+        "margen_cm": round(MARGEN / cm, 2),
+    }
+
+
+def aplicar_configuracion_documento(configuracion_documento):
+    global FUENTE_TITULO, FUENTE_TEXTO, TAMANO_PAGINA, MARGEN
+
+    valores = obtener_configuracion_documento_predeterminada()
+    valores.update(configuracion_documento or {})
+
+    nombre_pagina = str(valores.get("tamano_pagina", "A4")).strip().upper()
+    TAMANO_PAGINA = TAMANOS_PAGINA_DISPONIBLES.get(nombre_pagina, A4)
+
+    fuente_titulo = str(valores.get("fuente_titulo", FUENTE_TITULO)).strip()
+    fuente_texto = str(valores.get("fuente_texto", FUENTE_TEXTO)).strip()
+    FUENTE_TITULO = fuente_titulo if fuente_titulo in FUENTES_DISPONIBLES else "Helvetica-Bold"
+    FUENTE_TEXTO = fuente_texto if fuente_texto in FUENTES_DISPONIBLES else "Helvetica"
+
+    try:
+        margen_cm = float(valores.get("margen_cm", MARGEN / cm))
+    except (TypeError, ValueError):
+        margen_cm = 2.0
+    margen_cm = min(max(margen_cm, 0.5), 5.0)
+    MARGEN = margen_cm * cm
 
 
 def aplicar_configuracion_visual(configuracion_visual):
@@ -1713,9 +1773,9 @@ def _seleccionar_archivo_dialogo(titulo, tipos_archivo, modo="abrir", archivo_in
     return ruta or ""
 
 
-def _pedir_configuracion_interactiva(configuracion_inicial, titulo_inicial="",
-                                     subtitulo_inicial="", autor_inicial="",
-                                     portada_inicial=""):
+def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_documento_inicial,
+                                     titulo_inicial="", subtitulo_inicial="",
+                                     autor_inicial="", portada_inicial=""):
     try:
         import tkinter as tk
         from tkinter import colorchooser, filedialog, messagebox
@@ -1723,6 +1783,7 @@ def _pedir_configuracion_interactiva(configuracion_inicial, titulo_inicial="",
         print("⚠️  tkinter no está disponible; se omite el menú interactivo.")
         return {
             "configuracion_visual": dict(configuracion_inicial),
+            "configuracion_documento": dict(configuracion_documento_inicial),
             "titulo": titulo_inicial or "",
             "subtitulo": subtitulo_inicial or "",
             "autor": autor_inicial or "",
@@ -1836,6 +1897,30 @@ def _pedir_configuracion_interactiva(configuracion_inicial, titulo_inicial="",
     titulo_frame.columnconfigure(1, weight=1)
     actualizar_estado_portada()
 
+    documento_frame = tk.LabelFrame(interior, text="Página, fuentes y márgenes", padx=10, pady=10)
+    documento_frame.pack(fill="x", expand=True, pady=(0, 10))
+
+    tamano_pagina_var = tk.StringVar(value=configuracion_documento_inicial.get("tamano_pagina", "A4"))
+    fuente_titulo_var = tk.StringVar(value=configuracion_documento_inicial.get("fuente_titulo", FUENTE_TITULO))
+    fuente_texto_var = tk.StringVar(value=configuracion_documento_inicial.get("fuente_texto", FUENTE_TEXTO))
+    margen_var = tk.StringVar(value=str(configuracion_documento_inicial.get("margen_cm", 2.0)))
+
+    tk.Label(documento_frame, text="Tamaño de página").grid(row=0, column=0, sticky="w", pady=3)
+    opcion_pagina = tk.OptionMenu(documento_frame, tamano_pagina_var, *TAMANOS_PAGINA_DISPONIBLES.keys())
+    opcion_pagina.grid(row=0, column=1, sticky="w", padx=(8, 0), pady=3)
+
+    tk.Label(documento_frame, text="Fuente de título").grid(row=1, column=0, sticky="w", pady=3)
+    opcion_fuente_titulo = tk.OptionMenu(documento_frame, fuente_titulo_var, *FUENTES_DISPONIBLES)
+    opcion_fuente_titulo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=3)
+
+    tk.Label(documento_frame, text="Fuente de texto").grid(row=2, column=0, sticky="w", pady=3)
+    opcion_fuente_texto = tk.OptionMenu(documento_frame, fuente_texto_var, *FUENTES_DISPONIBLES)
+    opcion_fuente_texto.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=3)
+
+    tk.Label(documento_frame, text="Margen (cm)").grid(row=3, column=0, sticky="w", pady=3)
+    tk.Entry(documento_frame, textvariable=margen_var, width=10).grid(row=3, column=1, sticky="w", padx=(8, 0), pady=3)
+    tk.Label(documento_frame, text="Rango recomendado: 0.5 a 5.0 cm").grid(row=3, column=2, sticky="w", padx=(8, 0), pady=3)
+
     grupos_colores = [
         (
             "General",
@@ -1904,10 +1989,14 @@ def _pedir_configuracion_interactiva(configuracion_inicial, titulo_inicial="",
     botones = tk.Frame(interior)
     botones.pack(fill="x", pady=(6, 0))
 
-    def restablecer_colores():
+    def restablecer_valores():
         for clave, valor in configuracion_inicial.items():
             variables_color[clave].set(valor)
             actualizar_preview(clave)
+        tamano_pagina_var.set(configuracion_documento_inicial.get("tamano_pagina", "A4"))
+        fuente_titulo_var.set(configuracion_documento_inicial.get("fuente_titulo", FUENTE_TITULO))
+        fuente_texto_var.set(configuracion_documento_inicial.get("fuente_texto", FUENTE_TEXTO))
+        margen_var.set(str(configuracion_documento_inicial.get("margen_cm", 2.0)))
 
     def cancelar():
         resultado["valor"] = None
@@ -1931,8 +2020,25 @@ def _pedir_configuracion_interactiva(configuracion_inicial, titulo_inicial="",
             messagebox.showerror("Portada incompleta", "Selecciona la imagen de portada o desactiva la opción.")
             return
 
+        try:
+            margen_cm = float(str(margen_var.get()).replace(",", ".").strip())
+        except (TypeError, ValueError):
+            messagebox.showerror("Margen inválido", "El margen debe ser un número en centímetros.")
+            return
+        if margen_cm < 0.5 or margen_cm > 5.0:
+            messagebox.showerror("Margen inválido", "El margen debe estar entre 0.5 y 5.0 cm.")
+            return
+
+        configuracion_documento = {
+            "tamano_pagina": tamano_pagina_var.get().strip().upper(),
+            "fuente_titulo": fuente_titulo_var.get().strip(),
+            "fuente_texto": fuente_texto_var.get().strip(),
+            "margen_cm": margen_cm,
+        }
+
         resultado["valor"] = {
             "configuracion_visual": configuracion_visual,
+            "configuracion_documento": configuracion_documento,
             "titulo": titulo_var.get().strip(),
             "subtitulo": subtitulo_var.get().strip(),
             "autor": autor_var.get().strip(),
@@ -1940,7 +2046,7 @@ def _pedir_configuracion_interactiva(configuracion_inicial, titulo_inicial="",
         }
         raiz.quit()
 
-    tk.Button(botones, text="Restablecer colores", command=restablecer_colores).pack(side="left")
+    tk.Button(botones, text="Restablecer valores", command=restablecer_valores).pack(side="left")
     tk.Button(botones, text="Cancelar", command=cancelar).pack(side="right", padx=(8, 0))
     tk.Button(botones, text="Aceptar", command=aceptar).pack(side="right")
 
@@ -1999,6 +2105,7 @@ def principal():
         salida = Path(ruta)
 
     configuracion_visual = obtener_configuracion_visual_predeterminada()
+    configuracion_documento = obtener_configuracion_documento_predeterminada()
     titulo = args.titulo or ""
     subtitulo = args.subtitulo or ""
     autor = args.autor or ""
@@ -2017,6 +2124,7 @@ def principal():
 
         configuracion = _pedir_configuracion_interactiva(
             configuracion_visual,
+            configuracion_documento,
             titulo_inicial=titulo,
             subtitulo_inicial=subtitulo,
             autor_inicial=autor,
@@ -2025,12 +2133,14 @@ def principal():
         if configuracion is None:
             raise SystemExit("❌ Operación cancelada por el usuario.")
         configuracion_visual = configuracion["configuracion_visual"]
+        configuracion_documento = configuracion["configuracion_documento"]
         titulo = configuracion["titulo"]
         subtitulo = configuracion["subtitulo"]
         autor = configuracion["autor"]
         imagen_portada = configuracion["imagen_portada"]
 
     aplicar_configuracion_visual(configuracion_visual)
+    aplicar_configuracion_documento(configuracion_documento)
 
     construir_pdf(entrada, salida,
                   titulo=titulo or None, autor=autor or None,
