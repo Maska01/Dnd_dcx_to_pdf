@@ -250,3 +250,127 @@ python convert.py mi_aventura.docx salida.pdf `
 ### Git
 - Repo inicializado, primer commit: `5720e82` ("chore: initial commit").
 - Commit posterior: "Doble cita arreglado".
+
+---
+
+## Actualización posterior del proyecto
+
+Este historial quedó desactualizado respecto al estado real del repositorio.
+Los cambios más recientes ya implementados en `convert.py` y documentados en
+`README.md` son los siguientes.
+
+### Nuevas capacidades añadidas después de este resumen inicial
+
+1. **Hipervínculos reales en el PDF**
+  - Los enlaces insertados en Word se conservan como enlaces clickables.
+
+2. **Índice y marcadores PDF más completos**
+  - El documento genera índice y marcadores internos para navegación.
+
+3. **Cajas especiales adicionales**
+  - `Información adicional`
+  - `Consejo para el DM`
+  - `Cita`
+  - `NPC`
+  - `Enemigo`
+  - `Aliado`
+
+4. **Bloques manuales soportados actualmente**
+  - `:::info`
+  - `:::consejo`
+  - `:::cita`
+  - `:::npc`
+  - `:::enemigo`
+  - `:::aliado`
+
+5. **Contenido permitido dentro de bloques manuales**
+  - párrafos normales,
+  - listas con viñetas,
+  - sangrías,
+  - imágenes,
+  - enlaces,
+  - tablas de Word,
+  - espacios en blanco moderados entre párrafos.
+
+6. **Consejos del DM por estilo y por prefijo**
+  - El estilo de Word `Consejos` sigue funcionando.
+  - También se detectan párrafos que empiezan por `CONSEJO PARA EL DM`.
+
+7. **Información adicional por estilo y por prefijo**
+  - Se reconoce el estilo `Información adicional`.
+  - También se detectan prefijos como `INFORMACIÓN ADICIONAL:`.
+
+8. **Imágenes dentro de recuadros**
+  - Las imágenes insertadas dentro de bloques manuales permanecen dentro del
+    mismo recuadro en el PDF.
+
+9. **Tablas dentro de recuadros**
+  - Las tablas de Word ahora pueden formar parte de un bloque manual y se
+    renderizan dentro de la caja correspondiente.
+
+### Armonización reciente del código
+
+En una refactorización posterior se armonizó el proyecto para reducir la
+mezcla de nombres en inglés y español.
+
+Cambios destacados:
+- `IMAGEN_PORTADA_DEFAULT` → `IMAGEN_PORTADA_PREDETERMINADA`
+- `DocConTOC` → `DocumentoConIndice`
+- `main()` → `principal()`
+- `runs_a_html()` → `parrafo_a_html()`
+- `imagen_flowable()` → `crear_flujo_imagen()`
+- nombres internos de estilos de caja unificados a español:
+  - `CajaCita`
+  - `CajaInfoAdicional`
+  - `CajaConsejoDm`
+  - `CajaNpc`
+  - `CajaEnemigo`
+  - `CajaAliado`
+
+También se simplificó parte del flujo interno de `construir_pdf()` para evitar
+duplicación en la lógica de captura de bloques manuales.
+
+### README reescrito
+
+`README.md` se rehizo para que deje de parecer una acumulación de parches.
+Ahora está reorganizado en:
+- instalación,
+- uso,
+- preparación del Word,
+- bloques especiales,
+- capacidades de bloques manuales,
+- imágenes,
+- enlaces,
+- índice,
+- personalización.
+
+### Estado actual recomendado del proyecto
+
+#### Archivos principales
+- `convert.py` — script principal actual.
+- `README.md` — guía actualizada y armonizada.
+- `requirements.txt` — dependencias.
+- `CHAT.md` — historial resumido.
+
+#### Punto de entrada actual
+- La función principal actual es `principal()`.
+
+#### Constante de portada actual
+- `IMAGEN_PORTADA_PREDETERMINADA`
+
+#### Clase principal de documento PDF
+- `DocumentoConIndice`
+
+### Commits recientes relevantes
+
+- `5720e82` — commit inicial del proyecto.
+- `f402e3d` — soporte para imágenes dentro de contenido en cajas.
+- `187d72d` — `feat: add npc, enemy, and ally boxed blocks`
+- `117a86e` — `refactor: harmonize Spanish naming and docs`
+
+### Nota para futuros traspasos a otro agente
+
+Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro
+entorno, conviene tomar como referencia el estado actual del repositorio y no
+solo el historial inicial, porque varias funciones y nombres cambiaron durante
+la armonización posterior.
