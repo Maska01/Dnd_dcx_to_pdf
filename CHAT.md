@@ -571,6 +571,18 @@ Validación realizada:
 - generación satisfactoria de un PDF temporal con `Heading 1` y `Heading 2`,
 - sin errores reportados en `convert.py`.
 
+#### 10. README actualizado para navegación del PDF
+
+Cambio posterior aplicado para dejar la documentación funcional alineada con el
+estado actual del conversor.
+
+Cambios confirmados:
+- `README.md` ahora indica explícitamente que el índice es interactivo,
+- se documenta que el texto y los números de página del índice son clicables,
+- se documenta que `Índice` aparece en el panel de bookmarks,
+- se aclara que `Título 1`, `Título 2` y `Título 3` generan bookmarks de
+  navegación en el PDF.
+
 ### Nota para futuros traspasos a otro agente
 
 Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro

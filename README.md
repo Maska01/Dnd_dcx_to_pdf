@@ -1,6 +1,6 @@
 # Word → PDF estilo Aventura
 
-Conversor de `.docx` a PDF pensado para aventuras: portada, índice, títulos jerárquicos, cajas temáticas, enlaces, imágenes y tablas dentro de bloques especiales.
+Conversor de `.docx` a PDF pensado para aventuras: portada, índice, títulos jerárquicos, bookmarks de navegación, cajas temáticas, enlaces, imágenes y tablas dentro de bloques especiales.
 
 ## Instalación
 
@@ -174,6 +174,15 @@ Los hipervínculos reales de Word se conservan como enlaces clickables en el PDF
 El índice se genera automáticamente a partir de `Título 1` y `Título 2`.
 
 El script usa `multiBuild` para recalcular la paginación y dejar los números correctos en la segunda pasada.
+
+Además:
+
+- el texto de cada entrada del índice es clickable,
+- el número de página del índice también es clickable,
+- el propio `Índice` aparece como bookmark visible en el panel lateral del PDF,
+- los `Título 1`, `Título 2` y `Título 3` generan bookmarks de navegación en el PDF.
+
+Esto hace que puedas navegar tanto desde la tabla de contenidos como desde el panel de marcadores del visor PDF.
 
 ## Personalización
 
