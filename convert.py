@@ -38,7 +38,7 @@ from reportlab.lib.units import cm
 from reportlab.platypus import (
     BaseDocTemplate, PageTemplate, Frame,
     Paragraph, Spacer, PageBreak, ListFlowable, ListItem, Image,
-    KeepTogether, Table, TableStyle,
+    Table, TableStyle,
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 
@@ -798,6 +798,45 @@ def _estilo_interno_caja(estilo_base, item, sufijo):
     return estilo
 
 
+def _crear_cabecera_decorada_caja(estilo_base, decorador, sufijo):
+    estilo = _estilo_interno_caja(estilo_base, _item_caja_plano(""), sufijo)
+    estilo.spaceAfter = 4
+    return Paragraph(decorador(""), estilo)
+
+
+def _centrar_en_fila(flowable, ancho):
+    tabla = Table([[flowable]], colWidths=[ancho], hAlign="LEFT")
+    tabla.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    return tabla
+
+
+def _agrupar_cabecera_y_bloque(cabecera, bloque, ancho):
+    if cabecera is None:
+        return bloque
+    tabla = Table(
+        [[cabecera], [bloque]],
+        colWidths=[ancho],
+        hAlign="LEFT",
+        splitByRow=1,
+    )
+    tabla.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
+    ]))
+    return tabla
+
+
 def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
     contenido = []
     primer_bloque = True
@@ -812,22 +851,22 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
             continue
 
         if parte.get("tipo") == "tabla":
+            cabecera = None
             if primer_bloque and decorador is not None:
-                estilo = _estilo_interno_caja(estilo_base, _item_caja_plano(""), indice)
-                contenido.append(Paragraph(decorador(""), estilo))
+                cabecera = _crear_cabecera_decorada_caja(estilo_base, decorador, indice)
                 primer_bloque = False
                 indice += 1
 
             tabla = _tabla_docx_a_flujo(parte.get("tabla"), ancho_interno, estilo_base)
             if tabla is not None:
-                contenido.append(tabla)
+                contenido.append(_agrupar_cabecera_y_bloque(cabecera, tabla, ancho_interno))
                 contenido.append(Spacer(1, 6))
             continue
 
         if parte.get("tipo") == "imagen":
+            cabecera = None
             if primer_bloque and decorador is not None:
-                estilo = _estilo_interno_caja(estilo_base, _item_caja_plano(""), indice)
-                contenido.append(Paragraph(decorador(""), estilo))
+                cabecera = _crear_cabecera_decorada_caja(estilo_base, decorador, indice)
                 primer_bloque = False
                 indice += 1
 
@@ -838,8 +877,9 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
             )
             if flujo_imagen is not None:
                 flujo_imagen.hAlign = "CENTER"
-                contenido.append(flujo_imagen)
-                contenido.append(Spacer(1, 6))
+                imagen_centrada = _centrar_en_fila(flujo_imagen, ancho_interno)
+                contenido.append(_agrupar_cabecera_y_bloque(cabecera, imagen_centrada, ancho_interno))
+                contenido.append(Spacer(1, 8))
             continue
 
         html = (parte.get("html") or "").strip()
