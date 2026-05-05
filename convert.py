@@ -45,6 +45,7 @@ from reportlab.platypus.tableofcontents import TableOfContents
 # ============== Parámetros visuales (modificables) ==============
 COLOR_PRIMARIO   = HexColor("#8B0000")   # rojo oscuro (títulos)
 COLOR_SECUNDARIO = HexColor("#1a1a1a")
+COLOR_FONDO_PAGINA = HexColor("#F7F1E3")
 
 # Caja "Consejo para el DM" (azul)
 COLOR_AZUL_TEXTO = HexColor("#1F3A93")
@@ -938,8 +939,16 @@ class DocumentoConIndice(BaseDocTemplate):
         super().__init__(filename, **kw)
         frame = Frame(self.leftMargin, self.bottomMargin,
                       self.width, self.height, id="normal")
-        self.addPageTemplates([PageTemplate(id="Todo", frames=frame)])
+        self.addPageTemplates([
+            PageTemplate(id="Todo", frames=frame, onPage=self._dibujar_fondo_pagina)
+        ])
         self._contador_marcadores = 0
+
+    def _dibujar_fondo_pagina(self, canvas, doc):
+        canvas.saveState()
+        canvas.setFillColor(COLOR_FONDO_PAGINA)
+        canvas.rect(0, 0, doc.pagesize[0], doc.pagesize[1], stroke=0, fill=1)
+        canvas.restoreState()
 
     def _crear_marcador(self, texto):
         self._contador_marcadores += 1

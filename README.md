@@ -161,6 +161,7 @@ El script usa `multiBuild` para recalcular la paginación y dejar los números c
 Si quieres ajustar el estilo visual, revisa estas constantes al inicio de `convert.py`:
 
 - `COLOR_PRIMARIO`
+- `COLOR_FONDO_PAGINA`
 - `COLOR_AZUL_*`
 - `COLOR_AMA_*`
 - `COLOR_INFO_*`
