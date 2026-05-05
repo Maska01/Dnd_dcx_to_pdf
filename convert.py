@@ -1778,7 +1778,7 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
                                      autor_inicial="", portada_inicial=""):
     try:
         import tkinter as tk
-        from tkinter import colorchooser, filedialog, messagebox
+        from tkinter import colorchooser, filedialog, messagebox, ttk
     except ImportError:
         print("⚠️  tkinter no está disponible; se omite el menú interactivo.")
         return {
@@ -1793,30 +1793,23 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
     resultado = {"valor": None}
     raiz = tk.Tk()
     raiz.title("Configuración del PDF")
-    raiz.geometry("880x760")
-    raiz.minsize(760, 620)
+    raiz.geometry("1320x680")
+    raiz.minsize(1080, 620)
     raiz.attributes("-topmost", True)
 
-    contenedor = tk.Frame(raiz)
+    contenedor = tk.Frame(raiz, padx=14, pady=14)
     contenedor.pack(fill="both", expand=True)
 
-    canvas = tk.Canvas(contenedor, highlightthickness=0)
-    barra = tk.Scrollbar(contenedor, orient="vertical", command=canvas.yview)
-    interior = tk.Frame(canvas, padx=12, pady=12)
+    estilo = ttk.Style(raiz)
+    try:
+        estilo.theme_use("vista")
+    except Exception:
+        pass
+    estilo.configure("MenuNotebook.TNotebook", tabposition="n")
+    estilo.configure("MenuNotebook.TNotebook.Tab", padding=(16, 8))
 
-    interior.bind(
-        "<Configure>",
-        lambda _event: canvas.configure(scrollregion=canvas.bbox("all")),
-    )
-    canvas.create_window((0, 0), window=interior, anchor="nw")
-    canvas.configure(yscrollcommand=barra.set)
-    canvas.pack(side="left", fill="both", expand=True)
-    barra.pack(side="right", fill="y")
-
-    def _on_mousewheel(event):
-        canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-    canvas.bind_all("<MouseWheel>", _on_mousewheel)
+    interior = tk.Frame(contenedor)
+    interior.pack(fill="both", expand=True)
 
     variables_color = {
         clave: tk.StringVar(value=valor)
@@ -1844,15 +1837,51 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
 
     def crear_selector_color(parent, fila, clave, etiqueta):
         tk.Label(parent, text=etiqueta, anchor="w").grid(row=fila, column=0, sticky="w", padx=(0, 8), pady=4)
-        entrada = tk.Entry(parent, textvariable=variables_color[clave], width=12)
+        entrada = tk.Entry(parent, textvariable=variables_color[clave], width=12, justify="center")
         entrada.grid(row=fila, column=1, sticky="w", pady=4)
-        preview = tk.Label(parent, width=4, relief="groove", bg=variables_color[clave].get())
+        preview = tk.Label(parent, width=6, relief="groove", bg=variables_color[clave].get())
         preview.grid(row=fila, column=2, padx=6, pady=4)
         vistas_previas[clave] = preview
         tk.Button(parent, text="Elegir...", command=lambda: elegir_color(clave)).grid(row=fila, column=3, sticky="w", pady=4)
 
-    titulo_frame = tk.LabelFrame(interior, text="Portada y metadatos", padx=10, pady=10)
-    titulo_frame.pack(fill="x", expand=True, pady=(0, 10))
+    encabezado_frame = tk.Frame(interior, padx=4, pady=4)
+    encabezado_frame.pack(fill="x", pady=(0, 10))
+    tk.Label(
+        encabezado_frame,
+        text="Personaliza tu PDF antes de generarlo",
+        font=("Segoe UI", 16, "bold"),
+        anchor="w",
+    ).pack(fill="x")
+    tk.Label(
+        encabezado_frame,
+        text=(
+            "Ajusta metadatos, portada, página, fuentes, márgenes y colores. "
+            "La disposición se adapta automáticamente hasta 5 columnas para que el menú sea más cómodo."
+        ),
+        justify="left",
+        wraplength=1120,
+        anchor="w",
+    ).pack(fill="x", pady=(4, 0))
+
+    notebook = ttk.Notebook(interior, style="MenuNotebook.TNotebook")
+    notebook.pack(fill="both", expand=True)
+
+    pestana_general = tk.Frame(notebook, padx=14, pady=14)
+    pestana_colores_base = tk.Frame(notebook, padx=14, pady=14)
+    pestana_colores_cajas = tk.Frame(notebook, padx=14, pady=14)
+    pestana_colores_personajes = tk.Frame(notebook, padx=14, pady=14)
+    notebook.add(pestana_general, text="General")
+    notebook.add(pestana_colores_base, text="Colores base")
+    notebook.add(pestana_colores_cajas, text="Cajas útiles")
+    notebook.add(pestana_colores_personajes, text="NPC y combate")
+
+    panel_superior = tk.Frame(pestana_general)
+    panel_superior.pack(fill="both", expand=True)
+    panel_superior.columnconfigure(0, weight=1, uniform="columna_superior")
+    panel_superior.columnconfigure(1, weight=1, uniform="columna_superior")
+
+    titulo_frame = tk.LabelFrame(panel_superior, text="Portada y metadatos", padx=10, pady=10)
+    titulo_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=(0, 10))
 
     titulo_var = tk.StringVar(value=titulo_inicial or "")
     subtitulo_var = tk.StringVar(value=subtitulo_inicial or "")
@@ -1897,8 +1926,8 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
     titulo_frame.columnconfigure(1, weight=1)
     actualizar_estado_portada()
 
-    documento_frame = tk.LabelFrame(interior, text="Página, fuentes y márgenes", padx=10, pady=10)
-    documento_frame.pack(fill="x", expand=True, pady=(0, 10))
+    documento_frame = tk.LabelFrame(panel_superior, text="Página, fuentes y márgenes", padx=10, pady=10)
+    documento_frame.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=(0, 10))
 
     tamano_pagina_var = tk.StringVar(value=configuracion_documento_inicial.get("tamano_pagina", "A4"))
     fuente_titulo_var = tk.StringVar(value=configuracion_documento_inicial.get("fuente_titulo", FUENTE_TITULO))
@@ -1906,15 +1935,33 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
     margen_var = tk.StringVar(value=str(configuracion_documento_inicial.get("margen_cm", 2.0)))
 
     tk.Label(documento_frame, text="Tamaño de página").grid(row=0, column=0, sticky="w", pady=3)
-    opcion_pagina = tk.OptionMenu(documento_frame, tamano_pagina_var, *TAMANOS_PAGINA_DISPONIBLES.keys())
+    opcion_pagina = ttk.Combobox(
+        documento_frame,
+        textvariable=tamano_pagina_var,
+        values=list(TAMANOS_PAGINA_DISPONIBLES.keys()),
+        state="readonly",
+        width=18,
+    )
     opcion_pagina.grid(row=0, column=1, sticky="w", padx=(8, 0), pady=3)
 
     tk.Label(documento_frame, text="Fuente de título").grid(row=1, column=0, sticky="w", pady=3)
-    opcion_fuente_titulo = tk.OptionMenu(documento_frame, fuente_titulo_var, *FUENTES_DISPONIBLES)
+    opcion_fuente_titulo = ttk.Combobox(
+        documento_frame,
+        textvariable=fuente_titulo_var,
+        values=FUENTES_DISPONIBLES,
+        state="readonly",
+        width=28,
+    )
     opcion_fuente_titulo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=3)
 
     tk.Label(documento_frame, text="Fuente de texto").grid(row=2, column=0, sticky="w", pady=3)
-    opcion_fuente_texto = tk.OptionMenu(documento_frame, fuente_texto_var, *FUENTES_DISPONIBLES)
+    opcion_fuente_texto = ttk.Combobox(
+        documento_frame,
+        textvariable=fuente_texto_var,
+        values=FUENTES_DISPONIBLES,
+        state="readonly",
+        width=28,
+    )
     opcion_fuente_texto.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=3)
 
     tk.Label(documento_frame, text="Margen (cm)").grid(row=3, column=0, sticky="w", pady=3)
@@ -1980,14 +2027,56 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
         ),
     ]
 
-    for titulo_grupo, campos in grupos_colores:
-        frame = tk.LabelFrame(interior, text=titulo_grupo, padx=10, pady=10)
-        frame.pack(fill="x", expand=True, pady=(0, 10))
-        for indice, (clave, etiqueta) in enumerate(campos):
-            crear_selector_color(frame, indice, clave, etiqueta)
+    distribucion_pestanas = {
+        "Colores base": ["General", "Caja Consejo para el DM", "Caja Cita"],
+        "Cajas útiles": ["Caja Información adicional"],
+        "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"],
+    }
 
-    botones = tk.Frame(interior)
-    botones.pack(fill="x", pady=(6, 0))
+    contenedores_colores = {
+        "Colores base": pestana_colores_base,
+        "Cajas útiles": pestana_colores_cajas,
+        "NPC y combate": pestana_colores_personajes,
+    }
+
+    for pestana in contenedores_colores.values():
+        pestana.columnconfigure(0, weight=1, uniform="colores_tab")
+        pestana.columnconfigure(1, weight=1, uniform="colores_tab")
+
+    for nombre_pestana, nombres_grupos in distribucion_pestanas.items():
+        contenedor_tab = contenedores_colores[nombre_pestana]
+        for indice_grupo, nombre_grupo in enumerate(nombres_grupos):
+            datos_grupo = next(grupo for grupo in grupos_colores if grupo[0] == nombre_grupo)
+            _, campos = datos_grupo
+            columna = indice_grupo % 2
+            fila = indice_grupo // 2
+            padding_x = (0, 8) if columna == 0 else (8, 0)
+            frame = tk.LabelFrame(contenedor_tab, text=nombre_grupo, padx=10, pady=10)
+            frame.grid(row=fila, column=columna, sticky="nsew", padx=padding_x, pady=(0, 10))
+            for indice, (clave, etiqueta) in enumerate(campos):
+                crear_selector_color(frame, indice, clave, etiqueta)
+
+    tk.Label(
+        pestana_colores_base,
+        text="Aquí están los colores base del documento y de las cajas más frecuentes.",
+        anchor="w",
+        justify="left",
+    ).grid(row=10, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+    tk.Label(
+        pestana_colores_cajas,
+        text="La caja de información adicional queda separada para evitar saturar la vista.",
+        anchor="w",
+        justify="left",
+    ).grid(row=10, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+    tk.Label(
+        pestana_colores_personajes,
+        text="Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.",
+        anchor="w",
+        justify="left",
+    ).grid(row=10, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+
+    botones = tk.Frame(contenedor, padx=12, pady=10)
+    botones.pack(fill="x")
 
     def restablecer_valores():
         for clave, valor in configuracion_inicial.items():
@@ -2050,9 +2139,17 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
     tk.Button(botones, text="Cancelar", command=cancelar).pack(side="right", padx=(8, 0))
     tk.Button(botones, text="Aceptar", command=aceptar).pack(side="right")
 
+    def ajustar_tamano_ventana():
+        raiz.update_idletasks()
+        ancho_objetivo = max(1080, min(1320, raiz.winfo_reqwidth() + 24))
+        alto_requerido = raiz.winfo_reqheight() + 20
+        alto_pantalla = int(raiz.winfo_screenheight() * 0.9)
+        alto_objetivo = max(620, min(alto_requerido, alto_pantalla))
+        raiz.geometry(f"{ancho_objetivo}x{alto_objetivo}")
+
     raiz.protocol("WM_DELETE_WINDOW", cancelar)
+    raiz.after(10, ajustar_tamano_ventana)
     raiz.mainloop()
-    canvas.unbind_all("<MouseWheel>")
     raiz.destroy()
     return resultado["valor"]
 

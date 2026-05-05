@@ -476,6 +476,38 @@ Validación realizada:
 - generación satisfactoria de un PDF temporal en modo `--sin-menu`,
 - sin errores reportados en `convert.py` ni en `README.md`.
 
+#### 5. Rediseño visual del menú interactivo
+
+Cambio posterior aplicado después de la ampliación de página, fuentes y margen.
+
+Cambios confirmados:
+- el menú dejó de depender de una rejilla larga de bloques y se rediseñó con
+  una organización más cómoda para el usuario,
+- se probaron primero distribuciones en varias columnas para reducir el scroll,
+- finalmente se evolucionó a una interfaz por pestañas para evitar por completo
+  el desplazamiento vertical en el flujo principal,
+- las secciones de `General`, `Colores base`, `Cajas útiles` y `NPC y combate`
+  quedaron separadas para reducir saturación visual,
+- la barra de acciones (`Aceptar`, `Cancelar`, `Restablecer valores`) quedó fija
+  al fondo de la ventana,
+- se mejoró la jerarquía visual del diálogo con cabecera más clara y controles
+  más consistentes.
+
+#### 6. Ajuste fino de altura de la ventana
+
+Cambio posterior aplicado tras revisar visualmente el nuevo menú.
+
+Cambios confirmados:
+- se redujo la altura inicial de la ventana para eliminar espacio vacío,
+- se redujo también la altura mínima del diálogo,
+- se añadió una rutina de autoajuste para que la ventana calcule mejor su alto
+  útil según el contenido visible.
+
+Validación realizada para ambos ajustes:
+- compilación correcta,
+- generación satisfactoria de PDFs temporales en modo `--sin-menu`,
+- sin errores reportados en `convert.py`.
+
 ### Nota para futuros traspasos a otro agente
 
 Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro
