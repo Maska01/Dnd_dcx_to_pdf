@@ -1250,6 +1250,10 @@ class DocumentoConIndice(BaseDocTemplate):
         ])
         self._contador_marcadores = 0
 
+    def beforeDocument(self):
+        super().beforeDocument()
+        self._contador_marcadores = 0
+
     def _dibujar_fondo_pagina(self, canvas, doc):
         canvas.saveState()
         canvas.setFillColor(COLOR_FONDO_PAGINA)
@@ -1267,16 +1271,20 @@ class DocumentoConIndice(BaseDocTemplate):
         if isinstance(flowable, Paragraph):
             estilo = flowable.style.name
             texto = flowable.getPlainText()
-            if estilo == "H1":
+            if estilo == "TituloIndice":
+                marcador = "indice"
+                self.canv.bookmarkPage(marcador)
+                self.canv.addOutlineEntry(texto or "Índice", marcador, level=0, closed=False)
+            elif estilo == "H1":
                 marcador = self._crear_marcador(texto)
                 self.canv.bookmarkPage(marcador)
                 self.canv.addOutlineEntry(texto, marcador, level=0, closed=False)
-                self.notify("TOCEntry", (0, texto, self.page))
+                self.notify("TOCEntry", (0, texto, self.page, marcador))
             elif estilo == "H2":
                 marcador = self._crear_marcador(texto)
                 self.canv.bookmarkPage(marcador)
                 self.canv.addOutlineEntry(texto, marcador, level=1, closed=False)
-                self.notify("TOCEntry", (1, texto, self.page))
+                self.notify("TOCEntry", (1, texto, self.page, marcador))
             elif estilo == "H3":
                 marcador = self._crear_marcador(texto)
                 self.canv.bookmarkPage(marcador)

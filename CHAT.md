@@ -550,6 +550,27 @@ Validación realizada:
   párrafo de Word,
 - sin errores reportados en `convert.py`.
 
+#### 9. Índice clickable y bookmark visible
+
+Cambio posterior aplicado para mejorar la navegación interna del PDF.
+
+Cambios confirmados:
+- las entradas del índice para `H1` y `H2` ahora notifican a `TableOfContents`
+  con una clave de bookmark, de modo que tanto el texto como el número de
+  página del índice son clicables,
+- el contador interno de marcadores se reinicia en `beforeDocument()` para que
+  `multiBuild()` genere claves estables entre pasadas y el índice se resuelva
+  correctamente,
+- el título `Índice` ahora crea también un bookmark explícito (`indice`) y se
+  muestra en el panel de bookmarks del PDF,
+- los `H3` mantienen su bookmark en el panel lateral, aunque no entren en la
+  tabla de contenidos.
+
+Validación realizada:
+- compilación correcta,
+- generación satisfactoria de un PDF temporal con `Heading 1` y `Heading 2`,
+- sin errores reportados en `convert.py`.
+
 ### Nota para futuros traspasos a otro agente
 
 Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro
