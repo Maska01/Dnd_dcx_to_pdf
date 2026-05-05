@@ -334,18 +334,23 @@ def extraer_imagenes_de_parrafo(parrafo, documento_word):
     return imagenes
 
 
-def crear_flujo_imagen(blob, ancho_max):
-    """Crea un Image escalado para que entre en la página."""
+def crear_flujo_imagen(blob, ancho_max, alto_max=None):
+    """Crea un `Image` escalado para que entre en el área disponible."""
     bio = io.BytesIO(blob)
     try:
         with PILImage.open(bio) as im:
             w, h = im.size
     except Exception:
         return None
+    if not w or not h:
+        return None
+
     bio.seek(0)
-    ratio = (h / w) if w else 1
-    ancho = min(ancho_max, float(w))
-    alto = ancho * ratio
+    escala_ancho = float(ancho_max) / float(w) if ancho_max else 1.0
+    escala_alto = float(alto_max) / float(h) if alto_max else 1.0
+    escala = min(1.0, escala_ancho, escala_alto)
+    ancho = max(1.0, float(w) * escala)
+    alto = max(1.0, float(h) * escala)
     img = Image(bio, width=ancho, height=alto)
     img.hAlign = "CENTER"
     return img
@@ -798,6 +803,7 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
     primer_bloque = True
     indice = 0
     ancho_interno = max(40, ancho_total - 20)
+    alto_max_imagen = max(80, TAMANO_PAGINA[1] - (2 * MARGEN) - 48)
 
     for parte in partes:
         if parte is None:
@@ -825,7 +831,11 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
                 primer_bloque = False
                 indice += 1
 
-            flujo_imagen = crear_flujo_imagen(parte.get("blob"), ancho_interno)
+            flujo_imagen = crear_flujo_imagen(
+                parte.get("blob"),
+                ancho_interno,
+                alto_max=alto_max_imagen,
+            )
             if flujo_imagen is not None:
                 flujo_imagen.hAlign = "CENTER"
                 contenido.append(flujo_imagen)
@@ -848,17 +858,38 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
     if not contenido:
         return None
 
-    tabla = Table([[contenido]], colWidths=[ancho_total], hAlign="LEFT")
+    while contenido and isinstance(contenido[0], Spacer):
+        contenido.pop(0)
+    while contenido and isinstance(contenido[-1], Spacer):
+        contenido.pop()
+
+    if not contenido:
+        return None
+
+    filas = [[bloque] for bloque in contenido]
+    tabla = Table(
+        filas,
+        colWidths=[ancho_total],
+        hAlign="LEFT",
+        splitByRow=1,
+    )
     tabla.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), estilo_base.backColor),
-        ("BOX", (0, 0), (-1, -1), estilo_base.borderWidth, estilo_base.borderColor),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LINEBEFORE", (0, 0), (-1, -1), estilo_base.borderWidth, estilo_base.borderColor),
+        ("LINEAFTER", (0, 0), (-1, -1), estilo_base.borderWidth, estilo_base.borderColor),
+        ("LINEABOVE", (0, 0), (-1, 0), estilo_base.borderWidth, estilo_base.borderColor),
+        ("LINEBELOW", (0, -1), (-1, -1), estilo_base.borderWidth, estilo_base.borderColor),
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
         ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, 0), 6),
+        ("BOTTOMPADDING", (0, -1), (-1, -1), 6),
     ]))
-    return KeepTogether([Spacer(1, 4), tabla, Spacer(1, 8)])
+    tabla.spaceBefore = 4
+    tabla.spaceAfter = 8
+    return tabla
 
 
 class DocumentoConIndice(BaseDocTemplate):
