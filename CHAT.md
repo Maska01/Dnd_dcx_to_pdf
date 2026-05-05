@@ -367,6 +367,28 @@ Ahora está reorganizado en:
 - `f402e3d` — soporte para imágenes dentro de contenido en cajas.
 - `187d72d` — `feat: add npc, enemy, and ally boxed blocks`
 - `117a86e` — `refactor: harmonize Spanish naming and docs`
+- `0617441` — `fix: improve boxed image layout and pagination`
+
+### Última actualización verificada en este chat
+
+Se validó y confirmó un ajuste reciente orientado a mejorar el comportamiento
+de las cajas especiales cuando contienen imágenes grandes.
+
+Cambios confirmados:
+- `crear_flujo_imagen()` ahora acepta `alto_max` además de `ancho_max` para
+  limitar correctamente imágenes altas dentro de recuadros.
+- `_renderizar_caja()` calcula un alto máximo útil para imágenes dentro del
+  área imprimible.
+- El renderizado de cajas dejó de envolver todo en `KeepTogether` y ahora usa
+  una tabla por filas con `splitByRow=1`, permitiendo una paginación más
+  robusta cuando el contenido no cabe completo en una sola página.
+- También se añadió el archivo `docx_to_pdf.code-workspace` al repositorio.
+
+Validación realizada en esta sesión:
+- compilación correcta de `convert.py`,
+- dependencias presentes,
+- prueba funcional con un `.docx` temporal que incluía una imagen grande dentro
+  de un bloque `:::npc`, generando el PDF correctamente.
 
 ### Nota para futuros traspasos a otro agente
 
