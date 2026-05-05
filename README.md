@@ -18,6 +18,23 @@ python convert.py mi_aventura.docx mi_aventura.pdf `
     --portada "C:\ruta\a\tu\imagen.jpg"
 ```
 
+Si ejecutas `python convert.py` sin pasar entrada y salida, además de los
+diálogos para elegir archivos se abrirá un menú interactivo donde puedes:
+
+- elegir el color de títulos, texto general y fondo de página,
+- personalizar texto, borde y fondo de cada caja especial,
+- escribir título, subtítulo y autor de forma opcional,
+- activar una portada y elegir la imagen desde un selector de archivos.
+
+Si dejas título, subtítulo o autor en blanco, no se agregan al PDF.
+
+Para forzar u omitir ese menú desde CLI:
+
+```powershell
+python convert.py --menu-interactivo
+python convert.py mi_aventura.docx salida.pdf --sin-menu
+```
+
 Si omites `--portada`, el script usa la ruta configurada en `convert.py` en `IMAGEN_PORTADA_PREDETERMINADA`. Si no encuentra esa imagen, la ignora sin fallar.
 
 ## Cómo preparar el Word

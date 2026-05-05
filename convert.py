@@ -87,6 +87,93 @@ IMAGEN_PORTADA_PREDETERMINADA = r"C:\ruta\a\tu\imagen_portada.jpg"
 # ==================================================================
 
 
+def _color_a_hex(color):
+    return f"#{color.hexval()[2:].upper()}"
+
+
+def _normalizar_color_hex(color, valor_predeterminado):
+    if not color:
+        return valor_predeterminado
+
+    texto = str(color).strip()
+    if not texto:
+        return valor_predeterminado
+    if not texto.startswith("#"):
+        texto = f"#{texto}"
+
+    try:
+        return _color_a_hex(HexColor(texto))
+    except Exception:
+        return valor_predeterminado
+
+
+def obtener_configuracion_visual_predeterminada():
+    return {
+        "color_primario": _color_a_hex(COLOR_PRIMARIO),
+        "color_secundario": _color_a_hex(COLOR_SECUNDARIO),
+        "color_fondo_pagina": _color_a_hex(COLOR_FONDO_PAGINA),
+        "color_azul_texto": _color_a_hex(COLOR_AZUL_TEXTO),
+        "color_azul_borde": _color_a_hex(COLOR_AZUL_BORDE),
+        "color_azul_fondo": _color_a_hex(COLOR_AZUL_FONDO),
+        "color_ama_texto": _color_a_hex(COLOR_AMA_TEXTO),
+        "color_ama_borde": _color_a_hex(COLOR_AMA_BORDE),
+        "color_ama_fondo": _color_a_hex(COLOR_AMA_FONDO),
+        "color_info_texto": _color_a_hex(COLOR_INFO_TEXTO),
+        "color_info_borde": _color_a_hex(COLOR_INFO_BORDE),
+        "color_info_fondo": _color_a_hex(COLOR_INFO_FONDO),
+        "color_enemigo_texto": _color_a_hex(COLOR_ENEMIGO_TEXTO),
+        "color_enemigo_borde": _color_a_hex(COLOR_ENEMIGO_BORDE),
+        "color_enemigo_fondo": _color_a_hex(COLOR_ENEMIGO_FONDO),
+        "color_npc_texto": _color_a_hex(COLOR_NPC_TEXTO),
+        "color_npc_borde": _color_a_hex(COLOR_NPC_BORDE),
+        "color_npc_fondo": _color_a_hex(COLOR_NPC_FONDO),
+        "color_aliado_texto": _color_a_hex(COLOR_ALIADO_TEXTO),
+        "color_aliado_borde": _color_a_hex(COLOR_ALIADO_BORDE),
+        "color_aliado_fondo": _color_a_hex(COLOR_ALIADO_FONDO),
+    }
+
+
+def aplicar_configuracion_visual(configuracion_visual):
+    global COLOR_PRIMARIO, COLOR_SECUNDARIO, COLOR_FONDO_PAGINA
+    global COLOR_AZUL_TEXTO, COLOR_AZUL_BORDE, COLOR_AZUL_FONDO
+    global COLOR_AMA_TEXTO, COLOR_AMA_BORDE, COLOR_AMA_FONDO
+    global COLOR_INFO_TEXTO, COLOR_INFO_BORDE, COLOR_INFO_FONDO
+    global COLOR_ENEMIGO_TEXTO, COLOR_ENEMIGO_BORDE, COLOR_ENEMIGO_FONDO
+    global COLOR_NPC_TEXTO, COLOR_NPC_BORDE, COLOR_NPC_FONDO
+    global COLOR_ALIADO_TEXTO, COLOR_ALIADO_BORDE, COLOR_ALIADO_FONDO
+
+    valores = obtener_configuracion_visual_predeterminada()
+    valores.update(configuracion_visual or {})
+
+    COLOR_PRIMARIO = HexColor(_normalizar_color_hex(valores["color_primario"], _color_a_hex(COLOR_PRIMARIO)))
+    COLOR_SECUNDARIO = HexColor(_normalizar_color_hex(valores["color_secundario"], _color_a_hex(COLOR_SECUNDARIO)))
+    COLOR_FONDO_PAGINA = HexColor(_normalizar_color_hex(valores["color_fondo_pagina"], _color_a_hex(COLOR_FONDO_PAGINA)))
+
+    COLOR_AZUL_TEXTO = HexColor(_normalizar_color_hex(valores["color_azul_texto"], _color_a_hex(COLOR_AZUL_TEXTO)))
+    COLOR_AZUL_BORDE = HexColor(_normalizar_color_hex(valores["color_azul_borde"], _color_a_hex(COLOR_AZUL_BORDE)))
+    COLOR_AZUL_FONDO = HexColor(_normalizar_color_hex(valores["color_azul_fondo"], _color_a_hex(COLOR_AZUL_FONDO)))
+
+    COLOR_AMA_TEXTO = HexColor(_normalizar_color_hex(valores["color_ama_texto"], _color_a_hex(COLOR_AMA_TEXTO)))
+    COLOR_AMA_BORDE = HexColor(_normalizar_color_hex(valores["color_ama_borde"], _color_a_hex(COLOR_AMA_BORDE)))
+    COLOR_AMA_FONDO = HexColor(_normalizar_color_hex(valores["color_ama_fondo"], _color_a_hex(COLOR_AMA_FONDO)))
+
+    COLOR_INFO_TEXTO = HexColor(_normalizar_color_hex(valores["color_info_texto"], _color_a_hex(COLOR_INFO_TEXTO)))
+    COLOR_INFO_BORDE = HexColor(_normalizar_color_hex(valores["color_info_borde"], _color_a_hex(COLOR_INFO_BORDE)))
+    COLOR_INFO_FONDO = HexColor(_normalizar_color_hex(valores["color_info_fondo"], _color_a_hex(COLOR_INFO_FONDO)))
+
+    COLOR_ENEMIGO_TEXTO = HexColor(_normalizar_color_hex(valores["color_enemigo_texto"], _color_a_hex(COLOR_ENEMIGO_TEXTO)))
+    COLOR_ENEMIGO_BORDE = HexColor(_normalizar_color_hex(valores["color_enemigo_borde"], _color_a_hex(COLOR_ENEMIGO_BORDE)))
+    COLOR_ENEMIGO_FONDO = HexColor(_normalizar_color_hex(valores["color_enemigo_fondo"], _color_a_hex(COLOR_ENEMIGO_FONDO)))
+
+    COLOR_NPC_TEXTO = HexColor(_normalizar_color_hex(valores["color_npc_texto"], _color_a_hex(COLOR_NPC_TEXTO)))
+    COLOR_NPC_BORDE = HexColor(_normalizar_color_hex(valores["color_npc_borde"], _color_a_hex(COLOR_NPC_BORDE)))
+    COLOR_NPC_FONDO = HexColor(_normalizar_color_hex(valores["color_npc_fondo"], _color_a_hex(COLOR_NPC_FONDO)))
+
+    COLOR_ALIADO_TEXTO = HexColor(_normalizar_color_hex(valores["color_aliado_texto"], _color_a_hex(COLOR_ALIADO_TEXTO)))
+    COLOR_ALIADO_BORDE = HexColor(_normalizar_color_hex(valores["color_aliado_borde"], _color_a_hex(COLOR_ALIADO_BORDE)))
+    COLOR_ALIADO_FONDO = HexColor(_normalizar_color_hex(valores["color_aliado_fondo"], _color_a_hex(COLOR_ALIADO_FONDO)))
+
+
 def construir_estilos():
     estilos = getSampleStyleSheet()
 
@@ -995,7 +1082,7 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
     historia = []
 
     # ---------- Portada ----------
-    if titulo or imagen_portada:
+    if titulo or subtitulo or autor or imagen_portada:
         if imagen_portada and os.path.exists(imagen_portada):
             try:
                 with PILImage.open(imagen_portada) as im:
@@ -1626,6 +1713,244 @@ def _seleccionar_archivo_dialogo(titulo, tipos_archivo, modo="abrir", archivo_in
     return ruta or ""
 
 
+def _pedir_configuracion_interactiva(configuracion_inicial, titulo_inicial="",
+                                     subtitulo_inicial="", autor_inicial="",
+                                     portada_inicial=""):
+    try:
+        import tkinter as tk
+        from tkinter import colorchooser, filedialog, messagebox
+    except ImportError:
+        print("⚠️  tkinter no está disponible; se omite el menú interactivo.")
+        return {
+            "configuracion_visual": dict(configuracion_inicial),
+            "titulo": titulo_inicial or "",
+            "subtitulo": subtitulo_inicial or "",
+            "autor": autor_inicial or "",
+            "imagen_portada": portada_inicial or "",
+        }
+
+    resultado = {"valor": None}
+    raiz = tk.Tk()
+    raiz.title("Configuración del PDF")
+    raiz.geometry("880x760")
+    raiz.minsize(760, 620)
+    raiz.attributes("-topmost", True)
+
+    contenedor = tk.Frame(raiz)
+    contenedor.pack(fill="both", expand=True)
+
+    canvas = tk.Canvas(contenedor, highlightthickness=0)
+    barra = tk.Scrollbar(contenedor, orient="vertical", command=canvas.yview)
+    interior = tk.Frame(canvas, padx=12, pady=12)
+
+    interior.bind(
+        "<Configure>",
+        lambda _event: canvas.configure(scrollregion=canvas.bbox("all")),
+    )
+    canvas.create_window((0, 0), window=interior, anchor="nw")
+    canvas.configure(yscrollcommand=barra.set)
+    canvas.pack(side="left", fill="both", expand=True)
+    barra.pack(side="right", fill="y")
+
+    def _on_mousewheel(event):
+        canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+    variables_color = {
+        clave: tk.StringVar(value=valor)
+        for clave, valor in configuracion_inicial.items()
+    }
+    vistas_previas = {}
+
+    def actualizar_preview(clave):
+        valor = _normalizar_color_hex(
+            variables_color[clave].get(),
+            configuracion_inicial[clave],
+        )
+        variables_color[clave].set(valor)
+        vistas_previas[clave].configure(bg=valor)
+
+    def elegir_color(clave):
+        color = colorchooser.askcolor(
+            color=variables_color[clave].get(),
+            title="Selecciona un color",
+            parent=raiz,
+        )[1]
+        if color:
+            variables_color[clave].set(color)
+            actualizar_preview(clave)
+
+    def crear_selector_color(parent, fila, clave, etiqueta):
+        tk.Label(parent, text=etiqueta, anchor="w").grid(row=fila, column=0, sticky="w", padx=(0, 8), pady=4)
+        entrada = tk.Entry(parent, textvariable=variables_color[clave], width=12)
+        entrada.grid(row=fila, column=1, sticky="w", pady=4)
+        preview = tk.Label(parent, width=4, relief="groove", bg=variables_color[clave].get())
+        preview.grid(row=fila, column=2, padx=6, pady=4)
+        vistas_previas[clave] = preview
+        tk.Button(parent, text="Elegir...", command=lambda: elegir_color(clave)).grid(row=fila, column=3, sticky="w", pady=4)
+
+    titulo_frame = tk.LabelFrame(interior, text="Portada y metadatos", padx=10, pady=10)
+    titulo_frame.pack(fill="x", expand=True, pady=(0, 10))
+
+    titulo_var = tk.StringVar(value=titulo_inicial or "")
+    subtitulo_var = tk.StringVar(value=subtitulo_inicial or "")
+    autor_var = tk.StringVar(value=autor_inicial or "")
+    portada_explicita = bool(portada_inicial and portada_inicial != IMAGEN_PORTADA_PREDETERMINADA)
+    portada_habilitada_var = tk.BooleanVar(value=portada_explicita)
+    portada_var = tk.StringVar(value=portada_inicial if portada_explicita else "")
+
+    tk.Label(titulo_frame, text="Título de la aventura (opcional)").grid(row=0, column=0, sticky="w")
+    tk.Entry(titulo_frame, textvariable=titulo_var, width=50).grid(row=0, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
+    tk.Label(titulo_frame, text="Subtítulo (opcional)").grid(row=1, column=0, sticky="w")
+    tk.Entry(titulo_frame, textvariable=subtitulo_var, width=50).grid(row=1, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
+    tk.Label(titulo_frame, text="Autor (opcional)").grid(row=2, column=0, sticky="w")
+    tk.Entry(titulo_frame, textvariable=autor_var, width=50).grid(row=2, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
+
+    def elegir_portada():
+        ruta = filedialog.askopenfilename(
+            title="Selecciona la imagen de portada",
+            filetypes=[("Imágenes", "*.png;*.jpg;*.jpeg;*.webp;*.bmp"), ("Todos los archivos", "*.*")],
+        )
+        if ruta:
+            portada_var.set(ruta)
+
+    def actualizar_estado_portada():
+        estado = "normal" if portada_habilitada_var.get() else "disabled"
+        boton_portada.configure(state=estado)
+        entrada_portada.configure(state="normal" if portada_habilitada_var.get() else "readonly")
+        if not portada_habilitada_var.get():
+            portada_var.set("")
+        entrada_portada.configure(state="readonly")
+
+    tk.Checkbutton(
+        titulo_frame,
+        text="Agregar portada",
+        variable=portada_habilitada_var,
+        command=actualizar_estado_portada,
+    ).grid(row=3, column=0, sticky="w", pady=(8, 4))
+    entrada_portada = tk.Entry(titulo_frame, textvariable=portada_var, width=50, state="readonly")
+    entrada_portada.grid(row=3, column=1, sticky="ew", padx=(8, 8), pady=(8, 4))
+    boton_portada = tk.Button(titulo_frame, text="Elegir imagen...", command=elegir_portada)
+    boton_portada.grid(row=3, column=2, sticky="w", pady=(8, 4))
+    titulo_frame.columnconfigure(1, weight=1)
+    actualizar_estado_portada()
+
+    grupos_colores = [
+        (
+            "General",
+            [
+                ("color_primario", "Títulos"),
+                ("color_secundario", "Texto general"),
+                ("color_fondo_pagina", "Fondo de página"),
+            ],
+        ),
+        (
+            "Caja Consejo para el DM",
+            [
+                ("color_azul_texto", "Texto"),
+                ("color_azul_borde", "Borde"),
+                ("color_azul_fondo", "Fondo"),
+            ],
+        ),
+        (
+            "Caja Cita",
+            [
+                ("color_ama_texto", "Texto"),
+                ("color_ama_borde", "Borde"),
+                ("color_ama_fondo", "Fondo"),
+            ],
+        ),
+        (
+            "Caja Información adicional",
+            [
+                ("color_info_texto", "Texto"),
+                ("color_info_borde", "Borde"),
+                ("color_info_fondo", "Fondo"),
+            ],
+        ),
+        (
+            "Caja NPC",
+            [
+                ("color_npc_texto", "Texto"),
+                ("color_npc_borde", "Borde"),
+                ("color_npc_fondo", "Fondo"),
+            ],
+        ),
+        (
+            "Caja Enemigo",
+            [
+                ("color_enemigo_texto", "Texto"),
+                ("color_enemigo_borde", "Borde"),
+                ("color_enemigo_fondo", "Fondo"),
+            ],
+        ),
+        (
+            "Caja Aliado",
+            [
+                ("color_aliado_texto", "Texto"),
+                ("color_aliado_borde", "Borde"),
+                ("color_aliado_fondo", "Fondo"),
+            ],
+        ),
+    ]
+
+    for titulo_grupo, campos in grupos_colores:
+        frame = tk.LabelFrame(interior, text=titulo_grupo, padx=10, pady=10)
+        frame.pack(fill="x", expand=True, pady=(0, 10))
+        for indice, (clave, etiqueta) in enumerate(campos):
+            crear_selector_color(frame, indice, clave, etiqueta)
+
+    botones = tk.Frame(interior)
+    botones.pack(fill="x", pady=(6, 0))
+
+    def restablecer_colores():
+        for clave, valor in configuracion_inicial.items():
+            variables_color[clave].set(valor)
+            actualizar_preview(clave)
+
+    def cancelar():
+        resultado["valor"] = None
+        raiz.quit()
+
+    def aceptar():
+        configuracion_visual = {}
+        for clave, valor in configuracion_inicial.items():
+            color_normalizado = _normalizar_color_hex(variables_color[clave].get(), valor)
+            if color_normalizado != variables_color[clave].get().strip():
+                variables_color[clave].set(color_normalizado)
+            try:
+                HexColor(color_normalizado)
+            except Exception:
+                messagebox.showerror("Color inválido", f"El color para '{clave}' no es válido.")
+                return
+            configuracion_visual[clave] = color_normalizado
+
+        imagen_portada = portada_var.get().strip() if portada_habilitada_var.get() else ""
+        if portada_habilitada_var.get() and not imagen_portada:
+            messagebox.showerror("Portada incompleta", "Selecciona la imagen de portada o desactiva la opción.")
+            return
+
+        resultado["valor"] = {
+            "configuracion_visual": configuracion_visual,
+            "titulo": titulo_var.get().strip(),
+            "subtitulo": subtitulo_var.get().strip(),
+            "autor": autor_var.get().strip(),
+            "imagen_portada": imagen_portada,
+        }
+        raiz.quit()
+
+    tk.Button(botones, text="Restablecer colores", command=restablecer_colores).pack(side="left")
+    tk.Button(botones, text="Cancelar", command=cancelar).pack(side="right", padx=(8, 0))
+    tk.Button(botones, text="Aceptar", command=aceptar).pack(side="right")
+
+    raiz.protocol("WM_DELETE_WINDOW", cancelar)
+    raiz.mainloop()
+    canvas.unbind_all("<MouseWheel>")
+    raiz.destroy()
+    return resultado["valor"]
+
+
 def principal():
     parser = argparse.ArgumentParser(description="Convierte un .docx a PDF estilo Aventura.")
     parser.add_argument("entrada", nargs="?", help="Archivo .docx de entrada (si se omite se abre un diálogo)")
@@ -1635,6 +1960,10 @@ def principal():
     parser.add_argument("--autor", help="Autor (opcional)")
     parser.add_argument("--portada", default=IMAGEN_PORTADA_PREDETERMINADA,
                         help=f"Ruta a la imagen de portada (por defecto: {IMAGEN_PORTADA_PREDETERMINADA})")
+    parser.add_argument("--menu-interactivo", action="store_true",
+                        help="Fuerza la apertura del menú interactivo de colores y metadatos.")
+    parser.add_argument("--sin-menu", action="store_true",
+                        help="Omite el menú interactivo incluso si se usan diálogos de archivo.")
     args = parser.parse_args()
 
     # --- Entrada: si no se pasa por CLI, pedirla con diálogo de Windows ---
@@ -1669,9 +1998,43 @@ def principal():
             raise SystemExit("❌ No se seleccionó ruta de salida.")
         salida = Path(ruta)
 
+    configuracion_visual = obtener_configuracion_visual_predeterminada()
+    titulo = args.titulo or ""
+    subtitulo = args.subtitulo or ""
+    autor = args.autor or ""
+    imagen_portada = args.portada or ""
+    if imagen_portada == IMAGEN_PORTADA_PREDETERMINADA and not os.path.exists(imagen_portada):
+        imagen_portada = ""
+
+    usar_menu_interactivo = False
+    if not args.sin_menu:
+        usar_menu_interactivo = args.menu_interactivo or not (args.entrada and args.salida)
+
+    if usar_menu_interactivo:
+        portada_inicial = imagen_portada
+        if portada_inicial == IMAGEN_PORTADA_PREDETERMINADA and not os.path.exists(portada_inicial):
+            portada_inicial = ""
+
+        configuracion = _pedir_configuracion_interactiva(
+            configuracion_visual,
+            titulo_inicial=titulo,
+            subtitulo_inicial=subtitulo,
+            autor_inicial=autor,
+            portada_inicial=portada_inicial,
+        )
+        if configuracion is None:
+            raise SystemExit("❌ Operación cancelada por el usuario.")
+        configuracion_visual = configuracion["configuracion_visual"]
+        titulo = configuracion["titulo"]
+        subtitulo = configuracion["subtitulo"]
+        autor = configuracion["autor"]
+        imagen_portada = configuracion["imagen_portada"]
+
+    aplicar_configuracion_visual(configuracion_visual)
+
     construir_pdf(entrada, salida,
-                  titulo=args.titulo, autor=args.autor,
-                  subtitulo=args.subtitulo, imagen_portada=args.portada)
+                  titulo=titulo or None, autor=autor or None,
+                  subtitulo=subtitulo or None, imagen_portada=imagen_portada)
 
 
 if __name__ == "__main__":
