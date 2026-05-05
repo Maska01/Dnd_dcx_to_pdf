@@ -370,6 +370,7 @@ Ahora está reorganizado en:
 - `0617441` — `fix: improve boxed image layout and pagination`
 - `200b140` — `fix: polish boxed media layout and heading grouping`
 - `97dac71` — `feat: add cream page background`
+- `b321bbb` — `feat: add interactive PDF customization menu`
 
 ### Última actualización verificada en este chat
 
@@ -431,6 +432,30 @@ Validación realizada:
 - compilación correcta,
 - generación satisfactoria de un PDF temporal con texto y caja de cita sobre
   el nuevo fondo crema.
+
+#### 3. Menú interactivo de personalización del PDF
+
+Commit: `b321bbb` — `feat: add interactive PDF customization menu`
+
+Cambios confirmados:
+- al usar el flujo interactivo, ahora se abre un menú para personalizar los
+  colores del PDF antes de generarlo,
+- se pueden ajustar títulos, texto general, fondo de página y cada caja
+  especial (`texto`, `borde`, `fondo`),
+- el menú permite indicar `título`, `subtítulo` y `autor` de forma opcional,
+- también permite activar una portada y seleccionar la imagen desde un diálogo,
+- si esos campos quedan vacíos, no se agregan al PDF,
+- se añadieron los flags `--menu-interactivo` y `--sin-menu` para controlar el
+  comportamiento desde CLI.
+
+Mejora adicional relacionada:
+- si la ruta de `IMAGEN_PORTADA_PREDETERMINADA` no existe, ya no se muestra un
+  aviso innecesario cuando no se quiere usar portada.
+
+Validación realizada:
+- compilación correcta,
+- generación satisfactoria de un PDF temporal en modo `--sin-menu`,
+- `README.md` actualizado para reflejar el nuevo flujo interactivo.
 
 ### Nota para futuros traspasos a otro agente
 
