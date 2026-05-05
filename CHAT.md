@@ -368,6 +368,8 @@ Ahora está reorganizado en:
 - `187d72d` — `feat: add npc, enemy, and ally boxed blocks`
 - `117a86e` — `refactor: harmonize Spanish naming and docs`
 - `0617441` — `fix: improve boxed image layout and pagination`
+- `200b140` — `fix: polish boxed media layout and heading grouping`
+- `97dac71` — `feat: add cream page background`
 
 ### Última actualización verificada en este chat
 
@@ -389,6 +391,46 @@ Validación realizada en esta sesión:
 - dependencias presentes,
 - prueba funcional con un `.docx` temporal que incluía una imagen grande dentro
   de un bloque `:::npc`, generando el PDF correctamente.
+
+### Actualizaciones posteriores confirmadas
+
+Después de esa validación se aplicaron dos mejoras adicionales ya confirmadas
+en el repositorio actual.
+
+#### 1. Pulido visual de cajas con imágenes y tablas
+
+Commit: `200b140` — `fix: polish boxed media layout and heading grouping`
+
+Cambios confirmados:
+- las cajas decoradas agrupan mejor la cabecera visual con la primera imagen o
+  tabla del bloque,
+- las imágenes dentro de cajas se centran de forma más estable,
+- se mejoró el espaciado entre cabecera y contenido multimedia,
+- se mantuvo la paginación por filas en la caja principal, sin volver al uso
+  global de `KeepTogether`.
+
+Validación realizada:
+- compilación correcta,
+- prueba funcional con un `.docx` temporal que incluía un bloque `:::npc` con
+  imagen y un bloque `:::enemigo` con tabla, generando el PDF correctamente.
+
+#### 2. Fondo crema global para todas las páginas
+
+Commit: `97dac71` — `feat: add cream page background`
+
+Cambios confirmados:
+- nueva constante configurable `COLOR_FONDO_PAGINA`,
+- `DocumentoConIndice` dibuja un fondo crema en cada página mediante
+  `onPage=self._dibujar_fondo_pagina`,
+- `README.md` actualizado para documentar la nueva constante visual.
+
+Color configurado actualmente:
+- `#F7F1E3`
+
+Validación realizada:
+- compilación correcta,
+- generación satisfactoria de un PDF temporal con texto y caja de cita sobre
+  el nuevo fondo crema.
 
 ### Nota para futuros traspasos a otro agente
 
