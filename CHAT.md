@@ -508,6 +508,26 @@ Validación realizada para ambos ajustes:
 - generación satisfactoria de PDFs temporales en modo `--sin-menu`,
 - sin errores reportados en `convert.py`.
 
+#### 7. Más tamaños de página y tamaño personalizado
+
+Cambio posterior aplicado después del rediseño del menú interactivo.
+
+Cambios confirmados:
+- se añadieron más tamaños estándar de página al menú interactivo:
+  `A3`, `A4`, `A5`, `A6`, `B5`, `LETTER`, `LEGAL` y `11X17`,
+- se añadió la opción `PERSONALIZADO`,
+- cuando el usuario elige `PERSONALIZADO`, puede indicar `ancho` y `alto` en
+  centímetros,
+- el tamaño personalizado se valida dentro de un rango razonable antes de
+  aplicarse al render,
+- `README.md` se actualizó para reflejar los nuevos tamaños estándar y la
+  opción personalizada.
+
+Validación realizada:
+- compilación correcta,
+- generación satisfactoria de un PDF temporal en modo `--sin-menu`,
+- sin errores reportados en `convert.py` ni en `README.md`.
+
 ### Nota para futuros traspasos a otro agente
 
 Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro

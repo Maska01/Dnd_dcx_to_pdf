@@ -32,7 +32,7 @@ from PIL import Image as PILImage
 
 from reportlab.lib.colors import HexColor, black
 from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT
-from reportlab.lib.pagesizes import A4, A5, LETTER, LEGAL
+from reportlab.lib.pagesizes import A3, A4, A5, A6, B5, LETTER, LEGAL, ELEVENSEVENTEEN
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import (
@@ -87,11 +87,17 @@ IMAGEN_PORTADA_PREDETERMINADA = r"C:\ruta\a\tu\imagen_portada.jpg"
 # ==================================================================
 
 TAMANOS_PAGINA_DISPONIBLES = {
+    "A3": A3,
     "A4": A4,
     "A5": A5,
+    "A6": A6,
+    "B5": B5,
     "LETTER": LETTER,
     "LEGAL": LEGAL,
+    "11X17": ELEVENSEVENTEEN,
 }
+
+OPCION_TAMANO_PERSONALIZADO = "PERSONALIZADO"
 
 FUENTES_DISPONIBLES = [
     "Helvetica",
@@ -163,11 +169,15 @@ def _nombre_tamano_pagina_actual():
 
 
 def obtener_configuracion_documento_predeterminada():
+    ancho_cm = round(TAMANO_PAGINA[0] / cm, 2)
+    alto_cm = round(TAMANO_PAGINA[1] / cm, 2)
     return {
         "tamano_pagina": _nombre_tamano_pagina_actual(),
         "fuente_titulo": FUENTE_TITULO,
         "fuente_texto": FUENTE_TEXTO,
         "margen_cm": round(MARGEN / cm, 2),
+        "ancho_pagina_cm": ancho_cm,
+        "alto_pagina_cm": alto_cm,
     }
 
 
@@ -178,7 +188,20 @@ def aplicar_configuracion_documento(configuracion_documento):
     valores.update(configuracion_documento or {})
 
     nombre_pagina = str(valores.get("tamano_pagina", "A4")).strip().upper()
-    TAMANO_PAGINA = TAMANOS_PAGINA_DISPONIBLES.get(nombre_pagina, A4)
+    if nombre_pagina == OPCION_TAMANO_PERSONALIZADO:
+        try:
+            ancho_cm = float(valores.get("ancho_pagina_cm", 21.0))
+        except (TypeError, ValueError):
+            ancho_cm = 21.0
+        try:
+            alto_cm = float(valores.get("alto_pagina_cm", 29.7))
+        except (TypeError, ValueError):
+            alto_cm = 29.7
+        ancho_cm = min(max(ancho_cm, 5.0), 100.0)
+        alto_cm = min(max(alto_cm, 5.0), 100.0)
+        TAMANO_PAGINA = (ancho_cm * cm, alto_cm * cm)
+    else:
+        TAMANO_PAGINA = TAMANOS_PAGINA_DISPONIBLES.get(nombre_pagina, A4)
 
     fuente_titulo = str(valores.get("fuente_titulo", FUENTE_TITULO)).strip()
     fuente_texto = str(valores.get("fuente_texto", FUENTE_TEXTO)).strip()
@@ -1933,16 +1956,26 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
     fuente_titulo_var = tk.StringVar(value=configuracion_documento_inicial.get("fuente_titulo", FUENTE_TITULO))
     fuente_texto_var = tk.StringVar(value=configuracion_documento_inicial.get("fuente_texto", FUENTE_TEXTO))
     margen_var = tk.StringVar(value=str(configuracion_documento_inicial.get("margen_cm", 2.0)))
+    ancho_pagina_var = tk.StringVar(value=str(configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
+    alto_pagina_var = tk.StringVar(value=str(configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
 
     tk.Label(documento_frame, text="Tamaño de página").grid(row=0, column=0, sticky="w", pady=3)
     opcion_pagina = ttk.Combobox(
         documento_frame,
         textvariable=tamano_pagina_var,
-        values=list(TAMANOS_PAGINA_DISPONIBLES.keys()),
+        values=[*TAMANOS_PAGINA_DISPONIBLES.keys(), OPCION_TAMANO_PERSONALIZADO],
         state="readonly",
         width=18,
     )
     opcion_pagina.grid(row=0, column=1, sticky="w", padx=(8, 0), pady=3)
+
+    tk.Label(documento_frame, text="Ancho personalizado (cm)").grid(row=0, column=2, sticky="w", padx=(16, 0), pady=3)
+    entrada_ancho = tk.Entry(documento_frame, textvariable=ancho_pagina_var, width=10)
+    entrada_ancho.grid(row=0, column=3, sticky="w", padx=(8, 0), pady=3)
+
+    tk.Label(documento_frame, text="Alto personalizado (cm)").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=3)
+    entrada_alto = tk.Entry(documento_frame, textvariable=alto_pagina_var, width=10)
+    entrada_alto.grid(row=1, column=3, sticky="w", padx=(8, 0), pady=3)
 
     tk.Label(documento_frame, text="Fuente de título").grid(row=1, column=0, sticky="w", pady=3)
     opcion_fuente_titulo = ttk.Combobox(
@@ -1967,6 +2000,15 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
     tk.Label(documento_frame, text="Margen (cm)").grid(row=3, column=0, sticky="w", pady=3)
     tk.Entry(documento_frame, textvariable=margen_var, width=10).grid(row=3, column=1, sticky="w", padx=(8, 0), pady=3)
     tk.Label(documento_frame, text="Rango recomendado: 0.5 a 5.0 cm").grid(row=3, column=2, sticky="w", padx=(8, 0), pady=3)
+
+    def actualizar_estado_tamano_personalizado(*_args):
+        es_personalizado = tamano_pagina_var.get().strip().upper() == OPCION_TAMANO_PERSONALIZADO
+        estado = "normal" if es_personalizado else "disabled"
+        entrada_ancho.configure(state=estado)
+        entrada_alto.configure(state=estado)
+
+    tamano_pagina_var.trace_add("write", actualizar_estado_tamano_personalizado)
+    actualizar_estado_tamano_personalizado()
 
     grupos_colores = [
         (
@@ -2086,6 +2128,8 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
         fuente_titulo_var.set(configuracion_documento_inicial.get("fuente_titulo", FUENTE_TITULO))
         fuente_texto_var.set(configuracion_documento_inicial.get("fuente_texto", FUENTE_TEXTO))
         margen_var.set(str(configuracion_documento_inicial.get("margen_cm", 2.0)))
+        ancho_pagina_var.set(str(configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
+        alto_pagina_var.set(str(configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
 
     def cancelar():
         resultado["valor"] = None
@@ -2118,11 +2162,27 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
             messagebox.showerror("Margen inválido", "El margen debe estar entre 0.5 y 5.0 cm.")
             return
 
+        tamano_pagina = tamano_pagina_var.get().strip().upper()
+        ancho_pagina_cm = configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)
+        alto_pagina_cm = configuracion_documento_inicial.get("alto_pagina_cm", 29.7)
+        if tamano_pagina == OPCION_TAMANO_PERSONALIZADO:
+            try:
+                ancho_pagina_cm = float(str(ancho_pagina_var.get()).replace(",", ".").strip())
+                alto_pagina_cm = float(str(alto_pagina_var.get()).replace(",", ".").strip())
+            except (TypeError, ValueError):
+                messagebox.showerror("Tamaño inválido", "El ancho y alto personalizados deben ser números en centímetros.")
+                return
+            if not (5.0 <= ancho_pagina_cm <= 100.0 and 5.0 <= alto_pagina_cm <= 100.0):
+                messagebox.showerror("Tamaño inválido", "El ancho y alto personalizados deben estar entre 5 y 100 cm.")
+                return
+
         configuracion_documento = {
-            "tamano_pagina": tamano_pagina_var.get().strip().upper(),
+            "tamano_pagina": tamano_pagina,
             "fuente_titulo": fuente_titulo_var.get().strip(),
             "fuente_texto": fuente_texto_var.get().strip(),
             "margen_cm": margen_cm,
+            "ancho_pagina_cm": ancho_pagina_cm,
+            "alto_pagina_cm": alto_pagina_cm,
         }
 
         resultado["valor"] = {

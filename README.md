@@ -23,7 +23,8 @@ diálogos para elegir archivos se abrirá un menú interactivo donde puedes:
 
 - elegir el color de títulos, texto general y fondo de página,
 - personalizar texto, borde y fondo de cada caja especial,
-- cambiar el tamaño de página, la fuente de títulos, la fuente del texto y el margen,
+- cambiar el tamaño de página, incluyendo más formatos estándar y una opción personalizada,
+- cambiar la fuente de títulos, la fuente del texto y el margen,
 - escribir título, subtítulo y autor de forma opcional,
 - activar una portada y elegir la imagen desde un selector de archivos.
 
