@@ -402,6 +402,29 @@ def _escapar_atributo_html(texto):
     return _escapar_html(texto).replace('"', '&quot;')
 
 
+def _parrafo_tiene_page_break_before(parrafo):
+    propiedades = parrafo._p.find(qn("w:pPr"))
+    if propiedades is None:
+        return False
+
+    nodo = propiedades.find(qn("w:pageBreakBefore"))
+    if nodo is None:
+        return False
+
+    valor = (nodo.get(qn("w:val")) or "true").strip().lower()
+    return valor not in ("0", "false", "off", "no")
+
+
+def _parrafo_es_solo_salto_de_pagina(parrafo):
+    if (parrafo.text or "").strip():
+        return False
+
+    for nodo in parrafo._p.iter():
+        if nodo.tag == qn("w:br") and (nodo.get(qn("w:type")) or "").lower() == "page":
+            return True
+    return False
+
+
 def _texto_de_segmento_xml(segmento_xml):
     partes = []
     for nodo in segmento_xml.iter():
@@ -1569,6 +1592,20 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
             bloque_info_manual.clear()
         dentro_info = False
 
+    def insertar_salto_de_pagina():
+        vaciar_consejos()
+        vaciar_infos()
+        emitir_info_adicional()
+        emitir_consejo_manual()
+        emitir_cita_manual()
+        emitir_npc_manual()
+        emitir_enemigo_manual()
+        emitir_aliado_manual()
+        vaciar_citas()
+        vaciar_lista()
+        if not historia or not isinstance(historia[-1], PageBreak):
+            historia.append(PageBreak())
+
     for tipo_elemento, elemento in _iterar_elementos_documento(documento_word):
         if tipo_elemento == "tabla":
             tabla_docx = elemento
@@ -1592,6 +1629,13 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
         parrafo = elemento
         # 1) Imágenes embebidas en el párrafo
         imagenes = extraer_imagenes_de_parrafo(parrafo, documento_word)
+
+        if _parrafo_tiene_page_break_before(parrafo):
+            insertar_salto_de_pagina()
+
+        if _parrafo_es_solo_salto_de_pagina(parrafo) and not imagenes:
+            insertar_salto_de_pagina()
+            continue
 
         texto_html = parrafo_a_html(parrafo)
         texto_plano = parrafo.text or ""

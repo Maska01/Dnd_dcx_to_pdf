@@ -583,6 +583,26 @@ Cambios confirmados:
 - se aclara que `Título 1`, `Título 2` y `Título 3` generan bookmarks de
   navegación en el PDF.
 
+#### 11. Respeto mínimo de saltos manuales de página
+
+Cambio posterior aplicado de forma conservadora para no alterar la lógica previa
+de imágenes y cajas.
+
+Cambios confirmados:
+- el conversor detecta `pageBreakBefore` en un párrafo del DOCX y añade un
+  `PageBreak()` real en el PDF,
+- el conversor detecta el párrafo típico que Word genera al insertar un salto
+  manual de página (`Ctrl+Enter`) y lo traduce también a `PageBreak()`,
+- antes de insertar el salto, el flujo vacía listas, cajas y bloques manuales
+  pendientes para no mezclar contenido entre páginas,
+- no se modificó la implementación previa de imágenes, agrupación ni escalado.
+
+Validación realizada:
+- compilación correcta,
+- generación satisfactoria de un PDF temporal con un `.docx` que contiene un
+  salto manual de página,
+- sin errores reportados en `convert.py`.
+
 ### Nota para futuros traspasos a otro agente
 
 Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro
