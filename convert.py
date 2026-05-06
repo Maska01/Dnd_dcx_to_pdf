@@ -1984,6 +1984,50 @@ def _seleccionar_archivo_dialogo(titulo, tipos_archivo, modo="abrir", archivo_in
     return ruta or ""
 
 
+def _mostrar_aviso_generacion(titulo, mensaje):
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+    except ImportError:
+        print(f"ℹ️  {titulo}: {mensaje}")
+        return
+
+    raiz = tk.Tk()
+    raiz.withdraw()
+    raiz.attributes("-topmost", True)
+    try:
+        messagebox.showinfo(titulo, mensaje, parent=raiz)
+    finally:
+        raiz.destroy()
+
+
+def _abrir_pdf_con_aplicacion_predeterminada(ruta_pdf):
+    ruta_pdf = str(ruta_pdf)
+    if hasattr(os, "startfile"):
+        os.startfile(ruta_pdf)
+        return
+
+    import subprocess
+    import sys
+
+    if sys.platform == "darwin":
+        subprocess.Popen(["open", ruta_pdf])
+    else:
+        subprocess.Popen(["xdg-open", ruta_pdf])
+
+
+def _abrir_y_notificar_pdf_generado(ruta_pdf, opener=None, notifier=None):
+    ruta_pdf = Path(ruta_pdf)
+    opener = opener or _abrir_pdf_con_aplicacion_predeterminada
+    notifier = notifier or _mostrar_aviso_generacion
+
+    opener(ruta_pdf)
+    notifier(
+        "PDF generado",
+        f"El PDF se generó correctamente y se abrió con la aplicación predeterminada.\n\nRuta:\n{ruta_pdf}",
+    )
+
+
 def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_documento_inicial,
                                      titulo_inicial="", subtitulo_inicial="",
                                      autor_inicial="", portada_inicial=""):
@@ -2490,6 +2534,7 @@ def principal():
     construir_pdf(entrada, salida,
                   titulo=titulo or None, autor=autor or None,
                   subtitulo=subtitulo or None, imagen_portada=imagen_portada)
+    _abrir_y_notificar_pdf_generado(salida)
 
 
 if __name__ == "__main__":

@@ -603,6 +603,27 @@ Validación realizada:
   salto manual de página,
 - sin errores reportados en `convert.py`.
 
+#### 12. Apertura automática del PDF generado
+
+Cambio posterior aplicado para mejorar la experiencia justo al terminar la
+conversión.
+
+Cambios confirmados:
+- al finalizar la generación del PDF, el script intenta abrir el archivo con la
+  aplicación predeterminada del sistema,
+- en Windows se usa `os.startfile(...)` para abrir el PDF directamente,
+- después se muestra una ventana emergente confirmando que el PDF fue generado
+  y abierto, incluyendo la ruta del archivo,
+- si `tkinter` no está disponible, el aviso se degrada a consola,
+- la lógica se encapsuló en helpers separados para facilitar validación y
+  pruebas sin lanzar realmente la aplicación externa.
+
+Validación realizada:
+- compilación correcta,
+- validación controlada con funciones simuladas (`opener`/`notifier`) para
+  confirmar que el flujo invoca tanto la apertura como el aviso,
+- sin errores reportados en `convert.py`.
+
 ### Nota para futuros traspasos a otro agente
 
 Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro
