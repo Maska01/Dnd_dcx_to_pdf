@@ -37,7 +37,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import (
     BaseDocTemplate, PageTemplate, Frame,
-    Paragraph, Spacer, PageBreak, ListFlowable, ListItem, Image,
+    Paragraph, Spacer, PageBreak, ListFlowable, ListItem, Image, CondPageBreak,
     Table, TableStyle,
 )
 from reportlab.platypus.tableofcontents import TableOfContents
@@ -77,10 +77,22 @@ COLOR_ALIADO_TEXTO = HexColor("#1E5631")
 COLOR_ALIADO_BORDE = HexColor("#4CAF50")
 COLOR_ALIADO_FONDO = HexColor("#EAF7EE")
 
+# Caja "Tesoro/Premio" (dorado)
+# Caja "Tesoro/Premio" (morado)
+COLOR_TESORO_TEXTO = HexColor("#5B2C83")
+COLOR_TESORO_BORDE = HexColor("#8E44AD")
+COLOR_TESORO_FONDO = HexColor("#F3E8FF")
+
+# Caja "Objeto" (blanco)
+COLOR_OBJETO_TEXTO = HexColor("#2F2F2F")
+COLOR_OBJETO_BORDE = HexColor("#BFC5CC")
+COLOR_OBJETO_FONDO = HexColor("#FFFFFF")
+
 FUENTE_TITULO = "Helvetica-Bold"
 FUENTE_TEXTO  = "Helvetica"
 TAMANO_PAGINA = A4
 MARGEN        = 2 * cm
+MINIMO_RENGLONES_CAJA_ANTES_DE_MOVER = 3
 
 # Ruta de ejemplo para la imagen de portada (cámbiala cuando tengas la tuya)
 IMAGEN_PORTADA_PREDETERMINADA = r"C:\ruta\a\tu\imagen_portada.jpg"
@@ -158,6 +170,12 @@ def obtener_configuracion_visual_predeterminada():
         "color_aliado_texto": _color_a_hex(COLOR_ALIADO_TEXTO),
         "color_aliado_borde": _color_a_hex(COLOR_ALIADO_BORDE),
         "color_aliado_fondo": _color_a_hex(COLOR_ALIADO_FONDO),
+        "color_tesoro_texto": _color_a_hex(COLOR_TESORO_TEXTO),
+        "color_tesoro_borde": _color_a_hex(COLOR_TESORO_BORDE),
+        "color_tesoro_fondo": _color_a_hex(COLOR_TESORO_FONDO),
+        "color_objeto_texto": _color_a_hex(COLOR_OBJETO_TEXTO),
+        "color_objeto_borde": _color_a_hex(COLOR_OBJETO_BORDE),
+        "color_objeto_fondo": _color_a_hex(COLOR_OBJETO_FONDO),
     }
 
 
@@ -224,6 +242,8 @@ def aplicar_configuracion_visual(configuracion_visual):
     global COLOR_ENEMIGO_TEXTO, COLOR_ENEMIGO_BORDE, COLOR_ENEMIGO_FONDO
     global COLOR_NPC_TEXTO, COLOR_NPC_BORDE, COLOR_NPC_FONDO
     global COLOR_ALIADO_TEXTO, COLOR_ALIADO_BORDE, COLOR_ALIADO_FONDO
+    global COLOR_TESORO_TEXTO, COLOR_TESORO_BORDE, COLOR_TESORO_FONDO
+    global COLOR_OBJETO_TEXTO, COLOR_OBJETO_BORDE, COLOR_OBJETO_FONDO
 
     valores = obtener_configuracion_visual_predeterminada()
     valores.update(configuracion_visual or {})
@@ -255,6 +275,12 @@ def aplicar_configuracion_visual(configuracion_visual):
     COLOR_ALIADO_TEXTO = HexColor(_normalizar_color_hex(valores["color_aliado_texto"], _color_a_hex(COLOR_ALIADO_TEXTO)))
     COLOR_ALIADO_BORDE = HexColor(_normalizar_color_hex(valores["color_aliado_borde"], _color_a_hex(COLOR_ALIADO_BORDE)))
     COLOR_ALIADO_FONDO = HexColor(_normalizar_color_hex(valores["color_aliado_fondo"], _color_a_hex(COLOR_ALIADO_FONDO)))
+    COLOR_TESORO_TEXTO = HexColor(_normalizar_color_hex(valores["color_tesoro_texto"], _color_a_hex(COLOR_TESORO_TEXTO)))
+    COLOR_TESORO_BORDE = HexColor(_normalizar_color_hex(valores["color_tesoro_borde"], _color_a_hex(COLOR_TESORO_BORDE)))
+    COLOR_TESORO_FONDO = HexColor(_normalizar_color_hex(valores["color_tesoro_fondo"], _color_a_hex(COLOR_TESORO_FONDO)))
+    COLOR_OBJETO_TEXTO = HexColor(_normalizar_color_hex(valores["color_objeto_texto"], _color_a_hex(COLOR_OBJETO_TEXTO)))
+    COLOR_OBJETO_BORDE = HexColor(_normalizar_color_hex(valores["color_objeto_borde"], _color_a_hex(COLOR_OBJETO_BORDE)))
+    COLOR_OBJETO_FONDO = HexColor(_normalizar_color_hex(valores["color_objeto_fondo"], _color_a_hex(COLOR_OBJETO_FONDO)))
 
 
 def construir_estilos():
@@ -301,9 +327,9 @@ def construir_estilos():
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_AMA_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
-        spaceBefore=12, spaceAfter=12,
+        spaceBefore=6, spaceAfter=8,
         borderColor=COLOR_AMA_BORDE, borderWidth=1, borderRadius=8,
-        borderPadding=5, backColor=COLOR_AMA_FONDO,
+        borderPadding=4, backColor=COLOR_AMA_FONDO,
     ))
     # Caja VERDE-AZULADA (Información adicional útil, no obligatoria)
     estilos.add(ParagraphStyle(
@@ -311,9 +337,9 @@ def construir_estilos():
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_INFO_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
-        spaceBefore=12, spaceAfter=12,
+        spaceBefore=3, spaceAfter=8,
         borderColor=COLOR_INFO_BORDE, borderWidth=1, borderRadius=8,
-        borderPadding=5, backColor=COLOR_INFO_FONDO,
+        borderPadding=4, backColor=COLOR_INFO_FONDO,
     ))
     # Caja AZUL (Consejo para el DM)
     estilos.add(ParagraphStyle(
@@ -321,36 +347,54 @@ def construir_estilos():
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_AZUL_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
-        spaceBefore=12, spaceAfter=12,
+        spaceBefore=6, spaceAfter=8,
         borderColor=COLOR_AZUL_BORDE, borderWidth=1, borderRadius=8,
-        borderPadding=5, backColor=COLOR_AZUL_FONDO,
+        borderPadding=4, backColor=COLOR_AZUL_FONDO,
     ))
     estilos.add(ParagraphStyle(
         name="CajaNpc",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_NPC_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
-        spaceBefore=12, spaceAfter=12,
+        spaceBefore=6, spaceAfter=8,
         borderColor=COLOR_NPC_BORDE, borderWidth=1, borderRadius=8,
-        borderPadding=5, backColor=COLOR_NPC_FONDO,
+        borderPadding=4, backColor=COLOR_NPC_FONDO,
     ))
     estilos.add(ParagraphStyle(
         name="CajaEnemigo",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_ENEMIGO_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
-        spaceBefore=12, spaceAfter=12,
+        spaceBefore=6, spaceAfter=8,
         borderColor=COLOR_ENEMIGO_BORDE, borderWidth=1, borderRadius=8,
-        borderPadding=5, backColor=COLOR_ENEMIGO_FONDO,
+        borderPadding=4, backColor=COLOR_ENEMIGO_FONDO,
     ))
     estilos.add(ParagraphStyle(
         name="CajaAliado",
         fontName=FUENTE_TEXTO, fontSize=11, leading=15,
         textColor=COLOR_ALIADO_TEXTO, alignment=TA_JUSTIFY,
         leftIndent=10, rightIndent=10,
-        spaceBefore=12, spaceAfter=12,
+        spaceBefore=6, spaceAfter=8,
         borderColor=COLOR_ALIADO_BORDE, borderWidth=1, borderRadius=8,
-        borderPadding=5, backColor=COLOR_ALIADO_FONDO,
+        borderPadding=4, backColor=COLOR_ALIADO_FONDO,
+    ))
+    estilos.add(ParagraphStyle(
+        name="CajaTesoro",
+        fontName=FUENTE_TEXTO, fontSize=11, leading=15,
+        textColor=COLOR_TESORO_TEXTO, alignment=TA_JUSTIFY,
+        leftIndent=10, rightIndent=10,
+        spaceBefore=6, spaceAfter=8,
+        borderColor=COLOR_TESORO_BORDE, borderWidth=1, borderRadius=8,
+        borderPadding=4, backColor=COLOR_TESORO_FONDO,
+    ))
+    estilos.add(ParagraphStyle(
+        name="CajaObjeto",
+        fontName=FUENTE_TEXTO, fontSize=11, leading=15,
+        textColor=COLOR_OBJETO_TEXTO, alignment=TA_JUSTIFY,
+        leftIndent=10, rightIndent=10,
+        spaceBefore=6, spaceAfter=8,
+        borderColor=COLOR_OBJETO_BORDE, borderWidth=1, borderRadius=8,
+        borderPadding=4, backColor=COLOR_OBJETO_FONDO,
     ))
     estilos.add(ParagraphStyle(
         name="TituloIndice",
@@ -964,6 +1008,30 @@ def es_inicio_bloque_aliado(texto_plano):
     return limpio in (":::aliado", "::: aliado", ":::ally", "::: ally")
 
 
+def es_inicio_bloque_tesoro(texto_plano):
+    limpio = " ".join((texto_plano or "").strip().lower().split())
+    return limpio in (
+        ":::tesoro",
+        "::: tesoro",
+        ":::premio",
+        "::: premio",
+        ":::tesoro :::",
+        "::: tesoro :::",
+        ":::premio :::",
+        "::: premio :::",
+    )
+
+
+def es_inicio_bloque_objeto(texto_plano):
+    limpio = " ".join((texto_plano or "").strip().lower().split())
+    return limpio in (
+        ":::objeto",
+        "::: objeto",
+        ":::objeto :::",
+        "::: objeto :::",
+    )
+
+
 def es_fin_bloque_manual(texto_plano):
     return texto_plano.strip() == ":::"
 
@@ -1124,6 +1192,18 @@ def decorar_aliado_en_html(texto_html):
     return _crear_titulo_decorado("Aliado", COLOR_ALIADO_TEXTO) + texto_html
 
 
+def decorar_tesoro_en_html(texto_html):
+    return _crear_titulo_decorado("Tesoro", COLOR_TESORO_TEXTO) + texto_html
+
+
+def decorar_premio_en_html(texto_html):
+    return _crear_titulo_decorado("Premio", COLOR_TESORO_TEXTO) + texto_html
+
+
+def decorar_objeto_en_html(texto_html):
+    return _crear_titulo_decorado("Objeto", COLOR_OBJETO_TEXTO) + texto_html
+
+
 def _estilo_interno_caja(estilo_base, item, sufijo):
     estilo = ParagraphStyle(
         name=f"{estilo_base.name}Interno{sufijo}",
@@ -1155,6 +1235,14 @@ def _crear_cabecera_decorada_caja(estilo_base, decorador, sufijo):
     estilo = _estilo_interno_caja(estilo_base, _item_caja_plano(""), sufijo)
     estilo.spaceAfter = 4
     return Paragraph(decorador(""), estilo)
+
+
+def _altura_minima_visible_caja(estilo_base, decorador=None):
+    altura = max(estilo_base.leading * MINIMO_RENGLONES_CAJA_ANTES_DE_MOVER, estilo_base.fontSize)
+    altura += 12
+    if decorador is not None:
+        altura += estilo_base.leading + 4
+    return altura
 
 
 def _centrar_en_fila(flowable, ancho):
@@ -1309,9 +1397,20 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
         ("TOPPADDING", (0, 0), (-1, 0), 6),
         ("BOTTOMPADDING", (0, -1), (-1, -1), 6),
     ]))
-    tabla.spaceBefore = 4
-    tabla.spaceAfter = 8
-    return tabla
+    tabla.spaceBefore = 2
+    tabla.spaceAfter = 4
+
+    alto_util_pagina = max(40, TAMANO_PAGINA[1] - (2 * MARGEN))
+    altura_minima_visible = _altura_minima_visible_caja(estilo_base, decorador)
+    try:
+        _, alto_caja = tabla.wrap(ancho_total, alto_util_pagina)
+    except Exception:
+        return [tabla]
+
+    umbral_salto = min(alto_caja, altura_minima_visible)
+    if umbral_salto > 0:
+        return [CondPageBreak(umbral_salto), tabla]
+    return [tabla]
 
 
 class DocumentoConIndice(BaseDocTemplate):
@@ -1447,11 +1546,16 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
     dentro_cita_manual = False
     bloque_npc_manual = []         # bloque de párrafos dentro de :::npc ... :::
     dentro_npc_manual = False
-    bloque_enemigo_manual = []     # bloque de párrafos dentro de :::enemigo ... :::
+    bloque_enemigo_manual = []     # bloque de p?rrafos dentro de :::enemigo ... :::
     dentro_enemigo_manual = False
-    bloque_aliado_manual = []      # bloque de párrafos dentro de :::aliado ... :::
+    bloque_aliado_manual = []      # bloque de p?rrafos dentro de :::aliado ... :::
     dentro_aliado_manual = False
-    bloque_info_manual = []        # bloque de párrafos dentro de :::info ... :::
+    bloque_tesoro_manual = []      # bloque de p?rrafos dentro de :::Tesoro ::: / :::Premio :::
+    dentro_tesoro_manual = False
+    titulo_tesoro_manual = "Tesoro"
+    bloque_objeto_manual = []      # bloque de p?rrafos dentro de :::Objeto :::
+    dentro_objeto_manual = False
+    bloque_info_manual = []        # bloque de p?rrafos dentro de :::info ... :::
     dentro_info = False
 
     def agregar_contenido_a_bloque_activo(item_caja, imagenes):
@@ -1491,6 +1595,18 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
             if imagenes:
                 _agregar_imagenes_a_bloque(bloque_aliado_manual, imagenes)
             return True
+        if dentro_tesoro_manual:
+            if item_caja is not None:
+                bloque_tesoro_manual.append(item_caja)
+            if imagenes:
+                _agregar_imagenes_a_bloque(bloque_tesoro_manual, imagenes)
+            return True
+        if dentro_objeto_manual:
+            if item_caja is not None:
+                bloque_objeto_manual.append(item_caja)
+            if imagenes:
+                _agregar_imagenes_a_bloque(bloque_objeto_manual, imagenes)
+            return True
         return False
 
     def agregar_salto_a_bloque_activo():
@@ -1509,6 +1625,12 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
         if dentro_aliado_manual:
             bloque_aliado_manual.append(None)
             return True
+        if dentro_tesoro_manual:
+            bloque_tesoro_manual.append(None)
+            return True
+        if dentro_objeto_manual:
+            bloque_objeto_manual.append(None)
+            return True
         if dentro_info:
             bloque_info_manual.append(None)
             return True
@@ -1521,14 +1643,14 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                  for t in items_lista_actual],
                 bulletType="bullet", start="•",
             ))
-            historia.append(Spacer(1, 6))
+            historia.append(Spacer(1, 0))
             items_lista_actual.clear()
 
     def vaciar_citas():
         if citas_pendientes:
             caja = _renderizar_caja(citas_pendientes, estilos["CajaCita"], ancho_util)
-            if caja is not None:
-                historia.append(caja)
+            if caja:
+                historia.extend(caja)
             citas_pendientes.clear()
 
     def vaciar_consejos():
@@ -1540,8 +1662,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                 ancho_util,
                 decorador=decorar_consejo_dm_html,
             )
-            if caja is not None:
-                historia.append(caja)
+            if caja:
+                historia.extend(caja)
             consejos_pendientes.clear()
         vacios_desde_ultimo_consejo = 0
         modo_consejos = None
@@ -1555,8 +1677,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                 ancho_util,
                 decorador=decorar_info_adicional_html,
             )
-            if caja is not None:
-                historia.append(caja)
+            if caja:
+                historia.extend(caja)
             infos_pendientes.clear()
         vacios_desde_ultima_info = 0
         modo_infos = None
@@ -1570,8 +1692,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                 ancho_util,
                 decorador=decorar_consejo_dm_html,
             )
-            if caja is not None:
-                historia.append(caja)
+            if caja:
+                historia.extend(caja)
             bloque_consejo_manual.clear()
         dentro_consejo_manual = False
 
@@ -1583,8 +1705,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                 estilos["CajaCita"],
                 ancho_util,
             )
-            if caja is not None:
-                historia.append(caja)
+            if caja:
+                historia.extend(caja)
             bloque_cita_manual.clear()
         dentro_cita_manual = False
 
@@ -1597,8 +1719,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                 ancho_util,
                 decorador=decorar_npc_en_html,
             )
-            if caja is not None:
-                historia.append(caja)
+            if caja:
+                historia.extend(caja)
             bloque_npc_manual.clear()
         dentro_npc_manual = False
 
@@ -1611,8 +1733,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                 ancho_util,
                 decorador=decorar_enemigo_en_html,
             )
-            if caja is not None:
-                historia.append(caja)
+            if caja:
+                historia.extend(caja)
             bloque_enemigo_manual.clear()
         dentro_enemigo_manual = False
 
@@ -1625,10 +1747,40 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                 ancho_util,
                 decorador=decorar_aliado_en_html,
             )
-            if caja is not None:
-                historia.append(caja)
+            if caja:
+                historia.extend(caja)
             bloque_aliado_manual.clear()
         dentro_aliado_manual = False
+
+    def emitir_tesoro_manual():
+        nonlocal dentro_tesoro_manual, titulo_tesoro_manual
+        if bloque_tesoro_manual:
+            decorador = decorar_premio_en_html if titulo_tesoro_manual == "Premio" else decorar_tesoro_en_html
+            caja = _renderizar_caja(
+                bloque_tesoro_manual,
+                estilos["CajaTesoro"],
+                ancho_util,
+                decorador=decorador,
+            )
+            if caja:
+                historia.extend(caja)
+            bloque_tesoro_manual.clear()
+        dentro_tesoro_manual = False
+        titulo_tesoro_manual = "Tesoro"
+
+    def emitir_objeto_manual():
+        nonlocal dentro_objeto_manual
+        if bloque_objeto_manual:
+            caja = _renderizar_caja(
+                bloque_objeto_manual,
+                estilos["CajaObjeto"],
+                ancho_util,
+                decorador=decorar_objeto_en_html,
+            )
+            if caja:
+                historia.extend(caja)
+            bloque_objeto_manual.clear()
+        dentro_objeto_manual = False
 
     def emitir_info_adicional():
         nonlocal dentro_info
@@ -1639,8 +1791,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
                 ancho_util,
                 decorador=decorar_info_adicional_html,
             )
-            if caja is not None:
-                historia.append(caja)
+            if caja:
+                historia.extend(caja)
             bloque_info_manual.clear()
         dentro_info = False
 
@@ -1653,6 +1805,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
         emitir_npc_manual()
         emitir_enemigo_manual()
         emitir_aliado_manual()
+        emitir_tesoro_manual()
+        emitir_objeto_manual()
         vaciar_citas()
         vaciar_lista()
         if not historia or not isinstance(historia[-1], PageBreak):
@@ -1674,6 +1828,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
             emitir_npc_manual()
             emitir_enemigo_manual()
             emitir_aliado_manual()
+            emitir_tesoro_manual()
+            emitir_objeto_manual()
             vaciar_citas()
             vaciar_lista()
             continue
@@ -1776,6 +1932,39 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
             bloque_aliado_manual.clear()
             continue
 
+        if es_inicio_bloque_tesoro(texto_plano):
+            vaciar_consejos()
+            vaciar_infos()
+            emitir_info_adicional()
+            emitir_consejo_manual()
+            emitir_cita_manual()
+            emitir_npc_manual()
+            emitir_enemigo_manual()
+            emitir_aliado_manual()
+            emitir_objeto_manual()
+            vaciar_citas()
+            vaciar_lista()
+            dentro_tesoro_manual = True
+            titulo_tesoro_manual = "Premio" if "premio" in (texto_plano or "").lower() else "Tesoro"
+            bloque_tesoro_manual.clear()
+            continue
+
+        if es_inicio_bloque_objeto(texto_plano):
+            vaciar_consejos()
+            vaciar_infos()
+            emitir_info_adicional()
+            emitir_consejo_manual()
+            emitir_cita_manual()
+            emitir_npc_manual()
+            emitir_enemigo_manual()
+            emitir_aliado_manual()
+            emitir_tesoro_manual()
+            vaciar_citas()
+            vaciar_lista()
+            dentro_objeto_manual = True
+            bloque_objeto_manual.clear()
+            continue
+
         if es_fin_bloque_manual(texto_plano) and dentro_info:
             emitir_info_adicional()
             continue
@@ -1800,6 +1989,14 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
             emitir_aliado_manual()
             continue
 
+        if es_fin_bloque_manual(texto_plano) and dentro_tesoro_manual:
+            emitir_tesoro_manual()
+            continue
+
+        if es_fin_bloque_manual(texto_plano) and dentro_objeto_manual:
+            emitir_objeto_manual()
+            continue
+
         if not texto_html.strip() and not imagenes:
             if agregar_salto_a_bloque_activo():
                 continue
@@ -1820,8 +2017,8 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
             vaciar_lista()
             # Dentro de un bloque #...# las líneas vacías se ignoran
             # (no rompen el bloque; ya separamos con <br/><br/>).
-            if not dentro_info and not dentro_consejo_manual and not dentro_cita_manual and not dentro_npc_manual and not dentro_enemigo_manual and not dentro_aliado_manual:
-                historia.append(Spacer(1, 4))
+            if not dentro_info and not dentro_consejo_manual and not dentro_cita_manual and not dentro_npc_manual and not dentro_enemigo_manual and not dentro_aliado_manual and not dentro_tesoro_manual and not dentro_objeto_manual:
+                historia.append(Spacer(1, 0))
             continue
 
         clave = estilo_para_parrafo(parrafo)
@@ -1986,15 +2183,17 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
             flujos_imagen = _crear_flujos_imagenes(imagenes, ancho_util)
             for flujo_imagen in flujos_imagen:
                 if flujo_imagen is not None:
-                    historia.append(Spacer(1, 6))
+                    historia.append(Spacer(1, 3))
                     historia.append(flujo_imagen)
-                    historia.append(Spacer(1, 6))
+                    historia.append(Spacer(1, 3))
 
     emitir_consejo_manual()
     emitir_cita_manual()
     emitir_npc_manual()
     emitir_enemigo_manual()
     emitir_aliado_manual()
+    emitir_tesoro_manual()
+    emitir_objeto_manual()
     emitir_info_adicional()
     vaciar_consejos()
     vaciar_infos()
@@ -2349,6 +2548,22 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
                 ("color_aliado_texto", "Texto"),
                 ("color_aliado_borde", "Borde"),
                 ("color_aliado_fondo", "Fondo"),
+            ],
+        ),
+        (
+            "Caja Tesoro/Premio",
+            [
+                ("color_tesoro_texto", "Texto"),
+                ("color_tesoro_borde", "Borde"),
+                ("color_tesoro_fondo", "Fondo"),
+            ],
+        ),
+        (
+            "Caja Objeto",
+            [
+                ("color_objeto_texto", "Texto"),
+                ("color_objeto_borde", "Borde"),
+                ("color_objeto_fondo", "Fondo"),
             ],
         ),
     ]

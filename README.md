@@ -108,9 +108,9 @@ Este texto irá dentro de una sola caja amarilla.
 :::
 ```
 
-### NPC, enemigo y aliado
+### NPC, enemigo, aliado, tesoro, premio y objeto
 
-Estos tres cuadros especiales solo se activan con bloques manuales.
+Estos cuadros especiales solo se activan con bloques manuales.
 
 #### NPC
 
@@ -196,8 +196,32 @@ Si quieres ajustar el estilo visual, revisa estas constantes al inicio de `conve
 - `COLOR_NPC_*`
 - `COLOR_ENEMIGO_*`
 - `COLOR_ALIADO_*`
+- `COLOR_TESORO_*`
+- `COLOR_OBJETO_*`
 - `FUENTE_TITULO`
 - `FUENTE_TEXTO`
 - `MARGEN`
 - `TAMANO_PAGINA`
 - `IMAGEN_PORTADA_PREDETERMINADA`
+
+## Tesoro, Premio y Objeto
+
+Tambien puedes usar estas cajas manuales:
+
+```text
+:::Tesoro :::
+Contenido del tesoro
+:::
+
+:::Premio :::
+Contenido del premio
+:::
+
+:::Objeto :::
+Contenido del objeto
+:::
+```
+
+`Tesoro` y `Premio` comparten estilo y restricciones; solo cambia el encabezado visible.
+`Objeto` usa su propia caja y admite el mismo contenido compuesto que las otras cajas manuales.
+El menu interactivo permite personalizar `COLOR_TESORO_*` y `COLOR_OBJETO_*`.

@@ -644,3 +644,30 @@ la armonización posterior.
 ### Validación
 - `python -m py_compile convert.py`
 - Sin errores de análisis en `convert.py` tras el ajuste.
+
+---
+
+## Actualizaci?n ? Nuevas cajas manuales `Tesoro`/`Premio` y `Objeto`
+
+### Cambios en `convert.py`
+- Se a?adieron las nuevas cajas manuales `:::Tesoro :::`, `:::Premio :::` y `:::Objeto :::`.
+- `Tesoro` y `Premio` comparten el mismo estilo visual y restricciones, cambiando solo el encabezado visible seg?n el marcador usado.
+- `Objeto` usa su propio estilo visual y mantiene la misma capacidad de mezclar p?rrafos, listas, im?genes y tablas dentro del recuadro.
+- El men? interactivo ahora permite ajustar colores para `Caja Tesoro/Premio` y `Caja Objeto`.
+
+### Colores predeterminados
+- `Tesoro/Premio`: dorado.
+- `Objeto`: blanco.
+
+### Documentaci?n
+- `README.md` actualizado para incluir los nuevos marcadores manuales y su personalizaci?n visual.
+
+---
+
+## Actualizacion - Nuevas cajas manuales Tesoro/Premio y Objeto
+
+### Cambios en convert.py
+- Se agregaron los bloques manuales `:::Tesoro :::`, `:::Premio :::` y `:::Objeto :::`.
+- `Tesoro` y `Premio` comparten la misma caja visual y solo cambia el titulo mostrado.
+- `Objeto` usa una caja propia.
+- El menu interactivo incorpora colores para `Caja Tesoro/Premio` y `Caja Objeto`.
