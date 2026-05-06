@@ -2770,7 +2770,7 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
 
     distribucion_pestanas = {
         "Colores base": ["General", "Caja Consejo para el DM", "Caja Cita"],
-        "Cajas útiles": ["Caja Información adicional"],
+        "Cajas útiles": ["Caja Información adicional", "Caja Tesoro/Premio", "Caja Objeto"],
         "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"],
     }
 
@@ -2805,7 +2805,7 @@ def _pedir_configuracion_interactiva(configuracion_inicial, configuracion_docume
     ).grid(row=10, column=0, columnspan=2, sticky="ew", pady=(4, 0))
     tk.Label(
         pestana_colores_cajas,
-        text="La caja de información adicional queda separada para evitar saturar la vista.",
+        text="Aquí puedes ajustar información adicional, tesoro/premio y objeto sin mezclarlo con NPC o combate.",
         anchor="w",
         justify="left",
     ).grid(row=10, column=0, columnspan=2, sticky="ew", pady=(4, 0))
