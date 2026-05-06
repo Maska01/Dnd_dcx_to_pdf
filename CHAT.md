@@ -218,6 +218,30 @@ pip install -r requirements.txt
 # Sin argumentos -> diálogos de Windows para entrada y salida
 python convert.py --titulo "Stranger Things" --autor "Tu Nombre"
 
+---
+
+## Actualización reciente — Cajas manuales y paginación
+
+### Cambios recientes en `convert.py`
+- Se añadieron cajas manuales nuevas para `Tesoro` / `Premio` y `Objeto`.
+- `Tesoro` y `Premio` comparten estilo visual, con cabecera distinta según el marcador usado.
+- La caja `Objeto` usa su propia paleta de color.
+- El menú interactivo inicial ahora permite personalizar colores de:
+  - `Caja Tesoro/Premio`
+  - `Caja Objeto`
+
+### Paginación de cajas
+- Las cajas ahora usan una lógica partible personalizada:
+  - el texto puede continuar en la página siguiente;
+  - imágenes y tablas intentan mantenerse juntas como bloques visuales;
+  - la cabecera de una caja se mantiene unida a la primera imagen o tabla cuando corresponde.
+- Se añadió una tolerancia configurable para no mover una caja completa a la página siguiente si todavía pueden verse varios renglones de texto:
+  - `MINIMO_RENGLONES_CAJA_ANTES_DE_MOVER = 4`
+
+### Estado práctico
+- El caso de `Consejo para el DM` partido entre páginas quedó correcto.
+- También se corrigió el caso de `Enemigo` para evitar dejar la cabecera sola antes de una tabla.
+
 # Con argumentos
 python convert.py mi_aventura.docx salida.pdf `
     --titulo "Stranger Things" `

@@ -1490,105 +1490,90 @@ def _agrupar_cabecera_y_bloque(cabecera, bloque, ancho):
     return BloqueVisualConCabecera(cabecera, bloque, espacio=4)
 
 
-def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
-    contenido = []
-    primer_bloque = True
-    indice = 0
-    ancho_interno = max(40, ancho_total - 20)
-    alto_max_imagen = max(80, TAMANO_PAGINA[1] - (2 * MARGEN) - 48)
+def _obtener_cabecera_de_caja(primer_bloque, decorador, estilo_base, indice):
+    if not primer_bloque or decorador is None:
+        return None, primer_bloque, indice
+    cabecera = _crear_cabecera_decorada_caja(estilo_base, decorador, indice)
+    return cabecera, False, indice + 1
 
-    for parte in partes:
-        if parte is None:
-            if contenido and not isinstance(contenido[-1], Spacer):
-                contenido.append(Spacer(1, 6))
-            continue
 
-        if parte.get("tipo") == "tabla":
-            cabecera = None
-            if primer_bloque and decorador is not None:
-                cabecera = _crear_cabecera_decorada_caja(estilo_base, decorador, indice)
-                primer_bloque = False
-                indice += 1
+def _agregar_separador_a_contenido_caja(contenido, alto):
+    if contenido and not isinstance(contenido[-1], Spacer):
+        contenido.append(Spacer(1, alto))
 
-            tabla = _tabla_docx_a_flujo(parte.get("tabla"), ancho_interno, estilo_base)
-            if tabla is not None:
-                contenido.append(_agrupar_cabecera_y_bloque(cabecera, tabla, ancho_interno))
-                contenido.append(Spacer(1, 6))
-            continue
 
-        if parte.get("tipo") == "imagen":
-            cabecera = None
-            if primer_bloque and decorador is not None:
-                cabecera = _crear_cabecera_decorada_caja(estilo_base, decorador, indice)
-                primer_bloque = False
-                indice += 1
+def _agregar_bloque_visual_a_contenido_caja(contenido, bloque, cabecera, ancho_interno, alto_separador):
+    if bloque is None:
+        return
+    contenido.append(_agrupar_cabecera_y_bloque(cabecera, bloque, ancho_interno))
+    _agregar_separador_a_contenido_caja(contenido, alto_separador)
 
-            flujo_imagen = _crear_flujo_imagen_desde_descriptor(
-                parte.get("imagen") or {},
-                ancho_interno,
-                alto_max=alto_max_imagen,
-                permitir_ampliacion=False,
-                usar_tamano_docx=True,
-            )
-            if flujo_imagen is not None:
-                flujo_imagen.hAlign = "CENTER"
-                imagen_centrada = _centrar_en_fila(flujo_imagen, ancho_interno)
-                contenido.append(_agrupar_cabecera_y_bloque(cabecera, imagen_centrada, ancho_interno))
-                contenido.append(Spacer(1, 8))
-            continue
 
-        if parte.get("tipo") == "grupo_imagenes":
-            cabecera = None
-            if primer_bloque and decorador is not None:
-                cabecera = _crear_cabecera_decorada_caja(estilo_base, decorador, indice)
-                primer_bloque = False
-                indice += 1
+def _agregar_tabla_a_caja(contenido, parte, estilo_base, ancho_interno, cabecera):
+    tabla = _tabla_docx_a_flujo(parte.get("tabla"), ancho_interno, estilo_base)
+    _agregar_bloque_visual_a_contenido_caja(contenido, tabla, cabecera, ancho_interno, 6)
 
-            fila_imagenes = _crear_fila_de_imagenes(
-                parte.get("imagenes") or [],
-                ancho_interno,
-                alto_max=alto_max_imagen,
-            )
-            if fila_imagenes is not None:
-                contenido.append(_agrupar_cabecera_y_bloque(cabecera, fila_imagenes, ancho_interno))
-                contenido.append(Spacer(1, 8))
-            else:
-                for flujo_imagen in _crear_flujos_imagenes(
-                    parte.get("imagenes") or [],
-                    ancho_interno,
-                    alto_max=alto_max_imagen,
-                ):
-                    imagen_centrada = _centrar_en_fila(flujo_imagen, ancho_interno)
-                    contenido.append(_agrupar_cabecera_y_bloque(cabecera, imagen_centrada, ancho_interno))
-                    cabecera = None
-                    contenido.append(Spacer(1, 8))
-            continue
 
-        html = (parte.get("html") or "").strip()
-        if not html:
-            continue
+def _agregar_imagen_a_caja(contenido, parte, ancho_interno, alto_max_imagen, cabecera):
+    flujo_imagen = _crear_flujo_imagen_desde_descriptor(
+        parte.get("imagen") or {},
+        ancho_interno,
+        alto_max=alto_max_imagen,
+        permitir_ampliacion=False,
+        usar_tamano_docx=True,
+    )
+    if flujo_imagen is None:
+        return
+    flujo_imagen.hAlign = "CENTER"
+    imagen_centrada = _centrar_en_fila(flujo_imagen, ancho_interno)
+    _agregar_bloque_visual_a_contenido_caja(contenido, imagen_centrada, cabecera, ancho_interno, 8)
 
-        if primer_bloque and decorador is not None:
-            html = decorador(html)
 
-        estilo = _estilo_interno_caja(estilo_base, parte, indice)
-        bullet_text = "•" if parte["es_lista"] else None
-        contenido.append(Paragraph(html, estilo, bulletText=bullet_text))
-        primer_bloque = False
-        indice += 1
+def _agregar_grupo_imagenes_a_caja(contenido, parte, ancho_interno, alto_max_imagen, cabecera):
+    fila_imagenes = _crear_fila_de_imagenes(
+        parte.get("imagenes") or [],
+        ancho_interno,
+        alto_max=alto_max_imagen,
+    )
+    if fila_imagenes is not None:
+        _agregar_bloque_visual_a_contenido_caja(contenido, fila_imagenes, cabecera, ancho_interno, 8)
+        return
 
-    if not contenido:
-        return None
+    cabecera_actual = cabecera
+    for flujo_imagen in _crear_flujos_imagenes(
+        parte.get("imagenes") or [],
+        ancho_interno,
+        alto_max=alto_max_imagen,
+    ):
+        imagen_centrada = _centrar_en_fila(flujo_imagen, ancho_interno)
+        _agregar_bloque_visual_a_contenido_caja(contenido, imagen_centrada, cabecera_actual, ancho_interno, 8)
+        cabecera_actual = None
 
+
+def _agregar_texto_a_caja(contenido, parte, estilo_base, decorador, primer_bloque, indice):
+    html = (parte.get("html") or "").strip()
+    if not html:
+        return primer_bloque, indice
+
+    if primer_bloque and decorador is not None:
+        html = decorador(html)
+
+    estilo = _estilo_interno_caja(estilo_base, parte, indice)
+    bullet_text = "•" if parte["es_lista"] else None
+    contenido.append(Paragraph(html, estilo, bulletText=bullet_text))
+    return False, indice + 1
+
+
+def _normalizar_contenido_caja(contenido):
     while contenido and isinstance(contenido[0], Spacer):
         contenido.pop(0)
     while contenido and isinstance(contenido[-1], Spacer):
         contenido.pop()
+    return contenido
 
-    if not contenido:
-        return None
 
-    caja = CajaPartible(
+def _crear_caja_partible(contenido, estilo_base, ancho_total):
+    return CajaPartible(
         contenido,
         estilo_base,
         ancho_total,
@@ -1599,6 +1584,54 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
         space_before=2,
         space_after=4,
     )
+
+
+def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
+    contenido = []
+    primer_bloque = True
+    indice = 0
+    ancho_interno = max(40, ancho_total - 20)
+    alto_max_imagen = max(80, TAMANO_PAGINA[1] - (2 * MARGEN) - 48)
+
+    for parte in partes:
+        if parte is None:
+            _agregar_separador_a_contenido_caja(contenido, 6)
+            continue
+
+        if parte.get("tipo") == "tabla":
+            cabecera, primer_bloque, indice = _obtener_cabecera_de_caja(
+                primer_bloque, decorador, estilo_base, indice
+            )
+            _agregar_tabla_a_caja(contenido, parte, estilo_base, ancho_interno, cabecera)
+            continue
+
+        if parte.get("tipo") == "imagen":
+            cabecera, primer_bloque, indice = _obtener_cabecera_de_caja(
+                primer_bloque, decorador, estilo_base, indice
+            )
+            _agregar_imagen_a_caja(contenido, parte, ancho_interno, alto_max_imagen, cabecera)
+            continue
+
+        if parte.get("tipo") == "grupo_imagenes":
+            cabecera, primer_bloque, indice = _obtener_cabecera_de_caja(
+                primer_bloque, decorador, estilo_base, indice
+            )
+            _agregar_grupo_imagenes_a_caja(contenido, parte, ancho_interno, alto_max_imagen, cabecera)
+            continue
+
+        primer_bloque, indice = _agregar_texto_a_caja(
+            contenido, parte, estilo_base, decorador, primer_bloque, indice
+        )
+
+    if not contenido:
+        return None
+
+    contenido = _normalizar_contenido_caja(contenido)
+
+    if not contenido:
+        return None
+
+    caja = _crear_caja_partible(contenido, estilo_base, ancho_total)
 
     alto_util_pagina = max(40, TAMANO_PAGINA[1] - (2 * MARGEN))
     altura_minima_visible = _altura_minima_visible_caja(estilo_base, decorador)
