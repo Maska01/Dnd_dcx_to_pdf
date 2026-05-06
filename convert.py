@@ -37,7 +37,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import (
     BaseDocTemplate, PageTemplate, Frame,
-    Paragraph, Spacer, PageBreak, ListFlowable, ListItem, Image, CondPageBreak,
+    Paragraph, Spacer, PageBreak, ListFlowable, ListItem, Image, CondPageBreak, Flowable,
     Table, TableStyle,
 )
 from reportlab.platypus.tableofcontents import TableOfContents
@@ -1245,6 +1245,185 @@ def _altura_minima_visible_caja(estilo_base, decorador=None):
     return altura
 
 
+class CajaPartible(Flowable):
+    def __init__(self, flowables, estilo_base, ancho_total,
+                 left_padding=10, right_padding=10,
+                 top_padding=6, bottom_padding=6,
+                 space_before=2, space_after=4):
+        super().__init__()
+        self.flowables = list(flowables)
+        self.estilo_base = estilo_base
+        self.ancho_total = ancho_total
+        self.left_padding = left_padding
+        self.right_padding = right_padding
+        self.top_padding = top_padding
+        self.bottom_padding = bottom_padding
+        self.spaceBefore = space_before
+        self.spaceAfter = space_after
+        self._layout = []
+        self.width = ancho_total
+        self.height = 0
+
+    @staticmethod
+    def _recortar_espaciadores(flowables):
+        recortados = list(flowables)
+        while recortados and isinstance(recortados[0], Spacer):
+            recortados.pop(0)
+        while recortados and isinstance(recortados[-1], Spacer):
+            recortados.pop()
+        return recortados
+
+    def _ancho_interno(self, avail_width=None):
+        ancho = self.ancho_total if avail_width is None else avail_width
+        return max(20, ancho - self.left_padding - self.right_padding)
+
+    @staticmethod
+    def _espacio_antes(flowable):
+        try:
+            return max(0, float(flowable.getSpaceBefore() or 0))
+        except Exception:
+            return 0
+
+    @staticmethod
+    def _espacio_despues(flowable):
+        try:
+            return max(0, float(flowable.getSpaceAfter() or 0))
+        except Exception:
+            return 0
+
+    def _medir_flowable(self, flowable, ancho_interno, alto_disponible):
+        ancho, alto = flowable.wrap(ancho_interno, max(0, alto_disponible))
+        espacio_antes = self._espacio_antes(flowable)
+        espacio_despues = self._espacio_despues(flowable)
+        return ancho, alto, espacio_antes, espacio_despues
+
+    @staticmethod
+    def _es_flowable_de_texto(flowable):
+        return isinstance(flowable, Paragraph)
+
+    def wrap(self, availWidth, availHeight):
+        self.width = availWidth
+        ancho_interno = self._ancho_interno(availWidth)
+        self._layout = []
+        altura_total = self.top_padding + self.bottom_padding
+
+        for flowable in self.flowables:
+            ancho, alto, espacio_antes, espacio_despues = self._medir_flowable(
+                flowable,
+                ancho_interno,
+                availHeight,
+            )
+            self._layout.append((flowable, ancho, alto, espacio_antes, espacio_despues))
+            altura_total += espacio_antes + alto + espacio_despues
+
+        self.height = altura_total
+        return availWidth, altura_total
+
+    def split(self, availWidth, availHeight):
+        if not self.flowables:
+            return []
+
+        ancho_interno = self._ancho_interno(availWidth)
+        alto_contenido = max(0, availHeight - self.top_padding - self.bottom_padding)
+        if alto_contenido <= 0:
+            return []
+
+        fragmento_actual = []
+        altura_usada = 0
+
+        for indice, flowable in enumerate(self.flowables):
+            ancho, alto, espacio_antes, espacio_despues = self._medir_flowable(
+                flowable,
+                ancho_interno,
+                alto_contenido - altura_usada,
+            )
+            altura_necesaria = espacio_antes + alto + espacio_despues
+
+            if altura_usada + altura_necesaria <= alto_contenido + 0.1:
+                fragmento_actual.append(flowable)
+                altura_usada += altura_necesaria
+                continue
+
+            if not self._es_flowable_de_texto(flowable):
+                if fragmento_actual:
+                    resto = self._recortar_espaciadores([flowable] + self.flowables[indice + 1:])
+                    if resto:
+                        return [self._clonar(fragmento_actual), self._clonar(resto)]
+                    return [self._clonar(fragmento_actual)]
+
+                partes_no_texto = self._recortar_espaciadores(flowable.split(ancho_interno, alto_contenido))
+                if partes_no_texto:
+                    primera_parte = partes_no_texto[0]
+                    resto = self._recortar_espaciadores(list(partes_no_texto[1:]) + self.flowables[indice + 1:])
+                    if resto:
+                        return [self._clonar([primera_parte]), self._clonar(resto)]
+                    return [self._clonar([primera_parte])]
+                return []
+
+            alto_para_split = max(0, alto_contenido - altura_usada - espacio_antes - espacio_despues)
+            partes = self._recortar_espaciadores(flowable.split(ancho_interno, alto_para_split))
+
+            if partes:
+                primera_parte = partes[0]
+                _, alto_primera, _, _ = self._medir_flowable(
+                    primera_parte,
+                    ancho_interno,
+                    alto_para_split,
+                )
+                altura_primera = espacio_antes + alto_primera + espacio_despues
+                if altura_usada + altura_primera <= alto_contenido + 0.1:
+                    fragmento_actual.append(primera_parte)
+                    resto = self._recortar_espaciadores(list(partes[1:]) + self.flowables[indice + 1:])
+                    if fragmento_actual and resto:
+                        return [self._clonar(fragmento_actual), self._clonar(resto)]
+
+            if fragmento_actual:
+                resto = self._recortar_espaciadores([flowable] + self.flowables[indice + 1:])
+                if resto:
+                    return [self._clonar(fragmento_actual), self._clonar(resto)]
+            return []
+
+        return []
+
+    def _clonar(self, flowables):
+        return CajaPartible(
+            flowables,
+            self.estilo_base,
+            self.ancho_total,
+            left_padding=self.left_padding,
+            right_padding=self.right_padding,
+            top_padding=self.top_padding,
+            bottom_padding=self.bottom_padding,
+            space_before=self.spaceBefore,
+            space_after=self.spaceAfter,
+        )
+
+    def draw(self):
+        canvas = self.canv
+        canvas.saveState()
+        if self.estilo_base.backColor is not None:
+            canvas.setFillColor(self.estilo_base.backColor)
+            canvas.setStrokeColor(self.estilo_base.backColor)
+            canvas.rect(0, 0, self.width, self.height, stroke=0, fill=1)
+
+        if self.estilo_base.borderWidth:
+            canvas.setStrokeColor(self.estilo_base.borderColor)
+            canvas.setLineWidth(self.estilo_base.borderWidth)
+            canvas.rect(0, 0, self.width, self.height, stroke=1, fill=0)
+
+        y = self.height - self.top_padding
+        ancho_interno = self._ancho_interno(self.width)
+
+        for flowable, ancho, alto, espacio_antes, espacio_despues in self._layout:
+            y -= espacio_antes
+            y -= alto
+            espacio_sobrante = max(0, ancho_interno - ancho)
+            flowable.drawOn(canvas, self.left_padding, y, _sW=espacio_sobrante)
+            y -= espacio_despues
+
+        canvas.restoreState()
+
+
 def _centrar_en_fila(flowable, ancho):
     tabla = Table([[flowable]], colWidths=[ancho], hAlign="LEFT")
     tabla.setStyle(TableStyle([
@@ -1258,24 +1437,57 @@ def _centrar_en_fila(flowable, ancho):
     return tabla
 
 
+class BloqueVisualConCabecera(Flowable):
+    def __init__(self, cabecera, bloque, espacio=4):
+        super().__init__()
+        self.cabecera = cabecera
+        self.bloque = bloque
+        self.espacio = espacio
+        self.width = 0
+        self.height = 0
+        self._layout = None
+
+    def wrap(self, availWidth, availHeight):
+        ancho_cabecera, alto_cabecera = self.cabecera.wrap(availWidth, availHeight)
+        ancho_bloque, alto_bloque = self.bloque.wrap(availWidth, max(0, availHeight - alto_cabecera - self.espacio))
+        self.width = max(ancho_cabecera, ancho_bloque)
+        self.height = alto_cabecera + self.espacio + alto_bloque
+        self._layout = (ancho_cabecera, alto_cabecera, ancho_bloque, alto_bloque)
+        return self.width, self.height
+
+    def split(self, availWidth, availHeight):
+        _, alto_total = self.wrap(availWidth, availHeight)
+        if alto_total <= availHeight + 0.1:
+            return []
+
+        _, alto_cabecera, _, _ = self._layout
+        alto_para_bloque = max(0, availHeight - alto_cabecera - self.espacio)
+        if alto_para_bloque <= 0:
+            return []
+
+        partes_bloque = self.bloque.split(availWidth, alto_para_bloque)
+        if not partes_bloque:
+            return []
+
+        primera_parte = BloqueVisualConCabecera(self.cabecera, partes_bloque[0], espacio=self.espacio)
+        return [primera_parte] + list(partes_bloque[1:])
+
+    def draw(self):
+        if self._layout is None:
+            self.wrap(self.width or 0, 0)
+
+        ancho_cabecera, alto_cabecera, ancho_bloque, alto_bloque = self._layout
+        sobrante_cabecera = max(0, self.width - ancho_cabecera)
+        sobrante_bloque = max(0, self.width - ancho_bloque)
+
+        self.cabecera.drawOn(self.canv, 0, alto_bloque + self.espacio, _sW=sobrante_cabecera)
+        self.bloque.drawOn(self.canv, 0, 0, _sW=sobrante_bloque)
+
+
 def _agrupar_cabecera_y_bloque(cabecera, bloque, ancho):
     if cabecera is None:
         return bloque
-    tabla = Table(
-        [[cabecera], [bloque]],
-        colWidths=[ancho],
-        hAlign="LEFT",
-        splitByRow=1,
-    )
-    tabla.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
-    ]))
-    return tabla
+    return BloqueVisualConCabecera(cabecera, bloque, espacio=4)
 
 
 def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
@@ -1376,41 +1588,29 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
     if not contenido:
         return None
 
-    filas = [[bloque] for bloque in contenido]
-    tabla = Table(
-        filas,
-        colWidths=[ancho_total],
-        hAlign="LEFT",
-        splitByRow=1,
+    caja = CajaPartible(
+        contenido,
+        estilo_base,
+        ancho_total,
+        left_padding=10,
+        right_padding=10,
+        top_padding=6,
+        bottom_padding=6,
+        space_before=2,
+        space_after=4,
     )
-    tabla.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), estilo_base.backColor),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LINEBEFORE", (0, 0), (-1, -1), estilo_base.borderWidth, estilo_base.borderColor),
-        ("LINEAFTER", (0, 0), (-1, -1), estilo_base.borderWidth, estilo_base.borderColor),
-        ("LINEABOVE", (0, 0), (-1, 0), estilo_base.borderWidth, estilo_base.borderColor),
-        ("LINEBELOW", (0, -1), (-1, -1), estilo_base.borderWidth, estilo_base.borderColor),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, 0), 6),
-        ("BOTTOMPADDING", (0, -1), (-1, -1), 6),
-    ]))
-    tabla.spaceBefore = 2
-    tabla.spaceAfter = 4
 
     alto_util_pagina = max(40, TAMANO_PAGINA[1] - (2 * MARGEN))
     altura_minima_visible = _altura_minima_visible_caja(estilo_base, decorador)
     try:
-        _, alto_caja = tabla.wrap(ancho_total, alto_util_pagina)
+        _, alto_caja = caja.wrap(ancho_total, alto_util_pagina)
     except Exception:
-        return [tabla]
+        return [caja]
 
     umbral_salto = min(alto_caja, altura_minima_visible)
     if umbral_salto > 0:
-        return [CondPageBreak(umbral_salto), tabla]
-    return [tabla]
+        return [CondPageBreak(umbral_salto), caja]
+    return [caja]
 
 
 class DocumentoConIndice(BaseDocTemplate):
