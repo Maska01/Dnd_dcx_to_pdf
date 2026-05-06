@@ -521,7 +521,10 @@ def parrafo_a_html(parrafo):
 def extraer_imagenes_de_parrafo(parrafo, documento_word):
     """Devuelve descriptores de imágenes embebidas en el párrafo."""
     imagenes = []
-    for blip in parrafo._element.findall(".//" + qn("a:blip")):
+    for drawing in parrafo._element.findall(".//" + qn("w:drawing")):
+        blip = drawing.find(".//" + qn("a:blip"))
+        if blip is None:
+            continue
         rId = blip.get(qn("r:embed"))
         if rId and rId in documento_word.part.related_parts:
             blob = documento_word.part.related_parts[rId].blob
@@ -529,10 +532,13 @@ def extraer_imagenes_de_parrafo(parrafo, documento_word):
             if dimensiones is None:
                 continue
             ancho_px, alto_px = dimensiones
+            tamano_docx = _extraer_tamano_docx_de_drawing(drawing)
             imagenes.append({
                 "blob": blob,
                 "ancho_px": ancho_px,
                 "alto_px": alto_px,
+                "base_ancho_pt": tamano_docx[0] if tamano_docx else None,
+                "base_alto_pt": tamano_docx[1] if tamano_docx else None,
             })
     return imagenes
 
@@ -547,6 +553,49 @@ def _leer_dimensiones_imagen(blob):
     if not w or not h:
         return None
     return float(w), float(h)
+
+
+def _extraer_tamano_docx_de_drawing(drawing_xml):
+    extent = drawing_xml.find(".//" + qn("wp:extent"))
+    if extent is None:
+        extent = drawing_xml.find(".//" + qn("a:ext"))
+    if extent is None:
+        return None
+    try:
+        ancho_pt = float(extent.get("cx")) / 12700.0
+        alto_pt = float(extent.get("cy")) / 12700.0
+    except (TypeError, ValueError):
+        return None
+    if ancho_pt <= 0 or alto_pt <= 0:
+        return None
+    return ancho_pt, alto_pt
+
+
+def _crear_flujo_imagen_desde_descriptor(imagen, ancho_max, alto_max=None, permitir_ampliacion=True, usar_tamano_docx=False):
+    if not imagen:
+        return None
+
+    if usar_tamano_docx and imagen.get("base_ancho_pt") and imagen.get("base_alto_pt"):
+        ancho_origen = float(imagen["base_ancho_pt"])
+        alto_origen = float(imagen["base_alto_pt"])
+    else:
+        ancho_origen = float(imagen.get("ancho_px") or 0)
+        alto_origen = float(imagen.get("alto_px") or 0)
+    if ancho_origen <= 0 or alto_origen <= 0:
+        return None
+
+    bio = io.BytesIO(imagen["blob"])
+    bio.seek(0)
+    escala_ancho = float(ancho_max) / float(ancho_origen) if ancho_max else 1.0
+    escala_alto = float(alto_max) / float(alto_origen) if alto_max else 1.0
+    escala = min(escala_ancho, escala_alto)
+    if not permitir_ampliacion:
+        escala = min(1.0, escala)
+    ancho = max(1.0, float(ancho_origen) * escala)
+    alto = max(1.0, float(alto_origen) * escala)
+    flujo = Image(bio, width=ancho, height=alto)
+    flujo.hAlign = "CENTER"
+    return flujo
 
 
 def crear_flujo_imagen(blob, ancho_max, alto_max=None, permitir_ampliacion=True):
@@ -591,11 +640,12 @@ def _crear_fila_de_imagenes(imagenes, ancho_disponible, alto_max=None, espacio=1
         return None
 
     if len(validas) == 1:
-        return crear_flujo_imagen(
-            validas[0]["blob"],
+        return _crear_flujo_imagen_desde_descriptor(
+            validas[0],
             ancho_disponible,
             alto_max=alto_max,
-            permitir_ampliacion=True,
+            permitir_ampliacion=False,
+            usar_tamano_docx=True,
         )
 
     suma_relaciones = sum(imagen["ancho_px"] / imagen["alto_px"] for imagen in validas)
@@ -647,11 +697,12 @@ def _crear_flujos_imagenes(imagenes, ancho_disponible, alto_max=None, espacio=10
 
     flujos = []
     for imagen in imagenes:
-        flujo = crear_flujo_imagen(
-            imagen["blob"],
+        flujo = _crear_flujo_imagen_desde_descriptor(
+            imagen,
             ancho_disponible,
             alto_max=alto_max,
-            permitir_ampliacion=True,
+            permitir_ampliacion=False,
+            usar_tamano_docx=True,
         )
         if flujo is not None:
             flujos.append(flujo)
@@ -1172,11 +1223,12 @@ def _renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
                 primer_bloque = False
                 indice += 1
 
-            flujo_imagen = crear_flujo_imagen(
-                (parte.get("imagen") or {}).get("blob"),
+            flujo_imagen = _crear_flujo_imagen_desde_descriptor(
+                parte.get("imagen") or {},
                 ancho_interno,
                 alto_max=alto_max_imagen,
-                permitir_ampliacion=True,
+                permitir_ampliacion=False,
+                usar_tamano_docx=True,
             )
             if flujo_imagen is not None:
                 flujo_imagen.hAlign = "CENTER"

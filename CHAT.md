@@ -630,3 +630,17 @@ Si se reutiliza este archivo para retomar el contexto en otra sesión o en otro
 entorno, conviene tomar como referencia el estado actual del repositorio y no
 solo el historial inicial, porque varias funciones y nombres cambiaron durante
 la armonización posterior.
+
+---
+
+## Actualización — Imágenes únicas al tamaño original del DOCX
+
+### Cambios en `convert.py`
+- Se mantiene eliminada la lógica especial del bloque siguiente para imágenes únicas.
+- Las imágenes que terminan solas en una línea ya no se expanden automáticamente.
+- En su lugar, se usa el tamaño visible original definido en el `.docx`, limitado solo por el área disponible de página o caja cuando haga falta.
+- Las filas con varias imágenes mantienen su lógica de distribución independiente.
+
+### Validación
+- `python -m py_compile convert.py`
+- Sin errores de análisis en `convert.py` tras el ajuste.
