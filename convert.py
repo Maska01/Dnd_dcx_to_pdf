@@ -446,7 +446,7 @@ def _escapar_atributo_html(texto):
     return _escapar_html(texto).replace('"', '&quot;')
 
 
-def _parrafo_tiene_page_break_before(parrafo):
+def _parrafo_tiene_salto_de_pagina_previo(parrafo):
     propiedades = parrafo._p.find(qn("w:pPr"))
     if propiedades is None:
         return False
@@ -1291,15 +1291,15 @@ class CajaPartible(Flowable):
         except Exception:
             return 0
 
-    def _medir_flowable(self, flowable, ancho_interno, alto_disponible):
-        ancho, alto = flowable.wrap(ancho_interno, max(0, alto_disponible))
-        espacio_antes = self._espacio_antes(flowable)
-        espacio_despues = self._espacio_despues(flowable)
+    def _medir_elemento(self, elemento, ancho_interno, alto_disponible):
+        ancho, alto = elemento.wrap(ancho_interno, max(0, alto_disponible))
+        espacio_antes = self._espacio_antes(elemento)
+        espacio_despues = self._espacio_despues(elemento)
         return ancho, alto, espacio_antes, espacio_despues
 
     @staticmethod
-    def _es_flowable_de_texto(flowable):
-        return isinstance(flowable, Paragraph)
+    def _es_elemento_de_texto(elemento):
+        return isinstance(elemento, Paragraph)
 
     def wrap(self, availWidth, availHeight):
         self.width = availWidth
@@ -1308,7 +1308,7 @@ class CajaPartible(Flowable):
         altura_total = self.top_padding + self.bottom_padding
 
         for flowable in self.flowables:
-            ancho, alto, espacio_antes, espacio_despues = self._medir_flowable(
+            ancho, alto, espacio_antes, espacio_despues = self._medir_elemento(
                 flowable,
                 ancho_interno,
                 availHeight,
@@ -1332,7 +1332,7 @@ class CajaPartible(Flowable):
         altura_usada = 0
 
         for indice, flowable in enumerate(self.flowables):
-            ancho, alto, espacio_antes, espacio_despues = self._medir_flowable(
+            ancho, alto, espacio_antes, espacio_despues = self._medir_elemento(
                 flowable,
                 ancho_interno,
                 alto_contenido - altura_usada,
@@ -1344,7 +1344,7 @@ class CajaPartible(Flowable):
                 altura_usada += altura_necesaria
                 continue
 
-            if not self._es_flowable_de_texto(flowable):
+            if not self._es_elemento_de_texto(flowable):
                 if fragmento_actual:
                     resto = self._recortar_espaciadores([flowable] + self.flowables[indice + 1:])
                     if resto:
@@ -1365,7 +1365,7 @@ class CajaPartible(Flowable):
 
             if partes:
                 primera_parte = partes[0]
-                _, alto_primera, _, _ = self._medir_flowable(
+                _, alto_primera, _, _ = self._medir_elemento(
                     primera_parte,
                     ancho_interno,
                     alto_para_split,
@@ -1424,8 +1424,8 @@ class CajaPartible(Flowable):
         canvas.restoreState()
 
 
-def _centrar_en_fila(flowable, ancho):
-    tabla = Table([[flowable]], colWidths=[ancho], hAlign="LEFT")
+def _centrar_en_fila(elemento, ancho):
+    tabla = Table([[elemento]], colWidths=[ancho], hAlign="LEFT")
     tabla.setStyle(TableStyle([
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -2071,7 +2071,7 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None,
         # 1) Imágenes embebidas en el párrafo
         imagenes = extraer_imagenes_de_parrafo(parrafo, documento_word)
 
-        if _parrafo_tiene_page_break_before(parrafo):
+        if _parrafo_tiene_salto_de_pagina_previo(parrafo):
             insertar_salto_de_pagina()
 
         if _parrafo_es_solo_salto_de_pagina(parrafo) and not imagenes:
@@ -2500,13 +2500,13 @@ def _abrir_pdf_con_aplicacion_predeterminada(ruta_pdf):
         subprocess.Popen(["xdg-open", ruta_pdf])
 
 
-def _abrir_y_notificar_pdf_generado(ruta_pdf, opener=None, notifier=None):
+def _abrir_y_notificar_pdf_generado(ruta_pdf, abridor=None, notificador=None):
     ruta_pdf = Path(ruta_pdf)
-    opener = opener or _abrir_pdf_con_aplicacion_predeterminada
-    notifier = notifier or _mostrar_aviso_generacion
+    abridor = abridor or _abrir_pdf_con_aplicacion_predeterminada
+    notificador = notificador or _mostrar_aviso_generacion
 
-    opener(ruta_pdf)
-    notifier(
+    abridor(ruta_pdf)
+    notificador(
         "PDF generado",
         f"El PDF se generó correctamente y se abrió con la aplicación predeterminada.\n\nRuta:\n{ruta_pdf}",
     )

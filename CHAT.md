@@ -242,6 +242,20 @@ python convert.py --titulo "Stranger Things" --autor "Tu Nombre"
 - El caso de `Consejo para el DM` partido entre páginas quedó correcto.
 - También se corrigió el caso de `Enemigo` para evitar dejar la cabecera sola antes de una tabla.
 
+---
+
+## Actualización reciente — Armonización estética
+
+### Cambios de estilo en el código
+- Se inició una armonización de nombres para mantener helpers y funciones auxiliares en español.
+- Se limpiaron bloques grandes de la lógica de cajas, extrayendo helpers más pequeños y consistentes.
+- No se buscó cambiar comportamiento, solo mejorar legibilidad y mantener una convención más uniforme.
+
+### Documentación
+- `README.md` fue reescrito para que se lea como documentación final del proyecto y no como acumulado de cambios.
+- Se integraron mejor las secciones de cajas manuales (`NPC`, `Enemigo`, `Aliado`, `Tesoro`, `Premio` y `Objeto`) en una sola estructura coherente.
+- También se aclararon el menú interactivo, la paginación de bloques y el comportamiento de imágenes dentro de cajas.
+
 # Con argumentos
 python convert.py mi_aventura.docx salida.pdf `
     --titulo "Stranger Things" `
