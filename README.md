@@ -58,12 +58,13 @@ Si la fuente personalizada no está disponible o no puede registrarse, el conver
 
 ## Adornos de margen
 
-La pestaña `General` permite activar adornos decorativos para los márgenes del PDF.
+La pestaña `Decoración` permite activar adornos decorativos para los márgenes del PDF.
 
 - Puedes desactivarlos por completo con una casilla.
 - Puedes elegir entre presets `Clásico`, `Floral` y `Geométrico`.
 - También puedes usar `Personalizado (PNG)` y seleccionar un archivo `.png` con transparencia.
 - El menú muestra un preview pequeño del estilo actual antes de generar el PDF.
+- Cuando los adornos están activos, el conversor eleva automáticamente el margen a un mínimo seguro de `1.4 cm` para evitar choques con texto y cajas; al desactivarlos, recupera el margen previo.
 
 Para un adorno personalizado, lo ideal es preparar un PNG vertical del tamaño de la página o con una proporción parecida al papel final, dejando transparente el centro para que el contenido siga siendo legible.
 
