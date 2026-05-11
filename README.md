@@ -2,6 +2,19 @@
 
 Conversor de `.docx` a PDF pensado para aventuras y material de rol. Genera un documento con portada opcional, índice, marcadores de navegación, estilos jerárquicos, cajas temáticas, enlaces, imágenes y tablas dentro de bloques especiales.
 
+## Estructura del proyecto
+
+La lógica principal ya no vive en un único archivo. El proyecto quedó dividido así:
+
+- `convert.py`: fachada principal y CLI; mantiene compatibilidad como punto de entrada.
+- `configuracion_pdf.py`: constantes visuales, configuración mutable y construcción de estilos.
+- `procesamiento_word.py`: parsing de Word, HTML intermedio, detectores de bloques y helpers de imágenes/tablas.
+- `renderizado_cajas.py`: render de cajas, imágenes, tablas y flowables personalizados para paginación.
+- `constructor_pdf.py`: ensamblado del PDF, TOC, portada y estado del recorrido del documento.
+- `interfaz_usuario.py`: diálogos de archivo, avisos y menú interactivo.
+
+La modularización también eliminó el uso de funciones anidadas en el flujo principal para dejar responsabilidades más claras y facilitar cambios futuros.
+
 ## Instalación
 
 ```powershell
@@ -217,7 +230,7 @@ Esto permite navegar tanto desde la tabla de contenidos como desde el panel de m
 
 ## Personalización
 
-Si quieres ajustar el estilo visual, revisa estas constantes al inicio de `convert.py`:
+Si quieres ajustar el estilo visual desde código, revisa principalmente `configuracion_pdf.py`:
 
 - `COLOR_PRIMARIO`
 - `COLOR_FONDO_PAGINA`
@@ -235,6 +248,10 @@ Si quieres ajustar el estilo visual, revisa estas constantes al inicio de `conve
 - `TAMANO_PAGINA`
 - `IMAGEN_PORTADA_PREDETERMINADA`
 
+`convert.py` sigue reexportando la configuración principal por compatibilidad, pero la fuente de verdad ahora está centralizada en `configuracion_pdf.py`.
+
 ## Observaciones
 
 El código del conversor sigue una convención de nombres en español para helpers y funciones auxiliares propias del proyecto, con el objetivo de mantener una base más coherente y fácil de leer.
+
+La refactorización reciente preserva el comportamiento existente de cajas, imágenes, tablas, índice y menú interactivo, pero deja el mantenimiento mucho más atomizado.

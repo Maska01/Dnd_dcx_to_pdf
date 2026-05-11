@@ -3,7 +3,7 @@
 Proyecto: conversor de Word (`.docx`) → PDF con estilo "Aventura" (inspirado
 en un PDF de Stranger Things en español).
 
-Carpeta: `C:\Users\uiv06676\Documents\StrangerThings_PDF`
+Carpeta actual: `C:\Users\uiv06676\OneDrive - Vitesco Technologies\Desktop\Personal_Projects\docx_to_pdf`
 
 Archivos:
 - `convert.py` — script principal.
@@ -217,6 +217,27 @@ pip install -r requirements.txt
 
 # Sin argumentos -> diálogos de Windows para entrada y salida
 python convert.py --titulo "Stranger Things" --autor "Tu Nombre"
+
+---
+
+## Turno reciente — Refactorización modular
+> Atomizar el código en diferentes archivos, evitar funciones anidadas y mantener la funcionalidad.
+
+### Cambios principales
+- Se dividió el antiguo `convert.py` monolítico en módulos dedicados:
+  - `configuracion_pdf.py`
+  - `procesamiento_word.py`
+  - `renderizado_cajas.py`
+  - `constructor_pdf.py`
+  - `interfaz_usuario.py`
+- `convert.py` quedó como fachada compatible y punto de entrada del CLI.
+- La construcción del PDF ahora usa una clase de estado explícita (`EstadoConstruccionPdf`) en lugar de múltiples funciones anidadas dentro del builder.
+- La UI interactiva ahora vive en `DialogoConfiguracionInteractiva`, también sin callbacks anidadas.
+- Se preservó la exportación de símbolos clave desde `convert.py` para no romper imports previos.
+- Se validó la refactorización compilando todos los módulos e importando `convert` con éxito.
+
+### Nota funcional
+- Durante la refactorización se añadió una corrección para seguir renderizando tablas DOCX fuera de cajas manuales, evitando regresiones.
 
 ---
 
