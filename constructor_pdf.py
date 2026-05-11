@@ -173,52 +173,142 @@ class DocumentoConIndice(BaseDocTemplate):
             canvas.line(base_x, base_y - 8, base_x - 8, base_y)
 
     @staticmethod
+    def _dibujar_motivo_floral_medieval(canvas, origen_x, origen_y, direccion_x, direccion_y, tamano):
+        hoja = tamano * 0.72
+        tallo = tamano * 0.9
+        interior_x = origen_x + (tallo * direccion_x)
+        interior_y = origen_y + (tallo * direccion_y)
+        canvas.bezier(
+            origen_x,
+            origen_y,
+            origen_x + (hoja * 0.2 * direccion_x),
+            origen_y,
+            origen_x + (hoja * 0.7 * direccion_x),
+            origen_y + (hoja * 0.45 * direccion_y),
+            interior_x,
+            interior_y,
+        )
+        canvas.bezier(
+            origen_x,
+            origen_y,
+            origen_x,
+            origen_y + (hoja * 0.2 * direccion_y),
+            origen_x + (hoja * 0.45 * direccion_x),
+            origen_y + (hoja * 0.7 * direccion_y),
+            interior_x,
+            interior_y,
+        )
+        canvas.bezier(
+            origen_x + (hoja * 0.28 * direccion_x),
+            origen_y + (hoja * 0.18 * direccion_y),
+            origen_x + (hoja * 0.48 * direccion_x),
+            origen_y + (hoja * 0.1 * direccion_y),
+            origen_x + (hoja * 0.72 * direccion_x),
+            origen_y + (hoja * 0.34 * direccion_y),
+            origen_x + (hoja * 0.72 * direccion_x),
+            origen_y + (hoja * 0.52 * direccion_y),
+        )
+        canvas.bezier(
+            origen_x + (hoja * 0.18 * direccion_x),
+            origen_y + (hoja * 0.28 * direccion_y),
+            origen_x + (hoja * 0.1 * direccion_x),
+            origen_y + (hoja * 0.48 * direccion_y),
+            origen_x + (hoja * 0.34 * direccion_x),
+            origen_y + (hoja * 0.72 * direccion_y),
+            origen_x + (hoja * 0.52 * direccion_x),
+            origen_y + (hoja * 0.72 * direccion_y),
+        )
+        canvas.line(
+            origen_x + (hoja * 0.18 * direccion_x),
+            origen_y + (hoja * 0.18 * direccion_y),
+            origen_x + (hoja * 0.58 * direccion_x),
+            origen_y + (hoja * 0.58 * direccion_y),
+        )
+        canvas.circle(
+            origen_x + (hoja * 0.46 * direccion_x),
+            origen_y + (hoja * 0.46 * direccion_y),
+            max(0.6, tamano * 0.03),
+            stroke=1,
+            fill=0,
+        )
+
+    @staticmethod
+    def _dibujar_remate_floral_medieval(canvas, centro_x, borde_y, direccion_y, ancho):
+        semiancho = ancho * 0.5
+        punta = 8 * direccion_y
+        elevacion = 16 * direccion_y
+        canvas.bezier(
+            centro_x - semiancho,
+            borde_y,
+            centro_x - (semiancho * 0.72),
+            borde_y,
+            centro_x - (semiancho * 0.38),
+            borde_y + elevacion,
+            centro_x,
+            borde_y + punta,
+        )
+        canvas.bezier(
+            centro_x + semiancho,
+            borde_y,
+            centro_x + (semiancho * 0.72),
+            borde_y,
+            centro_x + (semiancho * 0.38),
+            borde_y + elevacion,
+            centro_x,
+            borde_y + punta,
+        )
+        canvas.bezier(
+            centro_x - (semiancho * 0.38),
+            borde_y + (4 * direccion_y),
+            centro_x - (semiancho * 0.2),
+            borde_y + (11 * direccion_y),
+            centro_x - (semiancho * 0.08),
+            borde_y + (10 * direccion_y),
+            centro_x,
+            borde_y + (5 * direccion_y),
+        )
+        canvas.bezier(
+            centro_x + (semiancho * 0.38),
+            borde_y + (4 * direccion_y),
+            centro_x + (semiancho * 0.2),
+            borde_y + (11 * direccion_y),
+            centro_x + (semiancho * 0.08),
+            borde_y + (10 * direccion_y),
+            centro_x,
+            borde_y + (5 * direccion_y),
+        )
+        canvas.circle(centro_x, borde_y + (5.5 * direccion_y), 1.4, stroke=1, fill=0)
+
+    @staticmethod
     def _dibujar_adorno_floral(canvas, x, y, ancho, alto):
         canvas.setStrokeColor(cfg.COLOR_PRIMARIO)
-        canvas.setLineWidth(0.8)
-        canvas.roundRect(x + 6, y + 6, max(0, ancho - 12), max(0, alto - 12), 14, stroke=1, fill=0)
+        canvas.setLineWidth(0.85)
+        borde_x = x + 4
+        borde_y = y + 4
+        borde_ancho = max(0, ancho - 8)
+        borde_alto = max(0, alto - 8)
+        canvas.roundRect(borde_x, borde_y, borde_ancho, borde_alto, 10, stroke=1, fill=0)
         canvas.setStrokeColor(cfg.COLOR_SECUNDARIO)
-        canvas.setLineWidth(1)
+        canvas.setLineWidth(0.7)
+        canvas.roundRect(x + 11, y + 11, max(0, ancho - 22), max(0, alto - 22), 8, stroke=1, fill=0)
 
-        tamano_rizo = min(ancho, alto) * 0.08
+        tamano_motivo = min(ancho, alto) * 0.045
         esquinas = [
-            (x + 18, y + alto - 18, 1, -1),
-            (x + ancho - 18, y + alto - 18, -1, -1),
-            (x + 18, y + 18, 1, 1),
-            (x + ancho - 18, y + 18, -1, 1),
+            (borde_x + 12, borde_y + borde_alto - 12, 1, -1),
+            (borde_x + borde_ancho - 12, borde_y + borde_alto - 12, -1, -1),
+            (borde_x + 12, borde_y + 12, 1, 1),
+            (borde_x + borde_ancho - 12, borde_y + 12, -1, 1),
         ]
         for esquina_x, esquina_y, direccion_x, direccion_y in esquinas:
-            canvas.bezier(
-                esquina_x,
-                esquina_y,
-                esquina_x + (tamano_rizo * 0.4 * direccion_x),
-                esquina_y,
-                esquina_x + (tamano_rizo * 0.8 * direccion_x),
-                esquina_y + (tamano_rizo * 0.6 * direccion_y),
-                esquina_x + (tamano_rizo * direccion_x),
-                esquina_y + (tamano_rizo * direccion_y),
-            )
-            canvas.bezier(
-                esquina_x,
-                esquina_y,
-                esquina_x,
-                esquina_y + (tamano_rizo * 0.4 * direccion_y),
-                esquina_x + (tamano_rizo * 0.6 * direccion_x),
-                esquina_y + (tamano_rizo * 0.8 * direccion_y),
-                esquina_x + (tamano_rizo * direccion_x),
-                esquina_y + (tamano_rizo * direccion_y),
-            )
-            canvas.circle(esquina_x + (tamano_rizo * 0.55 * direccion_x), esquina_y + (tamano_rizo * 0.25 * direccion_y), 1.4, stroke=1, fill=0)
-            canvas.circle(esquina_x + (tamano_rizo * 0.25 * direccion_x), esquina_y + (tamano_rizo * 0.55 * direccion_y), 1.4, stroke=1, fill=0)
+            DocumentoConIndice._dibujar_motivo_floral_medieval(canvas, esquina_x, esquina_y, direccion_x, direccion_y, tamano_motivo)
 
-        centro_superior_x = x + (ancho / 2)
-        centro_superior_y = y + alto - 6
-        centro_inferior_y = y + 6
-        onda = min(32, ancho * 0.08)
-        canvas.bezier(centro_superior_x - onda, centro_superior_y, centro_superior_x - (onda * 0.45), centro_superior_y + 10, centro_superior_x + (onda * 0.45), centro_superior_y + 10, centro_superior_x + onda, centro_superior_y)
-        canvas.bezier(centro_superior_x - (onda * 0.8), centro_superior_y - 10, centro_superior_x - (onda * 0.25), centro_superior_y - 2, centro_superior_x + (onda * 0.25), centro_superior_y - 2, centro_superior_x + (onda * 0.8), centro_superior_y - 10)
-        canvas.bezier(centro_superior_x - onda, centro_inferior_y, centro_superior_x - (onda * 0.45), centro_inferior_y - 10, centro_superior_x + (onda * 0.45), centro_inferior_y - 10, centro_superior_x + onda, centro_inferior_y)
-        canvas.bezier(centro_superior_x - (onda * 0.8), centro_inferior_y + 10, centro_superior_x - (onda * 0.25), centro_inferior_y + 2, centro_superior_x + (onda * 0.25), centro_inferior_y + 2, centro_superior_x + (onda * 0.8), centro_inferior_y + 10)
+        centro_x = x + (ancho / 2)
+        DocumentoConIndice._dibujar_remate_floral_medieval(canvas, centro_x, borde_y + borde_alto, -1, min(38, ancho * 0.12))
+        DocumentoConIndice._dibujar_remate_floral_medieval(canvas, centro_x, borde_y, 1, min(38, ancho * 0.12))
+        canvas.line(x + 28, y + (alto / 2), x + 38, y + (alto / 2))
+        canvas.line(x + ancho - 28, y + (alto / 2), x + ancho - 38, y + (alto / 2))
+        canvas.circle(x + 33, y + (alto / 2), 1.1, stroke=1, fill=0)
+        canvas.circle(x + ancho - 33, y + (alto / 2), 1.1, stroke=1, fill=0)
 
     def _crear_marcador(self, texto):
         self._contador_marcadores += 1

@@ -739,15 +739,44 @@ class DialogoConfiguracionInteractiva:
 
     @staticmethod
     def _dibujar_preview_adorno_floral(canvas):
-        canvas.create_rectangle(30, 22, 150, 98, outline="#1a1a1a")
-        canvas.create_line(30, 34, 40, 24, 54, 36, 66, 22, smooth=True, fill="#8B0000", width=2)
-        canvas.create_line(150, 34, 140, 24, 126, 36, 114, 22, smooth=True, fill="#8B0000", width=2)
-        canvas.create_line(30, 86, 40, 96, 54, 84, 66, 98, smooth=True, fill="#8B0000", width=2)
-        canvas.create_line(150, 86, 140, 96, 126, 84, 114, 98, smooth=True, fill="#8B0000", width=2)
-        canvas.create_oval(58, 28, 63, 33, outline="#1a1a1a")
-        canvas.create_oval(117, 28, 122, 33, outline="#1a1a1a")
-        canvas.create_oval(58, 87, 63, 92, outline="#1a1a1a")
-        canvas.create_oval(117, 87, 122, 92, outline="#1a1a1a")
+        canvas.create_rectangle(28, 20, 152, 100, outline="#8B0000", width=1)
+        canvas.create_rectangle(35, 27, 145, 93, outline="#333333")
+
+        for puntos in [
+            (40, 88, 44, 88, 49, 83, 54, 78),
+            (40, 88, 40, 84, 45, 79, 54, 78),
+            (140, 88, 136, 88, 131, 83, 126, 78),
+            (140, 88, 140, 84, 135, 79, 126, 78),
+            (40, 32, 44, 32, 49, 37, 54, 42),
+            (40, 32, 40, 36, 45, 41, 54, 42),
+            (140, 32, 136, 32, 131, 37, 126, 42),
+            (140, 32, 140, 36, 135, 41, 126, 42),
+        ]:
+            canvas.create_line(*puntos, smooth=True, fill="#333333")
+
+        canvas.create_line(42, 34, 50, 42, fill="#333333")
+        canvas.create_line(138, 34, 130, 42, fill="#333333")
+        canvas.create_line(42, 86, 50, 78, fill="#333333")
+        canvas.create_line(138, 86, 130, 78, fill="#333333")
+        for x, y in [(47, 39), (133, 39), (47, 81), (133, 81)]:
+            canvas.create_oval(x - 1.5, y - 1.5, x + 1.5, y + 1.5, outline="#333333")
+
+        canvas.create_line(72, 20, 78, 20, 84, 13, 90, 17, smooth=True, fill="#333333")
+        canvas.create_line(108, 20, 102, 20, 96, 13, 90, 17, smooth=True, fill="#333333")
+        canvas.create_line(79, 24, 84, 16, 88, 15, 90, 21, smooth=True, fill="#333333")
+        canvas.create_line(101, 24, 96, 16, 92, 15, 90, 21, smooth=True, fill="#333333")
+        canvas.create_oval(88.5, 19.5, 91.5, 22.5, outline="#333333")
+
+        canvas.create_line(72, 100, 78, 100, 84, 107, 90, 103, smooth=True, fill="#333333")
+        canvas.create_line(108, 100, 102, 100, 96, 107, 90, 103, smooth=True, fill="#333333")
+        canvas.create_line(79, 96, 84, 104, 88, 105, 90, 99, smooth=True, fill="#333333")
+        canvas.create_line(101, 96, 96, 104, 92, 105, 90, 99, smooth=True, fill="#333333")
+        canvas.create_oval(88.5, 97.5, 91.5, 100.5, outline="#333333")
+
+        canvas.create_line(28, 60, 36, 60, fill="#333333")
+        canvas.create_line(152, 60, 144, 60, fill="#333333")
+        canvas.create_oval(32, 58.5, 35, 61.5, outline="#333333")
+        canvas.create_oval(145, 58.5, 148, 61.5, outline="#333333")
 
     def actualizar_estado_rutas(self, *_args):
         entrada_texto = self.entrada_var.get().strip()
