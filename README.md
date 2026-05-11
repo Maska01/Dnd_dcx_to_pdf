@@ -44,6 +44,10 @@ Desde el menú inicial puedes:
 - activar una portada y elegir su imagen,
 - cambiar también los colores de `Tesoro/Premio` y `Objeto`.
 
+Además de las fuentes estándar de `ReportLab`, el menú detecta automáticamente cualquier archivo `.ttf` u `.otf` que coloques dentro de `fonts/` y lo expone como opción seleccionable. El nombre visible se deriva del nombre del archivo y el conversor intenta enlazar variantes comunes como `Regular`, `Bold`, `Italic`, `Oblique` y `BoldItalic` cuando las encuentra.
+
+Si la fuente personalizada no está disponible o no puede registrarse, el conversor mantiene el fallback actual a `Helvetica`/`Helvetica-Bold`.
+
 Si dejas título, subtítulo o autor en blanco, esos datos no se agregan al PDF.
 
 Puedes forzar u omitir el menú desde la línea de comandos:

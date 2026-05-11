@@ -1,8 +1,13 @@
+from pathlib import Path
+
 from reportlab.lib.colors import HexColor, black
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib.pagesizes import A3, A4, A5, A6, B5, ELEVENSEVENTEEN, LEGAL, LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.fonts import addMapping
+from reportlab.pdfbase.ttfonts import TTFont
 
 COLOR_PRIMARIO = HexColor("#8B0000")
 COLOR_SECUNDARIO = HexColor("#1a1a1a")
@@ -60,7 +65,9 @@ TAMANOS_PAGINA_DISPONIBLES = {
 
 OPCION_TAMANO_PERSONALIZADO = "PERSONALIZADO"
 
-FUENTES_DISPONIBLES = [
+DIRECTORIO_FUENTES = Path(__file__).resolve().parent / "fonts"
+
+FUENTES_BASE_DISPONIBLES = [
     "Helvetica",
     "Helvetica-Bold",
     "Helvetica-Oblique",
@@ -74,6 +81,129 @@ FUENTES_DISPONIBLES = [
     "Courier-Oblique",
     "Courier-BoldOblique",
 ]
+
+SUFIJOS_VARIANTE_FUENTE = [
+    ("bolditalic", (True, True)),
+    ("boldoblique", (True, True)),
+    ("bold-italic", (True, True)),
+    ("bold_oblique", (True, True)),
+    ("bold italic", (True, True)),
+    ("bold oblique", (True, True)),
+    ("italic", (False, True)),
+    ("oblique", (False, True)),
+    ("bold", (True, False)),
+    ("regular", (False, False)),
+]
+
+EXTENSIONES_FUENTE_ADMITIDAS = {".ttf", ".otf"}
+
+FUENTES_PERSONALIZADAS = {}
+
+
+def _normalizar_nombre_fuente(texto):
+    return " ".join(str(texto).replace("_", " ").replace("-", " ").split()).strip()
+
+
+def _inferir_familia_y_estilo_fuente(nombre_archivo):
+    base = _normalizar_nombre_fuente(nombre_archivo)
+    base_minusculas = base.casefold()
+    for sufijo, estilo in SUFIJOS_VARIANTE_FUENTE:
+        sufijo_normalizado = _normalizar_nombre_fuente(sufijo)
+        if not base_minusculas.endswith(sufijo_normalizado.casefold()):
+            continue
+        familia = base[: len(base) - len(sufijo_normalizado)].strip(" -_")
+        familia = _normalizar_nombre_fuente(familia)
+        if familia:
+            return familia, estilo
+    return base, (False, False)
+
+
+def _nombre_registrado_fuente(familia, es_negrita, es_cursiva):
+    if es_negrita and es_cursiva:
+        return f"{familia}-BoldItalic"
+    if es_negrita:
+        return f"{familia}-Bold"
+    if es_cursiva:
+        return f"{familia}-Italic"
+    return familia
+
+
+def _recopilar_archivos_fuente_personalizados():
+    if not DIRECTORIO_FUENTES.exists():
+        return {}
+    fuentes_encontradas = {}
+    for ruta_fuente in sorted(DIRECTORIO_FUENTES.rglob("*")):
+        if not ruta_fuente.is_file() or ruta_fuente.suffix.lower() not in EXTENSIONES_FUENTE_ADMITIDAS:
+            continue
+        familia, estilo = _inferir_familia_y_estilo_fuente(ruta_fuente.stem)
+        if not familia:
+            continue
+        variantes = fuentes_encontradas.setdefault(familia, {})
+        variantes.setdefault(estilo, ruta_fuente)
+    return fuentes_encontradas
+
+
+def _registrar_fuente_tt(nombre_registrado, ruta_fuente):
+    if nombre_registrado in pdfmetrics.getRegisteredFontNames():
+        return True
+    try:
+        pdfmetrics.registerFont(TTFont(nombre_registrado, str(ruta_fuente)))
+        return True
+    except Exception:
+        return False
+
+
+def registrar_fuente_personalizada(nombre_fuente):
+    variantes = FUENTES_PERSONALIZADAS.get(nombre_fuente)
+    if not variantes:
+        return False
+
+    registros = {}
+    for estilo, ruta_fuente in variantes.items():
+        nombre_registrado = _nombre_registrado_fuente(nombre_fuente, *estilo)
+        if _registrar_fuente_tt(nombre_registrado, ruta_fuente):
+            registros[estilo] = nombre_registrado
+
+    if not registros:
+        return False
+
+    nombre_regular = registros.get((False, False))
+    if nombre_regular is None:
+        estilo_predeterminado = next(iter(registros))
+        nombre_regular = nombre_fuente
+        _registrar_fuente_tt(nombre_regular, variantes[estilo_predeterminado])
+        registros[(False, False)] = nombre_regular
+
+    addMapping(nombre_fuente, 0, 0, registros.get((False, False), nombre_regular))
+    addMapping(nombre_fuente, 1, 0, registros.get((True, False), nombre_regular))
+    addMapping(nombre_fuente, 0, 1, registros.get((False, True), nombre_regular))
+    addMapping(nombre_fuente, 1, 1, registros.get((True, True), registros.get((True, False), registros.get((False, True), nombre_regular))) )
+    return True
+
+
+def recargar_fuentes_disponibles():
+    global FUENTES_PERSONALIZADAS, FUENTES_DISPONIBLES
+    FUENTES_PERSONALIZADAS = _recopilar_archivos_fuente_personalizados()
+    for nombre_fuente in FUENTES_PERSONALIZADAS:
+        registrar_fuente_personalizada(nombre_fuente)
+    FUENTES_DISPONIBLES = [*FUENTES_BASE_DISPONIBLES, *sorted(FUENTES_PERSONALIZADAS.keys(), key=str.casefold)]
+    return list(FUENTES_DISPONIBLES)
+
+
+def obtener_fuentes_disponibles():
+    return recargar_fuentes_disponibles()
+
+
+def fuente_disponible(nombre_fuente):
+    if nombre_fuente in FUENTES_BASE_DISPONIBLES:
+        return True
+    recargar_fuentes_disponibles()
+    if nombre_fuente in FUENTES_PERSONALIZADAS:
+        return registrar_fuente_personalizada(nombre_fuente)
+    return False
+
+
+FUENTES_DISPONIBLES = recargar_fuentes_disponibles()
 
 
 def _color_a_hex(color):
@@ -172,8 +302,8 @@ def aplicar_configuracion_documento(configuracion_documento):
 
     fuente_titulo = str(valores.get("fuente_titulo", FUENTE_TITULO)).strip()
     fuente_texto = str(valores.get("fuente_texto", FUENTE_TEXTO)).strip()
-    FUENTE_TITULO = fuente_titulo if fuente_titulo in FUENTES_DISPONIBLES else "Helvetica-Bold"
-    FUENTE_TEXTO = fuente_texto if fuente_texto in FUENTES_DISPONIBLES else "Helvetica"
+    FUENTE_TITULO = fuente_titulo if fuente_disponible(fuente_titulo) else "Helvetica-Bold"
+    FUENTE_TEXTO = fuente_texto if fuente_disponible(fuente_texto) else "Helvetica"
 
     try:
         margen_cm = float(valores.get("margen_cm", MARGEN / cm))
