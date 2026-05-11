@@ -402,8 +402,15 @@ def agregar_bloque_visual_a_contenido_caja(contenido, bloque, cabecera, alto_sep
     agregar_separador_a_contenido_caja(contenido, alto_separador)
 
 
+def calcular_ancho_tabla_en_caja(ancho_interno, margen_extra=8):
+    return max(40, ancho_interno - margen_extra)
+
+
 def agregar_tabla_a_caja(contenido, parte, estilo_base, ancho_interno, cabecera):
-    tabla = tabla_docx_a_flujo(parte.get("tabla"), ancho_interno, estilo_base)
+    ancho_tabla = calcular_ancho_tabla_en_caja(ancho_interno)
+    tabla = tabla_docx_a_flujo(parte.get("tabla"), ancho_tabla, estilo_base)
+    if tabla is not None:
+        tabla.hAlign = "CENTER"
     agregar_bloque_visual_a_contenido_caja(contenido, tabla, cabecera, 6)
 
 
