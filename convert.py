@@ -192,8 +192,8 @@ _crear_fila_de_imagenes = crear_fila_de_imagenes
 
 def principal():
     parser = argparse.ArgumentParser(description="Convierte un .docx a PDF estilo Aventura.")
-    parser.add_argument("entrada", nargs="?", help="Archivo .docx de entrada (si se omite se abre un diálogo)")
-    parser.add_argument("salida", nargs="?", help="Archivo .pdf de salida (si se omite se abre un diálogo)")
+    parser.add_argument("entrada", nargs="?", help="Archivo .docx de entrada")
+    parser.add_argument("salida", nargs="?", help="Archivo .pdf de salida")
     parser.add_argument("--titulo", help="Título de la portada (opcional)")
     parser.add_argument("--subtitulo", help="Subtítulo de la portada (opcional)")
     parser.add_argument("--autor", help="Autor (opcional)")
@@ -202,35 +202,8 @@ def principal():
     parser.add_argument("--sin-menu", action="store_true", help="Omite el menú interactivo incluso si se usan diálogos de archivo.")
     args = parser.parse_args()
 
-    if args.entrada:
-        entrada = Path(args.entrada)
-    else:
-        print("📂 Selecciona el archivo Word de entrada...")
-        ruta = _seleccionar_archivo_dialogo(
-            "Selecciona el archivo Word de entrada",
-            [("Documentos Word", "*.docx"), ("Todos los archivos", "*.*")],
-            modo="abrir",
-        )
-        if not ruta:
-            raise SystemExit("❌ No se seleccionó ningún archivo de entrada.")
-        entrada = Path(ruta)
-
-    if not entrada.exists():
-        raise SystemExit(f"No se encontró el archivo: {entrada}")
-
-    if args.salida:
-        salida = Path(args.salida)
-    else:
-        print("💾 Selecciona dónde guardar el PDF...")
-        ruta = _seleccionar_archivo_dialogo(
-            "Guardar PDF como...",
-            [("Archivo PDF", "*.pdf"), ("Todos los archivos", "*.*")],
-            modo="guardar",
-            archivo_inicial=entrada.with_suffix(".pdf").name,
-        )
-        if not ruta:
-            raise SystemExit("❌ No se seleccionó ruta de salida.")
-        salida = Path(ruta)
+    entrada = Path(args.entrada) if args.entrada else None
+    salida = Path(args.salida) if args.salida else None
 
     configuracion_visual = obtener_configuracion_visual_predeterminada()
     configuracion_documento = obtener_configuracion_documento_predeterminada()
@@ -257,15 +230,44 @@ def principal():
             subtitulo_inicial=subtitulo,
             autor_inicial=autor,
             portada_inicial=portada_inicial,
+            entrada_inicial=str(entrada or ""),
+            salida_inicial=str(salida or (entrada.with_suffix(".pdf") if entrada else "")),
         )
         if configuracion is None:
             raise SystemExit("❌ Operación cancelada por el usuario.")
+        entrada = Path(configuracion["entrada"])
+        salida = Path(configuracion["salida"])
         configuracion_visual = configuracion["configuracion_visual"]
         configuracion_documento = configuracion["configuracion_documento"]
         titulo = configuracion["titulo"]
         subtitulo = configuracion["subtitulo"]
         autor = configuracion["autor"]
         imagen_portada = configuracion["imagen_portada"]
+    else:
+        if entrada is None:
+            print("📂 Selecciona el archivo Word de entrada...")
+            ruta = _seleccionar_archivo_dialogo(
+                "Selecciona el archivo Word de entrada",
+                [("Documentos Word", "*.docx"), ("Todos los archivos", "*.*")],
+                modo="abrir",
+            )
+            if not ruta:
+                raise SystemExit("❌ No se seleccionó ningún archivo de entrada.")
+            entrada = Path(ruta)
+        if salida is None:
+            print("💾 Selecciona dónde guardar el PDF...")
+            ruta = _seleccionar_archivo_dialogo(
+                "Guardar PDF como...",
+                [("Archivo PDF", "*.pdf"), ("Todos los archivos", "*.*")],
+                modo="guardar",
+                archivo_inicial=entrada.with_suffix(".pdf").name,
+            )
+            if not ruta:
+                raise SystemExit("❌ No se seleccionó ruta de salida.")
+            salida = Path(ruta)
+
+    if entrada is None or not entrada.exists():
+        raise SystemExit(f"No se encontró el archivo: {entrada}")
 
     aplicar_configuracion_visual(configuracion_visual)
     aplicar_configuracion_documento(configuracion_documento)

@@ -31,9 +31,16 @@ python convert.py mi_aventura.docx mi_aventura.pdf `
     --portada "C:\ruta\a\tu\imagen.jpg"
 ```
 
-Si ejecutas `python convert.py` sin indicar entrada y salida, se abrirán diálogos de Windows para elegir los archivos y, además, aparecerá el menú interactivo de configuración.
+Si ejecutas `python convert.py` sin indicar entrada y salida, se abrirá directamente el menú interactivo unificado. Primero verás una pantalla compacta para elegir el `.docx` de entrada y la ruta `.pdf` de salida. Cuando ambas rutas sean válidas, podrás pulsar `Continuar` para pasar a la personalización.
 
 ## Menú interactivo
+
+El menú interactivo ahora funciona como un asistente de dos pasos dentro de una sola ventana:
+
+- una primera pantalla para seleccionar el archivo Word de entrada y la ruta PDF de salida,
+- una segunda pantalla para metadatos, portada, tamaño de página, fuentes, márgenes y colores.
+
+Cuando las rutas son válidas, el botón `Continuar` habilita la segunda pantalla. Desde ahí puedes usar `Regresar` para cambiar entrada o salida sin perder la configuración que ya hayas escrito.
 
 Desde el menú inicial puedes:
 
@@ -56,6 +63,8 @@ Puedes forzar u omitir el menú desde la línea de comandos:
 python convert.py --menu-interactivo
 python convert.py mi_aventura.docx salida.pdf --sin-menu
 ```
+
+Si usas `--sin-menu` y omites alguna ruta, el conversor conserva el flujo alternativo de diálogos simples solo para seleccionar los archivos faltantes.
 
 Si omites `--portada`, el script intenta usar la ruta configurada en `IMAGEN_PORTADA_PREDETERMINADA`. Si no encuentra esa imagen, la ignora sin fallar.
 

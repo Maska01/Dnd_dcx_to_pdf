@@ -64,13 +64,15 @@ def abrir_y_notificar_pdf_generado(ruta_pdf, abridor=None, notificador=None):
 
 
 class DialogoConfiguracionInteractiva:
-    def __init__(self, configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial=""):
+    def __init__(self, configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial="", entrada_inicial="", salida_inicial=""):
         self.configuracion_inicial = dict(configuracion_inicial)
         self.configuracion_documento_inicial = dict(configuracion_documento_inicial)
         self.titulo_inicial = titulo_inicial or ""
         self.subtitulo_inicial = subtitulo_inicial or ""
         self.autor_inicial = autor_inicial or ""
         self.portada_inicial = portada_inicial or ""
+        self.entrada_inicial = str(entrada_inicial or "").strip()
+        self.salida_inicial = str(salida_inicial or "").strip()
         self.resultado = {"valor": None}
         self.tk = None
         self.ttk = None
@@ -80,11 +82,54 @@ class DialogoConfiguracionInteractiva:
         self.raiz = None
         self.variables_color = {}
         self.vistas_previas = {}
+        self.notebook = None
+        self.entrada_var = None
+        self.salida_var = None
+        self.estado_rutas_var = None
+        self.titulo_encabezado = None
+        self.descripcion_encabezado = None
+        self.contenedor_paginas = None
+        self.pagina_archivos = None
+        self.pagina_personalizacion = None
+        self.resumen_entrada_var = None
+        self.resumen_salida_var = None
+        self.entrada_archivo = None
+        self.salida_archivo = None
+        self.estado_rutas_label = None
+        self.entrada_portada = None
+        self.boton_portada = None
+        self.entrada_ancho = None
+        self.entrada_alto = None
+        self.titulo_var = None
+        self.subtitulo_var = None
+        self.autor_var = None
+        self.portada_habilitada_var = None
+        self.portada_var = None
+        self.tamano_pagina_var = None
+        self.fuente_titulo_var = None
+        self.fuente_texto_var = None
+        self.margen_var = None
+        self.ancho_pagina_var = None
+        self.alto_pagina_var = None
+        self.boton_cancelar = None
+        self.boton_continuar = None
+        self.boton_regresar = None
+        self.boton_aceptar = None
+        self.boton_restablecer = None
+        self.ultima_salida_sugerida = ""
+        self.pagina_actual = "archivos"
 
     def ejecutar(self):
         if not self._importar_tkinter():
+            entrada = self.entrada_inicial
+            salida = self._salida_inicial_normalizada()
+            if not self._es_ruta_entrada_valida(entrada) or not self._es_ruta_salida_valida(salida):
+                print("⚠️  tkinter no está disponible y no hay rutas válidas de entrada/salida para continuar.")
+                return None
             print("⚠️  tkinter no está disponible; se omite el menú interactivo.")
             return {
+                "entrada": entrada,
+                "salida": salida,
                 "configuracion_visual": dict(self.configuracion_inicial),
                 "configuracion_documento": dict(self.configuracion_documento_inicial),
                 "titulo": self.titulo_inicial,
@@ -116,8 +161,8 @@ class DialogoConfiguracionInteractiva:
     def _crear_ventana(self):
         self.raiz = self.tk.Tk()
         self.raiz.title("Configuración del PDF")
-        self.raiz.geometry("1320x680")
-        self.raiz.minsize(1080, 620)
+        self.raiz.geometry("980x700")
+        self.raiz.minsize(980, 700)
         self.raiz.attributes("-topmost", True)
 
     def _construir_interfaz(self):
@@ -128,10 +173,15 @@ class DialogoConfiguracionInteractiva:
         interior.pack(fill="both", expand=True)
         self.variables_color = {clave: self.tk.StringVar(value=valor) for clave, valor in self.configuracion_inicial.items()}
         self.encabezado(interior)
-        notebook, pestana_general, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes = self._crear_notebook(interior)
-        self._construir_pestana_general(pestana_general)
-        self._construir_pestanas_colores(pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes)
+        self.contenedor_paginas = self.tk.Frame(interior)
+        self.contenedor_paginas.pack(fill="both", expand=True)
+        self.pagina_archivos = self.tk.Frame(self.contenedor_paginas)
+        self.pagina_personalizacion = self.tk.Frame(self.contenedor_paginas)
+        self._construir_bloque_archivos(self.pagina_archivos)
+        self._construir_pagina_personalizacion(self.pagina_personalizacion)
         self._construir_botones(contenedor)
+        self._mostrar_pagina_archivos()
+        self.actualizar_estado_rutas()
 
     def _configurar_estilo_notebook(self):
         estilo = self.ttk.Style(self.raiz)
@@ -141,12 +191,57 @@ class DialogoConfiguracionInteractiva:
             pass
         estilo.configure("MenuNotebook.TNotebook", tabposition="n")
         estilo.configure("MenuNotebook.TNotebook.Tab", padding=(16, 8))
+        estilo.configure("Primario.TButton", padding=(14, 8), font=("Segoe UI", 9, "bold"))
+        estilo.configure("Secundario.TButton", padding=(10, 8))
 
     def encabezado(self, interior):
         encabezado_frame = self.tk.Frame(interior, padx=4, pady=4)
         encabezado_frame.pack(fill="x", pady=(0, 10))
-        self.tk.Label(encabezado_frame, text="Personaliza tu PDF antes de generarlo", font=("Segoe UI", 16, "bold"), anchor="w").pack(fill="x")
-        self.tk.Label(encabezado_frame, text="Ajusta metadatos, portada, página, fuentes, márgenes y colores. La disposición se adapta automáticamente hasta 5 columnas para que el menú sea más cómodo.", justify="left", wraplength=1120, anchor="w").pack(fill="x", pady=(4, 0))
+        self.titulo_encabezado = self.tk.Label(encabezado_frame, text="Personaliza tu PDF antes de generarlo", font=("Segoe UI", 16, "bold"), anchor="w")
+        self.titulo_encabezado.pack(fill="x")
+        self.descripcion_encabezado = self.tk.Label(encabezado_frame, text="Primero elige una entrada `.docx` y una salida `.pdf` válidas. Después podrás continuar a la personalización.", justify="left", wraplength=860, anchor="w")
+        self.descripcion_encabezado.pack(fill="x", pady=(4, 0))
+
+    def _construir_bloque_archivos(self, interior):
+        archivos_frame = self.tk.LabelFrame(interior, text="Archivos", padx=10, pady=10)
+        archivos_frame.pack(fill="x", pady=(0, 10))
+        self.entrada_var = self.tk.StringVar(value=self.entrada_inicial)
+        salida_inicial = self._salida_inicial_normalizada()
+        self.salida_var = self.tk.StringVar(value=salida_inicial)
+        self.estado_rutas_var = self.tk.StringVar(value="Selecciona un archivo Word de entrada y una ruta PDF de salida para continuar.")
+        self.ultima_salida_sugerida = salida_inicial if self._es_ruta_salida_valida(salida_inicial) else ""
+
+        self.tk.Label(archivos_frame, text="Archivo Word de entrada").grid(row=0, column=0, sticky="w", pady=3)
+        self.entrada_archivo = self.tk.Entry(archivos_frame, textvariable=self.entrada_var, width=66)
+        self.entrada_archivo.grid(row=0, column=1, sticky="ew", padx=(8, 8), pady=3)
+        self.tk.Button(archivos_frame, text="Elegir archivo...", command=self.elegir_archivo_entrada).grid(row=0, column=2, sticky="w", pady=3)
+
+        self.tk.Label(archivos_frame, text="Archivo PDF de salida").grid(row=1, column=0, sticky="w", pady=3)
+        self.salida_archivo = self.tk.Entry(archivos_frame, textvariable=self.salida_var, width=66)
+        self.salida_archivo.grid(row=1, column=1, sticky="ew", padx=(8, 8), pady=3)
+        self.tk.Button(archivos_frame, text="Elegir destino...", command=self.elegir_archivo_salida).grid(row=1, column=2, sticky="w", pady=3)
+
+        self.estado_rutas_label = self.tk.Label(archivos_frame, textvariable=self.estado_rutas_var, anchor="w", justify="left")
+        self.estado_rutas_label.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+        archivos_frame.columnconfigure(1, weight=1)
+        self.entrada_var.trace_add("write", self.actualizar_estado_rutas)
+        self.salida_var.trace_add("write", self.actualizar_estado_rutas)
+
+    def _construir_pagina_personalizacion(self, interior):
+        resumen_frame = self.tk.LabelFrame(interior, text="Rutas seleccionadas", padx=10, pady=10)
+        resumen_frame.pack(fill="x", pady=(0, 10))
+        self.resumen_entrada_var = self.tk.StringVar(value=self.entrada_inicial)
+        self.resumen_salida_var = self.tk.StringVar(value=self._salida_inicial_normalizada())
+        self.tk.Label(resumen_frame, text="Entrada").grid(row=0, column=0, sticky="nw")
+        self.tk.Label(resumen_frame, textvariable=self.resumen_entrada_var, anchor="w", justify="left", wraplength=720).grid(row=0, column=1, sticky="ew", padx=(8, 0))
+        self.tk.Label(resumen_frame, text="Salida").grid(row=1, column=0, sticky="nw", pady=(6, 0))
+        self.tk.Label(resumen_frame, textvariable=self.resumen_salida_var, anchor="w", justify="left", wraplength=720).grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(6, 0))
+        resumen_frame.columnconfigure(1, weight=1)
+
+        notebook, pestana_general, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes = self._crear_notebook(interior)
+        self.notebook = notebook
+        self._construir_pestana_general(pestana_general)
+        self._construir_pestanas_colores(pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes)
 
     def _crear_notebook(self, interior):
         notebook = self.ttk.Notebook(interior, style="MenuNotebook.TNotebook")
@@ -164,14 +259,13 @@ class DialogoConfiguracionInteractiva:
     def _construir_pestana_general(self, pestana_general):
         panel_superior = self.tk.Frame(pestana_general)
         panel_superior.pack(fill="both", expand=True)
-        panel_superior.columnconfigure(0, weight=1, uniform="columna_superior")
-        panel_superior.columnconfigure(1, weight=1, uniform="columna_superior")
+        panel_superior.columnconfigure(0, weight=1)
         self._construir_bloque_portada(panel_superior)
         self._construir_bloque_documento(panel_superior)
 
     def _construir_bloque_portada(self, panel_superior):
         titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", padx=10, pady=10)
-        titulo_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=(0, 10))
+        titulo_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 10))
         self.titulo_var = self.tk.StringVar(value=self.titulo_inicial)
         self.subtitulo_var = self.tk.StringVar(value=self.subtitulo_inicial)
         self.autor_var = self.tk.StringVar(value=self.autor_inicial)
@@ -179,13 +273,13 @@ class DialogoConfiguracionInteractiva:
         self.portada_habilitada_var = self.tk.BooleanVar(value=portada_explicita)
         self.portada_var = self.tk.StringVar(value=self.portada_inicial if portada_explicita else "")
         self.tk.Label(titulo_frame, text="Título de la aventura (opcional)").grid(row=0, column=0, sticky="w")
-        self.tk.Entry(titulo_frame, textvariable=self.titulo_var, width=50).grid(row=0, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Entry(titulo_frame, textvariable=self.titulo_var, width=42).grid(row=0, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
         self.tk.Label(titulo_frame, text="Subtítulo (opcional)").grid(row=1, column=0, sticky="w")
-        self.tk.Entry(titulo_frame, textvariable=self.subtitulo_var, width=50).grid(row=1, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Entry(titulo_frame, textvariable=self.subtitulo_var, width=42).grid(row=1, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
         self.tk.Label(titulo_frame, text="Autor (opcional)").grid(row=2, column=0, sticky="w")
-        self.tk.Entry(titulo_frame, textvariable=self.autor_var, width=50).grid(row=2, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Entry(titulo_frame, textvariable=self.autor_var, width=42).grid(row=2, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
         self.tk.Checkbutton(titulo_frame, text="Agregar portada", variable=self.portada_habilitada_var, command=self.actualizar_estado_portada).grid(row=3, column=0, sticky="w", pady=(8, 4))
-        self.entrada_portada = self.tk.Entry(titulo_frame, textvariable=self.portada_var, width=50, state="readonly")
+        self.entrada_portada = self.tk.Entry(titulo_frame, textvariable=self.portada_var, width=42, state="readonly")
         self.entrada_portada.grid(row=3, column=1, sticky="ew", padx=(8, 8), pady=(8, 4))
         self.boton_portada = self.tk.Button(titulo_frame, text="Elegir imagen...", command=self.elegir_portada)
         self.boton_portada.grid(row=3, column=2, sticky="w", pady=(8, 4))
@@ -194,7 +288,7 @@ class DialogoConfiguracionInteractiva:
 
     def _construir_bloque_documento(self, panel_superior):
         documento_frame = self.tk.LabelFrame(panel_superior, text="Página, fuentes y márgenes", padx=10, pady=10)
-        documento_frame.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=(0, 10))
+        documento_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 10))
         fuentes_disponibles = cfg.obtener_fuentes_disponibles()
         self.tamano_pagina_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("tamano_pagina", "A4"))
         self.fuente_titulo_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("fuente_titulo", cfg.FUENTE_TITULO))
@@ -203,7 +297,7 @@ class DialogoConfiguracionInteractiva:
         self.ancho_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
         self.alto_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
         self.tk.Label(documento_frame, text="Tamaño de página").grid(row=0, column=0, sticky="w", pady=3)
-        self.ttk.Combobox(documento_frame, textvariable=self.tamano_pagina_var, values=[*cfg.TAMANOS_PAGINA_DISPONIBLES.keys(), cfg.OPCION_TAMANO_PERSONALIZADO], state="readonly", width=18).grid(row=0, column=1, sticky="w", padx=(8, 0), pady=3)
+        self.ttk.Combobox(documento_frame, textvariable=self.tamano_pagina_var, values=[*cfg.TAMANOS_PAGINA_DISPONIBLES.keys(), cfg.OPCION_TAMANO_PERSONALIZADO], state="readonly", width=16).grid(row=0, column=1, sticky="w", padx=(8, 0), pady=3)
         self.tk.Label(documento_frame, text="Ancho personalizado (cm)").grid(row=0, column=2, sticky="w", padx=(16, 0), pady=3)
         self.entrada_ancho = self.tk.Entry(documento_frame, textvariable=self.ancho_pagina_var, width=10)
         self.entrada_ancho.grid(row=0, column=3, sticky="w", padx=(8, 0), pady=3)
@@ -211,9 +305,9 @@ class DialogoConfiguracionInteractiva:
         self.entrada_alto = self.tk.Entry(documento_frame, textvariable=self.alto_pagina_var, width=10)
         self.entrada_alto.grid(row=1, column=3, sticky="w", padx=(8, 0), pady=3)
         self.tk.Label(documento_frame, text="Fuente de título").grid(row=1, column=0, sticky="w", pady=3)
-        self.ttk.Combobox(documento_frame, textvariable=self.fuente_titulo_var, values=fuentes_disponibles, state="readonly", width=28).grid(row=1, column=1, sticky="w", padx=(8, 0), pady=3)
+        self.ttk.Combobox(documento_frame, textvariable=self.fuente_titulo_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=1, column=1, sticky="w", padx=(8, 0), pady=3)
         self.tk.Label(documento_frame, text="Fuente de texto").grid(row=2, column=0, sticky="w", pady=3)
-        self.ttk.Combobox(documento_frame, textvariable=self.fuente_texto_var, values=fuentes_disponibles, state="readonly", width=28).grid(row=2, column=1, sticky="w", padx=(8, 0), pady=3)
+        self.ttk.Combobox(documento_frame, textvariable=self.fuente_texto_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=2, column=1, sticky="w", padx=(8, 0), pady=3)
         self.tk.Label(documento_frame, text="Margen (cm)").grid(row=3, column=0, sticky="w", pady=3)
         self.tk.Entry(documento_frame, textvariable=self.margen_var, width=10).grid(row=3, column=1, sticky="w", padx=(8, 0), pady=3)
         self.tk.Label(documento_frame, text="Rango recomendado: 0.5 a 5.0 cm").grid(row=3, column=2, sticky="w", padx=(8, 0), pady=3)
@@ -221,33 +315,64 @@ class DialogoConfiguracionInteractiva:
         self.actualizar_estado_tamano_personalizado()
 
     def _construir_pestanas_colores(self, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes):
-        grupos_colores = [("General", [("color_primario", "Títulos"), ("color_secundario", "Texto general"), ("color_fondo_pagina", "Fondo de página")]), ("Caja Consejo para el DM", [("color_azul_texto", "Texto"), ("color_azul_borde", "Borde"), ("color_azul_fondo", "Fondo")]), ("Caja Cita", [("color_ama_texto", "Texto"), ("color_ama_borde", "Borde"), ("color_ama_fondo", "Fondo")]), ("Caja Información adicional", [("color_info_texto", "Texto"), ("color_info_borde", "Borde"), ("color_info_fondo", "Fondo")]), ("Caja NPC", [("color_npc_texto", "Texto"), ("color_npc_borde", "Borde"), ("color_npc_fondo", "Fondo")]), ("Caja Enemigo", [("color_enemigo_texto", "Texto"), ("color_enemigo_borde", "Borde"), ("color_enemigo_fondo", "Fondo")]), ("Caja Aliado", [("color_aliado_texto", "Texto"), ("color_aliado_borde", "Borde"), ("color_aliado_fondo", "Fondo")]), ("Caja Tesoro/Premio", [("color_tesoro_texto", "Texto"), ("color_tesoro_borde", "Borde"), ("color_tesoro_fondo", "Fondo")]), ("Caja Objeto", [("color_objeto_texto", "Texto"), ("color_objeto_borde", "Borde"), ("color_objeto_fondo", "Fondo")])]
-        distribucion_pestanas = {"Colores base": ["General", "Caja Consejo para el DM", "Caja Cita"], "Cajas útiles": ["Caja Información adicional", "Caja Tesoro/Premio", "Caja Objeto"], "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"]}
+        grupos_colores = [
+            ("General", [("color_primario", "Títulos"), ("color_secundario", "Texto general"), ("color_fondo_pagina", "Fondo de página")]),
+            ("Caja Consejo para el DM", [("color_azul_texto", "Texto"), ("color_azul_borde", "Borde"), ("color_azul_fondo", "Fondo")]),
+            ("Caja Cita", [("color_ama_texto", "Texto"), ("color_ama_borde", "Borde"), ("color_ama_fondo", "Fondo")]),
+            ("Caja Información adicional", [("color_info_texto", "Texto"), ("color_info_borde", "Borde"), ("color_info_fondo", "Fondo")]),
+            ("Caja NPC", [("color_npc_texto", "Texto"), ("color_npc_borde", "Borde"), ("color_npc_fondo", "Fondo")]),
+            ("Caja Enemigo", [("color_enemigo_texto", "Texto"), ("color_enemigo_borde", "Borde"), ("color_enemigo_fondo", "Fondo")]),
+            ("Caja Aliado", [("color_aliado_texto", "Texto"), ("color_aliado_borde", "Borde"), ("color_aliado_fondo", "Fondo")]),
+            ("Caja Tesoro/Premio", [("color_tesoro_texto", "Texto"), ("color_tesoro_borde", "Borde"), ("color_tesoro_fondo", "Fondo")]),
+            ("Caja Objeto", [("color_objeto_texto", "Texto"), ("color_objeto_borde", "Borde"), ("color_objeto_fondo", "Fondo")]),
+        ]
+        distribucion_pestanas = {
+            "Colores base": ["General", "Caja Consejo para el DM", "Caja Cita"],
+            "Cajas útiles": ["Caja Información adicional", "Caja Tesoro/Premio", "Caja Objeto"],
+            "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"],
+        }
         contenedores = {"Colores base": pestana_colores_base, "Cajas útiles": pestana_colores_cajas, "NPC y combate": pestana_colores_personajes}
-        for pestana in contenedores.values():
-            pestana.columnconfigure(0, weight=1, uniform="colores_tab")
-            pestana.columnconfigure(1, weight=1, uniform="colores_tab")
+        contenedores_tarjetas = {}
+        for nombre_pestana, pestana in contenedores.items():
+            contenedor_tarjetas = self.tk.Frame(pestana)
+            contenedor_tarjetas.pack(fill="x", anchor="n")
+            contenedor_tarjetas.columnconfigure(0, weight=1)
+            contenedor_tarjetas.columnconfigure(1, weight=0, minsize=300, uniform="tarjetas_colores")
+            contenedor_tarjetas.columnconfigure(2, weight=0, minsize=300, uniform="tarjetas_colores")
+            contenedor_tarjetas.columnconfigure(3, weight=1)
+            contenedores_tarjetas[nombre_pestana] = contenedor_tarjetas
         for nombre_pestana, nombres_grupos in distribucion_pestanas.items():
-            contenedor_tab = contenedores[nombre_pestana]
+            contenedor_tab = contenedores_tarjetas[nombre_pestana]
             for indice_grupo, nombre_grupo in enumerate(nombres_grupos):
                 _, campos = next(grupo for grupo in grupos_colores if grupo[0] == nombre_grupo)
-                columna = indice_grupo % 2
+                columna = (indice_grupo % 2) + 1
                 fila = indice_grupo // 2
-                padding_x = (0, 8) if columna == 0 else (8, 0)
+                padding_x = (0, 8) if columna == 1 else (8, 0)
                 frame = self.tk.LabelFrame(contenedor_tab, text=nombre_grupo, padx=10, pady=10)
-                frame.grid(row=fila, column=columna, sticky="nsew", padx=padding_x, pady=(0, 10))
+                frame.grid(row=fila, column=columna, sticky="new", padx=padding_x, pady=(0, 10))
+                frame.columnconfigure(0, minsize=88)
+                frame.columnconfigure(1, minsize=84)
+                frame.columnconfigure(3, minsize=66)
                 for indice, (clave, etiqueta) in enumerate(campos):
                     self.crear_selector_color(frame, indice, clave, etiqueta)
-        self.tk.Label(pestana_colores_base, text="Aquí están los colores base del documento y de las cajas más frecuentes.", anchor="w", justify="left").grid(row=10, column=0, columnspan=2, sticky="ew", pady=(4, 0))
-        self.tk.Label(pestana_colores_cajas, text="Aquí puedes ajustar información adicional, tesoro/premio y objeto sin mezclarlo con NPC o combate.", anchor="w", justify="left").grid(row=10, column=0, columnspan=2, sticky="ew", pady=(4, 0))
-        self.tk.Label(pestana_colores_personajes, text="Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.", anchor="w", justify="left").grid(row=10, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        self.tk.Label(pestana_colores_base, text="Aquí están los colores base del documento y de las cajas más frecuentes.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
+        self.tk.Label(pestana_colores_cajas, text="Aquí puedes ajustar información adicional, tesoro/premio y objeto sin mezclarlo con NPC o combate.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
+        self.tk.Label(pestana_colores_personajes, text="Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
 
     def _construir_botones(self, contenedor):
-        botones = self.tk.Frame(contenedor, padx=12, pady=10)
+        botones = self.tk.Frame(contenedor, padx=12, pady=12)
         botones.pack(fill="x")
-        self.tk.Button(botones, text="Restablecer valores", command=self.restablecer_valores).pack(side="left")
-        self.tk.Button(botones, text="Cancelar", command=self.cancelar).pack(side="right", padx=(8, 0))
-        self.tk.Button(botones, text="Aceptar", command=self.aceptar).pack(side="right")
+        acciones_izquierda = self.tk.Frame(botones)
+        acciones_izquierda.pack(side="left")
+        acciones_derecha = self.tk.Frame(botones)
+        acciones_derecha.pack(side="right")
+
+        self.boton_restablecer = self.ttk.Button(acciones_izquierda, text="Restablecer valores", width=18, style="Secundario.TButton", command=self.restablecer_valores)
+        self.boton_regresar = self.ttk.Button(acciones_izquierda, text="Regresar", width=12, style="Secundario.TButton", command=self.regresar_a_archivos)
+
+        self.boton_cancelar = self.ttk.Button(acciones_derecha, text="Cancelar", width=12, style="Secundario.TButton", command=self.cancelar)
+        self.boton_continuar = self.ttk.Button(acciones_derecha, text="Continuar", width=15, style="Primario.TButton", command=self.continuar_a_personalizacion)
+        self.boton_aceptar = self.ttk.Button(acciones_derecha, text="Aceptar", width=15, style="Primario.TButton", command=self.aceptar)
 
     def actualizar_preview(self, clave):
         valor = cfg._normalizar_color_hex(self.variables_color[clave].get(), self.configuracion_inicial[clave])
@@ -262,24 +387,163 @@ class DialogoConfiguracionInteractiva:
 
     def crear_selector_color(self, parent, fila, clave, etiqueta):
         self.tk.Label(parent, text=etiqueta, anchor="w").grid(row=fila, column=0, sticky="w", padx=(0, 8), pady=4)
-        self.tk.Entry(parent, textvariable=self.variables_color[clave], width=12, justify="center").grid(row=fila, column=1, sticky="w", pady=4)
-        preview = self.tk.Label(parent, width=6, relief="groove", bg=self.variables_color[clave].get())
-        preview.grid(row=fila, column=2, padx=6, pady=4)
+        self.tk.Entry(parent, textvariable=self.variables_color[clave], width=10, justify="center").grid(row=fila, column=1, sticky="w", pady=4)
+        preview = self.tk.Label(parent, width=5, relief="groove", bg=self.variables_color[clave].get())
+        preview.grid(row=fila, column=2, padx=5, pady=4)
         self.vistas_previas[clave] = preview
         self.tk.Button(parent, text="Elegir...", command=lambda clave_actual=clave: self.elegir_color(clave_actual)).grid(row=fila, column=3, sticky="w", pady=4)
 
+    @staticmethod
+    def _ruta_texto(ruta):
+        return str(ruta or "").strip()
+
+    def _salida_inicial_normalizada(self):
+        salida_inicial = self._normalizar_ruta_salida(self.salida_inicial)
+        if salida_inicial:
+            return salida_inicial
+        return self._sugerir_salida_desde_entrada(self.entrada_inicial)
+
+    def _es_ruta_entrada_valida(self, ruta_texto):
+        texto = self._ruta_texto(ruta_texto)
+        if not texto:
+            return False
+        ruta = Path(texto)
+        return ruta.exists() and ruta.is_file() and ruta.suffix.lower() == ".docx"
+
+    def _normalizar_ruta_salida(self, ruta_texto):
+        texto = self._ruta_texto(ruta_texto)
+        if not texto:
+            return ""
+        ruta = Path(texto)
+        if ruta.suffix.lower() != ".pdf":
+            ruta = ruta.with_suffix(".pdf")
+        return str(ruta)
+
+    def _es_ruta_salida_valida(self, ruta_texto):
+        texto = self._normalizar_ruta_salida(ruta_texto)
+        if not texto:
+            return False
+        ruta = Path(texto)
+        if ruta.suffix.lower() != ".pdf" or not ruta.name:
+            return False
+        directorio = ruta.parent if str(ruta.parent) else Path(".")
+        return directorio.exists() and directorio.is_dir()
+
+    def _rutas_actuales_validas(self):
+        return self._es_ruta_entrada_valida(self.entrada_var.get()) and self._es_ruta_salida_valida(self.salida_var.get())
+
+    def _sugerir_salida_desde_entrada(self, ruta_entrada_texto):
+        if not self._es_ruta_entrada_valida(ruta_entrada_texto):
+            return ""
+        return str(Path(ruta_entrada_texto).with_suffix(".pdf"))
+
+    def _actualizar_resumen_rutas(self):
+        if self.resumen_entrada_var is not None:
+            self.resumen_entrada_var.set(self.entrada_var.get().strip())
+        if self.resumen_salida_var is not None:
+            self.resumen_salida_var.set(self._normalizar_ruta_salida(self.salida_var.get()))
+
+    def _mostrar_pagina_archivos(self):
+        self.pagina_actual = "archivos"
+        self.pagina_personalizacion.pack_forget()
+        self.pagina_archivos.pack(fill="both", expand=True)
+        self.titulo_encabezado.configure(text="Personaliza tu PDF antes de generarlo")
+        self.descripcion_encabezado.configure(text="Primero elige una entrada `.docx` y una salida `.pdf` válidas. Después podrás continuar a la personalización.", wraplength=860)
+        self.boton_restablecer.pack_forget()
+        self.boton_regresar.pack_forget()
+        self.boton_aceptar.pack_forget()
+        self.boton_continuar.pack_forget()
+        self.boton_cancelar.pack_forget()
+        self.boton_cancelar.pack(side="left")
+        self.boton_continuar.pack(side="left", padx=(14, 0))
+        self.raiz.minsize(980, 700)
+        self.ajustar_tamano_ventana()
+
+    def _mostrar_pagina_personalizacion(self):
+        self.pagina_actual = "personalizacion"
+        self.pagina_archivos.pack_forget()
+        self.pagina_personalizacion.pack(fill="both", expand=True)
+        self.titulo_encabezado.configure(text="Personaliza tu PDF")
+        self.descripcion_encabezado.configure(text="Ajusta metadatos, portada, página, fuentes, márgenes y colores. Puedes volver atrás si necesitas cambiar la entrada o la salida.", wraplength=860)
+        self._actualizar_resumen_rutas()
+        self.boton_restablecer.pack_forget()
+        self.boton_regresar.pack_forget()
+        self.boton_aceptar.pack_forget()
+        self.boton_continuar.pack_forget()
+        self.boton_cancelar.pack_forget()
+        self.boton_restablecer.pack(side="left")
+        self.boton_regresar.pack(side="left", padx=(8, 0))
+        self.boton_cancelar.pack(side="left")
+        self.boton_aceptar.pack(side="left", padx=(14, 0))
+        self.raiz.minsize(980, 700)
+        self.ajustar_tamano_ventana()
+
+    def continuar_a_personalizacion(self):
+        if not self._rutas_actuales_validas():
+            self.messagebox.showerror("Rutas inválidas", "Selecciona un archivo `.docx` existente y una salida `.pdf` válida antes de continuar.")
+            return
+        self._mostrar_pagina_personalizacion()
+
+    def regresar_a_archivos(self):
+        self._mostrar_pagina_archivos()
+
+    def elegir_archivo_entrada(self):
+        ruta = self.filedialog.askopenfilename(title="Selecciona el archivo Word de entrada", filetypes=[("Documentos Word", "*.docx"), ("Todos los archivos", "*.*")], parent=self.raiz)
+        if not ruta:
+            return
+        salida_actual = self._normalizar_ruta_salida(self.salida_var.get())
+        self.entrada_var.set(ruta)
+        salida_sugerida = self._sugerir_salida_desde_entrada(ruta)
+        if not salida_actual or salida_actual == self.ultima_salida_sugerida:
+            self.salida_var.set(salida_sugerida)
+            self.ultima_salida_sugerida = salida_sugerida
+
+    def elegir_archivo_salida(self):
+        entrada_actual = self.entrada_var.get().strip()
+        nombre_inicial = Path(entrada_actual).with_suffix(".pdf").name if self._es_ruta_entrada_valida(entrada_actual) else "salida.pdf"
+        ruta = self.filedialog.asksaveasfilename(title="Guardar PDF como...", filetypes=[("Archivo PDF", "*.pdf"), ("Todos los archivos", "*.*")], defaultextension=".pdf", initialfile=nombre_inicial, parent=self.raiz)
+        if ruta:
+            ruta_normalizada = self._normalizar_ruta_salida(ruta)
+            self.salida_var.set(ruta_normalizada)
+            self.ultima_salida_sugerida = ruta_normalizada
+
     def elegir_portada(self):
-        ruta = self.filedialog.askopenfilename(title="Selecciona la imagen de portada", filetypes=[("Imágenes", "*.png;*.jpg;*.jpeg;*.webp;*.bmp"), ("Todos los archivos", "*.*")])
+        ruta = self.filedialog.askopenfilename(title="Selecciona la imagen de portada", filetypes=[("Imágenes", "*.png;*.jpg;*.jpeg;*.webp;*.bmp"), ("Todos los archivos", "*.*")], parent=self.raiz)
         if ruta:
             self.portada_var.set(ruta)
+
+    def actualizar_estado_rutas(self, *_args):
+        entrada_texto = self.entrada_var.get().strip()
+        salida_texto = self.salida_var.get().strip()
+        entrada_valida = self._es_ruta_entrada_valida(entrada_texto)
+        salida_valida = self._es_ruta_salida_valida(salida_texto)
+        if salida_texto:
+            salida_normalizada = self._normalizar_ruta_salida(salida_texto)
+            if salida_normalizada != salida_texto:
+                self.salida_var.set(salida_normalizada)
+                return
+        if entrada_valida and salida_valida:
+            self.estado_rutas_var.set("Rutas válidas. Pulsa `Continuar` para abrir las opciones de personalización.")
+            self.estado_rutas_label.configure(fg="#1E5631")
+        elif not entrada_texto and not salida_texto:
+            self.estado_rutas_var.set("Selecciona un archivo Word de entrada y una ruta PDF de salida para continuar.")
+            self.estado_rutas_label.configure(fg="#7A1C1C")
+        elif not entrada_valida:
+            self.estado_rutas_var.set("La entrada debe apuntar a un archivo `.docx` existente.")
+            self.estado_rutas_label.configure(fg="#7A1C1C")
+        else:
+            self.estado_rutas_var.set("La salida debe ser una ruta `.pdf` válida en una carpeta existente.")
+            self.estado_rutas_label.configure(fg="#7A1C1C")
+        if self.boton_continuar is not None:
+            self.boton_continuar.configure(state="normal" if entrada_valida and salida_valida else "disabled")
+        self._actualizar_resumen_rutas()
 
     def actualizar_estado_portada(self):
         estado = "normal" if self.portada_habilitada_var.get() else "disabled"
         self.boton_portada.configure(state=estado)
-        self.entrada_portada.configure(state="normal" if self.portada_habilitada_var.get() else "readonly")
+        self.entrada_portada.configure(state="readonly")
         if not self.portada_habilitada_var.get():
             self.portada_var.set("")
-        self.entrada_portada.configure(state="readonly")
 
     def actualizar_estado_tamano_personalizado(self, *_args):
         es_personalizado = self.tamano_pagina_var.get().strip().upper() == cfg.OPCION_TAMANO_PERSONALIZADO
@@ -291,18 +555,34 @@ class DialogoConfiguracionInteractiva:
         for clave, valor in self.configuracion_inicial.items():
             self.variables_color[clave].set(valor)
             self.actualizar_preview(clave)
+        self.titulo_var.set(self.titulo_inicial)
+        self.subtitulo_var.set(self.subtitulo_inicial)
+        self.autor_var.set(self.autor_inicial)
         self.tamano_pagina_var.set(self.configuracion_documento_inicial.get("tamano_pagina", "A4"))
         self.fuente_titulo_var.set(self.configuracion_documento_inicial.get("fuente_titulo", cfg.FUENTE_TITULO))
         self.fuente_texto_var.set(self.configuracion_documento_inicial.get("fuente_texto", cfg.FUENTE_TEXTO))
         self.margen_var.set(str(self.configuracion_documento_inicial.get("margen_cm", 2.0)))
         self.ancho_pagina_var.set(str(self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
         self.alto_pagina_var.set(str(self.configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
+        portada_explicita = bool(self.portada_inicial and self.portada_inicial != cfg.IMAGEN_PORTADA_PREDETERMINADA)
+        self.portada_habilitada_var.set(portada_explicita)
+        self.portada_var.set(self.portada_inicial if portada_explicita else "")
+        self.actualizar_estado_portada()
+        self.actualizar_estado_tamano_personalizado()
 
     def cancelar(self):
         self.resultado["valor"] = None
         self.raiz.quit()
 
     def aceptar(self):
+        entrada = self.entrada_var.get().strip()
+        salida = self._normalizar_ruta_salida(self.salida_var.get())
+        if not self._es_ruta_entrada_valida(entrada):
+            self.messagebox.showerror("Entrada inválida", "Selecciona un archivo `.docx` de entrada válido.")
+            return
+        if not self._es_ruta_salida_valida(salida):
+            self.messagebox.showerror("Salida inválida", "Selecciona una ruta de salida `.pdf` válida.")
+            return
         configuracion_visual = {}
         for clave, valor in self.configuracion_inicial.items():
             color_normalizado = cfg._normalizar_color_hex(self.variables_color[clave].get(), valor)
@@ -339,19 +619,43 @@ class DialogoConfiguracionInteractiva:
             if not (5.0 <= ancho_pagina_cm <= 100.0 and 5.0 <= alto_pagina_cm <= 100.0):
                 self.messagebox.showerror("Tamaño inválido", "El ancho y alto personalizados deben estar entre 5 y 100 cm.")
                 return
-        configuracion_documento = {"tamano_pagina": tamano_pagina, "fuente_titulo": self.fuente_titulo_var.get().strip(), "fuente_texto": self.fuente_texto_var.get().strip(), "margen_cm": margen_cm, "ancho_pagina_cm": ancho_pagina_cm, "alto_pagina_cm": alto_pagina_cm}
-        self.resultado["valor"] = {"configuracion_visual": configuracion_visual, "configuracion_documento": configuracion_documento, "titulo": self.titulo_var.get().strip(), "subtitulo": self.subtitulo_var.get().strip(), "autor": self.autor_var.get().strip(), "imagen_portada": imagen_portada}
+        configuracion_documento = {
+            "tamano_pagina": tamano_pagina,
+            "fuente_titulo": self.fuente_titulo_var.get().strip(),
+            "fuente_texto": self.fuente_texto_var.get().strip(),
+            "margen_cm": margen_cm,
+            "ancho_pagina_cm": ancho_pagina_cm,
+            "alto_pagina_cm": alto_pagina_cm,
+        }
+        self.resultado["valor"] = {
+            "entrada": entrada,
+            "salida": salida,
+            "configuracion_visual": configuracion_visual,
+            "configuracion_documento": configuracion_documento,
+            "titulo": self.titulo_var.get().strip(),
+            "subtitulo": self.subtitulo_var.get().strip(),
+            "autor": self.autor_var.get().strip(),
+            "imagen_portada": imagen_portada,
+        }
         self.raiz.quit()
 
     def ajustar_tamano_ventana(self):
         self.raiz.update_idletasks()
-        ancho_objetivo = max(1080, min(1320, self.raiz.winfo_reqwidth() + 24))
-        alto_requerido = self.raiz.winfo_reqheight() + 20
+        ancho_objetivo = 980
         alto_pantalla = int(self.raiz.winfo_screenheight() * 0.9)
-        alto_objetivo = max(620, min(alto_requerido, alto_pantalla))
-        self.raiz.geometry(f"{ancho_objetivo}x{alto_objetivo}")
+        alto_objetivo = min(700, alto_pantalla)
+        ancho_pantalla = self.raiz.winfo_screenwidth()
+        x_actual = self.raiz.winfo_x()
+        y_actual = self.raiz.winfo_y()
+        ancho_actual = max(1, self.raiz.winfo_width())
+        alto_actual = max(1, self.raiz.winfo_height())
+        centro_x = x_actual + (ancho_actual // 2)
+        centro_y = y_actual + (alto_actual // 2)
+        x_objetivo = max(0, min(centro_x - (ancho_objetivo // 2), ancho_pantalla - ancho_objetivo))
+        y_objetivo = max(0, min(centro_y - (alto_objetivo // 2), self.raiz.winfo_screenheight() - alto_objetivo))
+        self.raiz.geometry(f"{ancho_objetivo}x{alto_objetivo}+{x_objetivo}+{y_objetivo}")
 
 
-def pedir_configuracion_interactiva(configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial=""):
-    dialogo = DialogoConfiguracionInteractiva(configuracion_inicial, configuracion_documento_inicial, titulo_inicial=titulo_inicial, subtitulo_inicial=subtitulo_inicial, autor_inicial=autor_inicial, portada_inicial=portada_inicial)
+def pedir_configuracion_interactiva(configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial="", entrada_inicial="", salida_inicial=""):
+    dialogo = DialogoConfiguracionInteractiva(configuracion_inicial, configuracion_documento_inicial, titulo_inicial=titulo_inicial, subtitulo_inicial=subtitulo_inicial, autor_inicial=autor_inicial, portada_inicial=portada_inicial, entrada_inicial=entrada_inicial, salida_inicial=salida_inicial)
     return dialogo.ejecutar()
