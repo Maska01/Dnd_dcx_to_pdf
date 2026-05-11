@@ -49,6 +49,9 @@ FUENTE_TITULO = "Helvetica-Bold"
 FUENTE_TEXTO = "Helvetica"
 TAMANO_PAGINA = A4
 MARGEN = 2 * cm
+ADORNOS_MARGEN_ACTIVOS = False
+ESTILO_ADORNO_MARGEN = "CLASICO"
+IMAGEN_ADORNO_MARGEN = ""
 MINIMO_RENGLONES_CAJA_ANTES_DE_MOVER = 3
 IMAGEN_PORTADA_PREDETERMINADA = r"C:\ruta\a\tu\imagen_portada.jpg"
 
@@ -64,6 +67,13 @@ TAMANOS_PAGINA_DISPONIBLES = {
 }
 
 OPCION_TAMANO_PERSONALIZADO = "PERSONALIZADO"
+
+ESTILOS_ADORNO_MARGEN_DISPONIBLES = {
+    "Clásico": "CLASICO",
+    "Floral": "FLORAL",
+    "Geométrico": "GEOMETRICO",
+    "Personalizado (PNG)": "PERSONALIZADO",
+}
 
 DIRECTORIO_FUENTES = Path(__file__).resolve().parent / "fonts"
 
@@ -206,6 +216,28 @@ def fuente_disponible(nombre_fuente):
 FUENTES_DISPONIBLES = recargar_fuentes_disponibles()
 
 
+def normalizar_estilo_adorno_margen(valor):
+    texto = str(valor or "").strip()
+    if not texto:
+        return ESTILO_ADORNO_MARGEN
+    texto_mayusculas = texto.upper()
+    if texto_mayusculas in ESTILOS_ADORNO_MARGEN_DISPONIBLES.values():
+        return texto_mayusculas
+    texto_normalizado = " ".join(texto.split()).casefold()
+    for etiqueta, codigo in ESTILOS_ADORNO_MARGEN_DISPONIBLES.items():
+        if texto_normalizado == etiqueta.casefold():
+            return codigo
+    return ESTILO_ADORNO_MARGEN
+
+
+def obtener_etiqueta_estilo_adorno_margen(codigo):
+    codigo_normalizado = normalizar_estilo_adorno_margen(codigo)
+    for etiqueta, valor in ESTILOS_ADORNO_MARGEN_DISPONIBLES.items():
+        if valor == codigo_normalizado:
+            return etiqueta
+    return next(iter(ESTILOS_ADORNO_MARGEN_DISPONIBLES))
+
+
 def _color_a_hex(color):
     return f"#{color.hexval()[2:].upper()}"
 
@@ -275,11 +307,15 @@ def obtener_configuracion_documento_predeterminada():
         "margen_cm": round(MARGEN / cm, 2),
         "ancho_pagina_cm": ancho_cm,
         "alto_pagina_cm": alto_cm,
+        "adornos_margen_activos": ADORNOS_MARGEN_ACTIVOS,
+        "estilo_adorno_margen": ESTILO_ADORNO_MARGEN,
+        "imagen_adorno_margen": IMAGEN_ADORNO_MARGEN,
     }
 
 
 def aplicar_configuracion_documento(configuracion_documento):
     global FUENTE_TITULO, FUENTE_TEXTO, TAMANO_PAGINA, MARGEN
+    global ADORNOS_MARGEN_ACTIVOS, ESTILO_ADORNO_MARGEN, IMAGEN_ADORNO_MARGEN
 
     valores = obtener_configuracion_documento_predeterminada()
     valores.update(configuracion_documento or {})
@@ -311,6 +347,10 @@ def aplicar_configuracion_documento(configuracion_documento):
         margen_cm = 2.0
     margen_cm = min(max(margen_cm, 0.5), 5.0)
     MARGEN = margen_cm * cm
+
+    ADORNOS_MARGEN_ACTIVOS = bool(valores.get("adornos_margen_activos", ADORNOS_MARGEN_ACTIVOS))
+    ESTILO_ADORNO_MARGEN = normalizar_estilo_adorno_margen(valores.get("estilo_adorno_margen", ESTILO_ADORNO_MARGEN))
+    IMAGEN_ADORNO_MARGEN = str(valores.get("imagen_adorno_margen", IMAGEN_ADORNO_MARGEN) or "").strip()
 
 
 def aplicar_configuracion_visual(configuracion_visual):

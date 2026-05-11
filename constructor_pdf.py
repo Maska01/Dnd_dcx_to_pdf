@@ -64,7 +64,161 @@ class DocumentoConIndice(BaseDocTemplate):
         canvas.saveState()
         canvas.setFillColor(cfg.COLOR_FONDO_PAGINA)
         canvas.rect(0, 0, doc.pagesize[0], doc.pagesize[1], stroke=0, fill=1)
+        self._dibujar_adornos_margen(canvas, doc)
         canvas.restoreState()
+
+    def _dibujar_adornos_margen(self, canvas, doc):
+        if not cfg.ADORNOS_MARGEN_ACTIVOS:
+            return
+        estilo = cfg.normalizar_estilo_adorno_margen(cfg.ESTILO_ADORNO_MARGEN)
+        if estilo == "PERSONALIZADO":
+            self._dibujar_adorno_personalizado(canvas, doc)
+            return
+        x, y, ancho, alto = self._obtener_rectangulo_adorno(doc)
+        if estilo == "FLORAL":
+            self._dibujar_adorno_floral(canvas, x, y, ancho, alto)
+            return
+        if estilo == "GEOMETRICO":
+            self._dibujar_adorno_geometrico(canvas, x, y, ancho, alto)
+            return
+        self._dibujar_adorno_clasico(canvas, x, y, ancho, alto)
+
+    @staticmethod
+    def _obtener_rectangulo_adorno(doc):
+        margen_horizontal = max(12, min(doc.leftMargin, doc.rightMargin) * 0.32)
+        margen_vertical = max(12, min(doc.topMargin, doc.bottomMargin) * 0.32)
+        x = margen_horizontal
+        y = margen_vertical
+        ancho = max(0, doc.pagesize[0] - (2 * margen_horizontal))
+        alto = max(0, doc.pagesize[1] - (2 * margen_vertical))
+        return x, y, ancho, alto
+
+    @staticmethod
+    def _dibujar_adorno_personalizado(canvas, doc):
+        ruta = str(cfg.IMAGEN_ADORNO_MARGEN or "").strip()
+        if not ruta or not os.path.exists(ruta):
+            return
+        try:
+            canvas.drawImage(ruta, 0, 0, width=doc.pagesize[0], height=doc.pagesize[1], mask="auto", preserveAspectRatio=False)
+        except Exception:
+            return
+
+    @staticmethod
+    def _dibujar_adorno_clasico(canvas, x, y, ancho, alto):
+        canvas.setStrokeColor(cfg.COLOR_PRIMARIO)
+        canvas.setLineWidth(1.2)
+        canvas.roundRect(x, y, ancho, alto, 10, stroke=1, fill=0)
+        canvas.setStrokeColor(cfg.COLOR_SECUNDARIO)
+        canvas.setLineWidth(0.5)
+        canvas.roundRect(x + 8, y + 8, max(0, ancho - 16), max(0, alto - 16), 8, stroke=1, fill=0)
+
+        centros = [
+            (x + (ancho / 2), y + alto),
+            (x + (ancho / 2), y),
+            (x, y + (alto / 2)),
+            (x + ancho, y + (alto / 2)),
+        ]
+        for centro_x, centro_y in centros:
+            canvas.circle(centro_x, centro_y, 3.2, stroke=1, fill=0)
+
+        esquinas = [
+            (x + 14, y + 14, 1, 1),
+            (x + ancho - 14, y + 14, -1, 1),
+            (x + 14, y + alto - 14, 1, -1),
+            (x + ancho - 14, y + alto - 14, -1, -1),
+        ]
+        for esquina_x, esquina_y, direccion_x, direccion_y in esquinas:
+            canvas.line(esquina_x, esquina_y, esquina_x + (10 * direccion_x), esquina_y)
+            canvas.line(esquina_x, esquina_y, esquina_x, esquina_y + (10 * direccion_y))
+            canvas.bezier(
+                esquina_x + (2 * direccion_x),
+                esquina_y + (8 * direccion_y),
+                esquina_x + (4 * direccion_x),
+                esquina_y + (4 * direccion_y),
+                esquina_x + (8 * direccion_x),
+                esquina_y + (4 * direccion_y),
+                esquina_x + (8 * direccion_x),
+                esquina_y + (2 * direccion_y),
+            )
+            canvas.circle(esquina_x + (4.5 * direccion_x), esquina_y + (4.5 * direccion_y), 1.3, stroke=1, fill=0)
+
+    @staticmethod
+    def _dibujar_adorno_geometrico(canvas, x, y, ancho, alto):
+        canvas.setStrokeColor(cfg.COLOR_SECUNDARIO)
+        canvas.setLineWidth(0.9)
+        canvas.setDash(5, 3)
+        canvas.rect(x, y, ancho, alto, stroke=1, fill=0)
+        canvas.setDash()
+        canvas.setStrokeColor(cfg.COLOR_PRIMARIO)
+        canvas.setLineWidth(1.4)
+
+        largo = 22
+        for esquina_x, esquina_y, direccion_x, direccion_y in [
+            (x, y, 1, 1),
+            (x + ancho, y, -1, 1),
+            (x, y + alto, 1, -1),
+            (x + ancho, y + alto, -1, -1),
+        ]:
+            canvas.line(esquina_x, esquina_y, esquina_x + (largo * direccion_x), esquina_y)
+            canvas.line(esquina_x, esquina_y, esquina_x, esquina_y + (largo * direccion_y))
+
+        centro_x = x + (ancho / 2)
+        centro_y = y + (alto / 2)
+        for desplazamiento_x, desplazamiento_y in [(0, alto), (0, 0), (0, centro_y - y), (ancho, centro_y - y)]:
+            base_x = x + desplazamiento_x
+            base_y = y + desplazamiento_y
+            canvas.line(base_x - 8, base_y, base_x, base_y + 8)
+            canvas.line(base_x, base_y + 8, base_x + 8, base_y)
+            canvas.line(base_x + 8, base_y, base_x, base_y - 8)
+            canvas.line(base_x, base_y - 8, base_x - 8, base_y)
+
+    @staticmethod
+    def _dibujar_adorno_floral(canvas, x, y, ancho, alto):
+        canvas.setStrokeColor(cfg.COLOR_PRIMARIO)
+        canvas.setLineWidth(0.8)
+        canvas.roundRect(x + 6, y + 6, max(0, ancho - 12), max(0, alto - 12), 14, stroke=1, fill=0)
+        canvas.setStrokeColor(cfg.COLOR_SECUNDARIO)
+        canvas.setLineWidth(1)
+
+        tamano_rizo = min(ancho, alto) * 0.08
+        esquinas = [
+            (x + 18, y + alto - 18, 1, -1),
+            (x + ancho - 18, y + alto - 18, -1, -1),
+            (x + 18, y + 18, 1, 1),
+            (x + ancho - 18, y + 18, -1, 1),
+        ]
+        for esquina_x, esquina_y, direccion_x, direccion_y in esquinas:
+            canvas.bezier(
+                esquina_x,
+                esquina_y,
+                esquina_x + (tamano_rizo * 0.4 * direccion_x),
+                esquina_y,
+                esquina_x + (tamano_rizo * 0.8 * direccion_x),
+                esquina_y + (tamano_rizo * 0.6 * direccion_y),
+                esquina_x + (tamano_rizo * direccion_x),
+                esquina_y + (tamano_rizo * direccion_y),
+            )
+            canvas.bezier(
+                esquina_x,
+                esquina_y,
+                esquina_x,
+                esquina_y + (tamano_rizo * 0.4 * direccion_y),
+                esquina_x + (tamano_rizo * 0.6 * direccion_x),
+                esquina_y + (tamano_rizo * 0.8 * direccion_y),
+                esquina_x + (tamano_rizo * direccion_x),
+                esquina_y + (tamano_rizo * direccion_y),
+            )
+            canvas.circle(esquina_x + (tamano_rizo * 0.55 * direccion_x), esquina_y + (tamano_rizo * 0.25 * direccion_y), 1.4, stroke=1, fill=0)
+            canvas.circle(esquina_x + (tamano_rizo * 0.25 * direccion_x), esquina_y + (tamano_rizo * 0.55 * direccion_y), 1.4, stroke=1, fill=0)
+
+        centro_superior_x = x + (ancho / 2)
+        centro_superior_y = y + alto - 6
+        centro_inferior_y = y + 6
+        onda = min(32, ancho * 0.08)
+        canvas.bezier(centro_superior_x - onda, centro_superior_y, centro_superior_x - (onda * 0.45), centro_superior_y + 10, centro_superior_x + (onda * 0.45), centro_superior_y + 10, centro_superior_x + onda, centro_superior_y)
+        canvas.bezier(centro_superior_x - (onda * 0.8), centro_superior_y - 10, centro_superior_x - (onda * 0.25), centro_superior_y - 2, centro_superior_x + (onda * 0.25), centro_superior_y - 2, centro_superior_x + (onda * 0.8), centro_superior_y - 10)
+        canvas.bezier(centro_superior_x - onda, centro_inferior_y, centro_superior_x - (onda * 0.45), centro_inferior_y - 10, centro_superior_x + (onda * 0.45), centro_inferior_y - 10, centro_superior_x + onda, centro_inferior_y)
+        canvas.bezier(centro_superior_x - (onda * 0.8), centro_inferior_y + 10, centro_superior_x - (onda * 0.25), centro_inferior_y + 2, centro_superior_x + (onda * 0.25), centro_inferior_y + 2, centro_superior_x + (onda * 0.8), centro_inferior_y + 10)
 
     def _crear_marcador(self, texto):
         self._contador_marcadores += 1

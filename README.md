@@ -47,6 +47,7 @@ Desde el menú inicial puedes:
 - ajustar colores de títulos, texto general y fondo de página,
 - personalizar texto, borde y fondo de cada caja especial,
 - modificar tamaño de página, márgenes y fuentes,
+- activar adornos de margen con preview, presets o un PNG transparente personalizado,
 - indicar título, subtítulo y autor,
 - activar una portada y elegir su imagen,
 - cambiar también los colores de `Tesoro/Premio` y `Objeto`.
@@ -54,6 +55,17 @@ Desde el menú inicial puedes:
 Además de las fuentes estándar de `ReportLab`, el menú detecta automáticamente cualquier archivo `.ttf` u `.otf` que coloques dentro de `fonts/` y lo expone como opción seleccionable. El nombre visible se deriva del nombre del archivo y el conversor intenta enlazar variantes comunes como `Regular`, `Bold`, `Italic`, `Oblique` y `BoldItalic` cuando las encuentra.
 
 Si la fuente personalizada no está disponible o no puede registrarse, el conversor mantiene el fallback actual a `Helvetica`/`Helvetica-Bold`.
+
+## Adornos de margen
+
+La pestaña `General` permite activar adornos decorativos para los márgenes del PDF.
+
+- Puedes desactivarlos por completo con una casilla.
+- Puedes elegir entre presets `Clásico`, `Floral` y `Geométrico`.
+- También puedes usar `Personalizado (PNG)` y seleccionar un archivo `.png` con transparencia.
+- El menú muestra un preview pequeño del estilo actual antes de generar el PDF.
+
+Para un adorno personalizado, lo ideal es preparar un PNG vertical del tamaño de la página o con una proporción parecida al papel final, dejando transparente el centro para que el contenido siga siendo legible.
 
 Si dejas título, subtítulo o autor en blanco, esos datos no se agregan al PDF.
 

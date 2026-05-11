@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from PIL import Image as PILImage, ImageTk
 from reportlab.lib.colors import HexColor
 
 import configuracion_pdf as cfg
@@ -111,6 +112,14 @@ class DialogoConfiguracionInteractiva:
         self.margen_var = None
         self.ancho_pagina_var = None
         self.alto_pagina_var = None
+        self.adornos_habilitados_var = None
+        self.estilo_adorno_var = None
+        self.imagen_adorno_var = None
+        self.combo_estilo_adorno = None
+        self.entrada_imagen_adorno = None
+        self.boton_imagen_adorno = None
+        self.canvas_preview_adorno = None
+        self.preview_adorno_imagen = None
         self.boton_cancelar = None
         self.boton_continuar = None
         self.boton_regresar = None
@@ -238,23 +247,26 @@ class DialogoConfiguracionInteractiva:
         self.tk.Label(resumen_frame, textvariable=self.resumen_salida_var, anchor="w", justify="left", wraplength=720).grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(6, 0))
         resumen_frame.columnconfigure(1, weight=1)
 
-        notebook, pestana_general, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes = self._crear_notebook(interior)
+        notebook, pestana_general, pestana_decoracion, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes = self._crear_notebook(interior)
         self.notebook = notebook
         self._construir_pestana_general(pestana_general)
+        self._construir_pestana_decoracion(pestana_decoracion)
         self._construir_pestanas_colores(pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes)
 
     def _crear_notebook(self, interior):
         notebook = self.ttk.Notebook(interior, style="MenuNotebook.TNotebook")
         notebook.pack(fill="both", expand=True)
         pestana_general = self.tk.Frame(notebook, padx=14, pady=14)
+        pestana_decoracion = self.tk.Frame(notebook, padx=14, pady=14)
         pestana_colores_base = self.tk.Frame(notebook, padx=14, pady=14)
         pestana_colores_cajas = self.tk.Frame(notebook, padx=14, pady=14)
         pestana_colores_personajes = self.tk.Frame(notebook, padx=14, pady=14)
         notebook.add(pestana_general, text="General")
+        notebook.add(pestana_decoracion, text="Decoración")
         notebook.add(pestana_colores_base, text="Colores base")
         notebook.add(pestana_colores_cajas, text="Cajas útiles")
         notebook.add(pestana_colores_personajes, text="NPC y combate")
-        return notebook, pestana_general, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes
+        return notebook, pestana_general, pestana_decoracion, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes
 
     def _construir_pestana_general(self, pestana_general):
         panel_superior = self.tk.Frame(pestana_general)
@@ -262,6 +274,21 @@ class DialogoConfiguracionInteractiva:
         panel_superior.columnconfigure(0, weight=1)
         self._construir_bloque_portada(panel_superior)
         self._construir_bloque_documento(panel_superior)
+
+    def _construir_pestana_decoracion(self, pestana_decoracion):
+        contenedor = self.tk.Frame(pestana_decoracion)
+        contenedor.pack(fill="both", expand=True)
+        contenedor.columnconfigure(0, weight=1)
+
+        descripcion = self.tk.Label(
+            contenedor,
+            text="Controla aquí las florituras y marcos decorativos del documento. Puedes usar un estilo predefinido o un PNG transparente personalizado.",
+            anchor="w",
+            justify="left",
+            wraplength=780,
+        )
+        descripcion.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        self._construir_bloque_adornos(contenedor, fila=1)
 
     def _construir_bloque_portada(self, panel_superior):
         titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", padx=10, pady=10)
@@ -313,6 +340,49 @@ class DialogoConfiguracionInteractiva:
         self.tk.Label(documento_frame, text="Rango recomendado: 0.5 a 5.0 cm").grid(row=3, column=2, sticky="w", padx=(8, 0), pady=3)
         self.tamano_pagina_var.trace_add("write", self.actualizar_estado_tamano_personalizado)
         self.actualizar_estado_tamano_personalizado()
+
+    def _construir_bloque_adornos(self, parent, fila=0):
+        adornos_frame = self.tk.LabelFrame(parent, text="Adornos de margen", padx=10, pady=10)
+        adornos_frame.grid(row=fila, column=0, sticky="nsew")
+
+        adornos_activos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
+        estilo_inicial = cfg.normalizar_estilo_adorno_margen(self.configuracion_documento_inicial.get("estilo_adorno_margen", cfg.ESTILO_ADORNO_MARGEN))
+        imagen_inicial = str(self.configuracion_documento_inicial.get("imagen_adorno_margen", "") or "").strip()
+
+        self.adornos_habilitados_var = self.tk.BooleanVar(value=adornos_activos)
+        self.estilo_adorno_var = self.tk.StringVar(value=cfg.obtener_etiqueta_estilo_adorno_margen(estilo_inicial))
+        self.imagen_adorno_var = self.tk.StringVar(value=imagen_inicial)
+
+        self.tk.Checkbutton(adornos_frame, text="Activar florituras en los márgenes", variable=self.adornos_habilitados_var, command=self.actualizar_estado_adornos).grid(row=0, column=0, columnspan=2, sticky="w")
+        self.tk.Label(adornos_frame, text="Estilo").grid(row=1, column=0, sticky="w", pady=(8, 3))
+        self.combo_estilo_adorno = self.ttk.Combobox(adornos_frame, textvariable=self.estilo_adorno_var, values=list(cfg.ESTILOS_ADORNO_MARGEN_DISPONIBLES.keys()), state="readonly", width=24)
+        self.combo_estilo_adorno.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
+        self.combo_estilo_adorno.bind("<<ComboboxSelected>>", lambda _evento: self.actualizar_estado_adornos())
+
+        self.tk.Label(adornos_frame, text="PNG personalizado").grid(row=2, column=0, sticky="w", pady=3)
+        self.entrada_imagen_adorno = self.tk.Entry(adornos_frame, textvariable=self.imagen_adorno_var, width=42, state="readonly")
+        self.entrada_imagen_adorno.grid(row=2, column=1, sticky="ew", padx=(8, 8), pady=3)
+        self.boton_imagen_adorno = self.tk.Button(adornos_frame, text="Elegir PNG...", command=self.elegir_imagen_adorno)
+        self.boton_imagen_adorno.grid(row=2, column=2, sticky="w", pady=3)
+
+        ayuda = self.tk.Label(
+            adornos_frame,
+            text="Usa presets para un marco rápido o un PNG transparente ya preparado como borde completo de página.",
+            anchor="w",
+            justify="left",
+            wraplength=470,
+        )
+        ayuda.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+
+        preview_frame = self.tk.Frame(adornos_frame, padx=8)
+        preview_frame.grid(row=0, column=3, rowspan=4, sticky="ne", padx=(16, 0))
+        self.tk.Label(preview_frame, text="Preview", anchor="w").pack(fill="x")
+        self.canvas_preview_adorno = self.tk.Canvas(preview_frame, width=180, height=120, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
+        self.canvas_preview_adorno.pack(pady=(6, 0))
+
+        adornos_frame.columnconfigure(1, weight=1)
+        self.imagen_adorno_var.trace_add("write", self._actualizar_preview_adornos)
+        self.actualizar_estado_adornos()
 
     def _construir_pestanas_colores(self, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes):
         grupos_colores = [
@@ -512,6 +582,125 @@ class DialogoConfiguracionInteractiva:
         if ruta:
             self.portada_var.set(ruta)
 
+    def elegir_imagen_adorno(self):
+        ruta = self.filedialog.askopenfilename(title="Selecciona un PNG para adornar los márgenes", filetypes=[("PNG con transparencia", "*.png"), ("Todos los archivos", "*.*")], parent=self.raiz)
+        if ruta:
+            self.imagen_adorno_var.set(ruta)
+
+    def _codigo_estilo_adorno_seleccionado(self):
+        return cfg.ESTILOS_ADORNO_MARGEN_DISPONIBLES.get(self.estilo_adorno_var.get(), cfg.ESTILO_ADORNO_MARGEN)
+
+    def actualizar_estado_adornos(self, *_args):
+        adornos_activos = self.adornos_habilitados_var.get()
+        estilo_personalizado = self._codigo_estilo_adorno_seleccionado() == "PERSONALIZADO"
+        if self.combo_estilo_adorno is not None:
+            self.combo_estilo_adorno.configure(state="readonly" if adornos_activos else "disabled")
+        if self.boton_imagen_adorno is not None:
+            self.boton_imagen_adorno.configure(state="normal" if adornos_activos and estilo_personalizado else "disabled")
+        if self.entrada_imagen_adorno is not None:
+            self.entrada_imagen_adorno.configure(state="readonly")
+        self._actualizar_preview_adornos()
+
+    def _actualizar_preview_adornos(self, *_args):
+        if self.canvas_preview_adorno is None:
+            return
+        canvas = self.canvas_preview_adorno
+        canvas.delete("all")
+        color_fondo = self.variables_color.get("color_fondo_pagina")
+        fondo = color_fondo.get() if color_fondo is not None else "#F7F1E3"
+        fondo = cfg._normalizar_color_hex(fondo, "#F7F1E3")
+        canvas.create_rectangle(16, 8, 164, 112, fill=fondo, outline="#D4C5AF")
+
+        if not self.adornos_habilitados_var.get():
+            canvas.create_text(90, 60, text="Sin adornos", fill="#666666", font=("Segoe UI", 9))
+            self.preview_adorno_imagen = None
+            return
+
+        estilo = self._codigo_estilo_adorno_seleccionado()
+        if estilo == "PERSONALIZADO":
+            self._dibujar_preview_adorno_personalizado(canvas)
+            return
+        if estilo == "FLORAL":
+            self._dibujar_preview_adorno_floral(canvas)
+            return
+        if estilo == "GEOMETRICO":
+            self._dibujar_preview_adorno_geometrico(canvas)
+            return
+        self._dibujar_preview_adorno_clasico(canvas)
+
+    def _dibujar_preview_adorno_personalizado(self, canvas):
+        ruta = self.imagen_adorno_var.get().strip()
+        if not ruta or not Path(ruta).is_file():
+            canvas.create_text(90, 54, text="Selecciona un PNG\ntransparente", fill="#666666", justify="center", font=("Segoe UI", 9))
+            canvas.create_rectangle(26, 18, 154, 102, outline="#8B0000", dash=(4, 3))
+            self.preview_adorno_imagen = None
+            return
+        try:
+            imagen = PILImage.open(ruta).convert("RGBA")
+            imagen.thumbnail((148, 104), PILImage.Resampling.LANCZOS)
+            self.preview_adorno_imagen = ImageTk.PhotoImage(imagen)
+            canvas.create_image(90, 60, image=self.preview_adorno_imagen)
+        except Exception:
+            canvas.create_text(90, 60, text="No se pudo cargar\nel PNG", fill="#7A1C1C", justify="center", font=("Segoe UI", 9))
+            self.preview_adorno_imagen = None
+
+    @staticmethod
+    def _dibujar_preview_adorno_clasico(canvas):
+        canvas.create_rectangle(26, 18, 154, 102, outline="#8B0000", width=2)
+        canvas.create_rectangle(34, 26, 146, 94, outline="#333333")
+        for x, y in [(90, 18), (90, 102), (26, 60), (154, 60)]:
+            canvas.create_oval(x - 3, y - 3, x + 3, y + 3, outline="#333333")
+        for esquina_x, esquina_y, direccion_x, direccion_y in [
+            (34, 26, 1, 1),
+            (146, 26, -1, 1),
+            (34, 94, 1, -1),
+            (146, 94, -1, -1),
+        ]:
+            canvas.create_line(esquina_x, esquina_y, esquina_x + (10 * direccion_x), esquina_y, fill="#333333")
+            canvas.create_line(esquina_x, esquina_y, esquina_x, esquina_y + (10 * direccion_y), fill="#333333")
+            canvas.create_line(
+                esquina_x + (2 * direccion_x),
+                esquina_y + (8 * direccion_y),
+                esquina_x + (4 * direccion_x),
+                esquina_y + (4 * direccion_y),
+                esquina_x + (8 * direccion_x),
+                esquina_y + (4 * direccion_y),
+                esquina_x + (8 * direccion_x),
+                esquina_y + (2 * direccion_y),
+                smooth=True,
+                fill="#333333",
+            )
+            canvas.create_oval(
+                esquina_x + (4 * direccion_x) - 1.5,
+                esquina_y + (4 * direccion_y) - 1.5,
+                esquina_x + (4 * direccion_x) + 1.5,
+                esquina_y + (4 * direccion_y) + 1.5,
+                outline="#333333",
+            )
+
+    @staticmethod
+    def _dibujar_preview_adorno_geometrico(canvas):
+        canvas.create_rectangle(26, 18, 154, 102, outline="#333333", width=2, dash=(5, 3))
+        for x1, y1, x2, y2 in [
+            (26, 18, 44, 18), (26, 18, 26, 36),
+            (154, 18, 136, 18), (154, 18, 154, 36),
+            (26, 102, 44, 102), (26, 102, 26, 84),
+            (154, 102, 136, 102), (154, 102, 154, 84),
+        ]:
+            canvas.create_line(x1, y1, x2, y2, fill="#8B0000", width=2)
+
+    @staticmethod
+    def _dibujar_preview_adorno_floral(canvas):
+        canvas.create_rectangle(30, 22, 150, 98, outline="#1a1a1a")
+        canvas.create_line(30, 34, 40, 24, 54, 36, 66, 22, smooth=True, fill="#8B0000", width=2)
+        canvas.create_line(150, 34, 140, 24, 126, 36, 114, 22, smooth=True, fill="#8B0000", width=2)
+        canvas.create_line(30, 86, 40, 96, 54, 84, 66, 98, smooth=True, fill="#8B0000", width=2)
+        canvas.create_line(150, 86, 140, 96, 126, 84, 114, 98, smooth=True, fill="#8B0000", width=2)
+        canvas.create_oval(58, 28, 63, 33, outline="#1a1a1a")
+        canvas.create_oval(117, 28, 122, 33, outline="#1a1a1a")
+        canvas.create_oval(58, 87, 63, 92, outline="#1a1a1a")
+        canvas.create_oval(117, 87, 122, 92, outline="#1a1a1a")
+
     def actualizar_estado_rutas(self, *_args):
         entrada_texto = self.entrada_var.get().strip()
         salida_texto = self.salida_var.get().strip()
@@ -564,11 +753,15 @@ class DialogoConfiguracionInteractiva:
         self.margen_var.set(str(self.configuracion_documento_inicial.get("margen_cm", 2.0)))
         self.ancho_pagina_var.set(str(self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
         self.alto_pagina_var.set(str(self.configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
+        self.adornos_habilitados_var.set(bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False)))
+        self.estilo_adorno_var.set(cfg.obtener_etiqueta_estilo_adorno_margen(self.configuracion_documento_inicial.get("estilo_adorno_margen", cfg.ESTILO_ADORNO_MARGEN)))
+        self.imagen_adorno_var.set(str(self.configuracion_documento_inicial.get("imagen_adorno_margen", "") or "").strip())
         portada_explicita = bool(self.portada_inicial and self.portada_inicial != cfg.IMAGEN_PORTADA_PREDETERMINADA)
         self.portada_habilitada_var.set(portada_explicita)
         self.portada_var.set(self.portada_inicial if portada_explicita else "")
         self.actualizar_estado_portada()
         self.actualizar_estado_tamano_personalizado()
+        self.actualizar_estado_adornos()
 
     def cancelar(self):
         self.resultado["valor"] = None
@@ -619,6 +812,17 @@ class DialogoConfiguracionInteractiva:
             if not (5.0 <= ancho_pagina_cm <= 100.0 and 5.0 <= alto_pagina_cm <= 100.0):
                 self.messagebox.showerror("Tamaño inválido", "El ancho y alto personalizados deben estar entre 5 y 100 cm.")
                 return
+        adornos_margen_activos = bool(self.adornos_habilitados_var.get())
+        estilo_adorno_margen = self._codigo_estilo_adorno_seleccionado()
+        imagen_adorno_margen = self.imagen_adorno_var.get().strip()
+        if adornos_margen_activos and estilo_adorno_margen == "PERSONALIZADO":
+            if not imagen_adorno_margen:
+                self.messagebox.showerror("Adorno incompleto", "Selecciona un PNG transparente para el borde personalizado o cambia a un preset.")
+                return
+            ruta_adorno = Path(imagen_adorno_margen)
+            if not ruta_adorno.exists() or not ruta_adorno.is_file() or ruta_adorno.suffix.lower() != ".png":
+                self.messagebox.showerror("PNG inválido", "El adorno personalizado debe ser un archivo `.png` existente.")
+                return
         configuracion_documento = {
             "tamano_pagina": tamano_pagina,
             "fuente_titulo": self.fuente_titulo_var.get().strip(),
@@ -626,6 +830,9 @@ class DialogoConfiguracionInteractiva:
             "margen_cm": margen_cm,
             "ancho_pagina_cm": ancho_pagina_cm,
             "alto_pagina_cm": alto_pagina_cm,
+            "adornos_margen_activos": adornos_margen_activos,
+            "estilo_adorno_margen": estilo_adorno_margen,
+            "imagen_adorno_margen": imagen_adorno_margen,
         }
         self.resultado["valor"] = {
             "entrada": entrada,
