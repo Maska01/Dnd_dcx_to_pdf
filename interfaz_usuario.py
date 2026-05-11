@@ -736,6 +736,20 @@ class DialogoConfiguracionInteractiva:
             (154, 102, 136, 102), (154, 102, 154, 84),
         ]:
             canvas.create_line(x1, y1, x2, y2, fill="#8B0000", width=2)
+        for centro_x, centro_y in [(38, 30), (142, 30), (38, 90), (142, 90)]:
+            canvas.create_line(centro_x, centro_y - 5, centro_x + 5, centro_y, fill="#8B0000")
+            canvas.create_line(centro_x + 5, centro_y, centro_x, centro_y + 5, fill="#8B0000")
+            canvas.create_line(centro_x, centro_y + 5, centro_x - 5, centro_y, fill="#8B0000")
+            canvas.create_line(centro_x - 5, centro_y, centro_x, centro_y - 5, fill="#8B0000")
+            canvas.create_line(centro_x - 2, centro_y, centro_x + 2, centro_y, fill="#8B0000")
+            canvas.create_line(centro_x, centro_y - 2, centro_x, centro_y + 2, fill="#8B0000")
+            canvas.create_oval(centro_x - 1, centro_y - 1, centro_x + 1, centro_y + 1, outline="#8B0000")
+        for centro_x, centro_y in [(26, 60), (154, 60), (90, 18), (90, 102)]:
+            canvas.create_line(centro_x - 7, centro_y, centro_x, centro_y - 7, fill="#8B0000")
+            canvas.create_line(centro_x, centro_y - 7, centro_x + 7, centro_y, fill="#8B0000")
+            canvas.create_line(centro_x + 7, centro_y, centro_x, centro_y + 7, fill="#8B0000")
+            canvas.create_line(centro_x, centro_y + 7, centro_x - 7, centro_y, fill="#8B0000")
+            canvas.create_oval(centro_x - 1.2, centro_y - 1.2, centro_x + 1.2, centro_y + 1.2, outline="#8B0000")
 
     @staticmethod
     def _dibujar_preview_adorno_floral(canvas):

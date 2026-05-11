@@ -161,16 +161,26 @@ class DocumentoConIndice(BaseDocTemplate):
         ]:
             canvas.line(esquina_x, esquina_y, esquina_x + (largo * direccion_x), esquina_y)
             canvas.line(esquina_x, esquina_y, esquina_x, esquina_y + (largo * direccion_y))
+            centro_motivo_x = esquina_x + (12 * direccion_x)
+            centro_motivo_y = esquina_y + (12 * direccion_y)
+            canvas.line(centro_motivo_x, centro_motivo_y + (5 * direccion_y), centro_motivo_x + (5 * direccion_x), centro_motivo_y)
+            canvas.line(centro_motivo_x + (5 * direccion_x), centro_motivo_y, centro_motivo_x, centro_motivo_y - (5 * direccion_y))
+            canvas.line(centro_motivo_x, centro_motivo_y - (5 * direccion_y), centro_motivo_x - (5 * direccion_x), centro_motivo_y)
+            canvas.line(centro_motivo_x - (5 * direccion_x), centro_motivo_y, centro_motivo_x, centro_motivo_y + (5 * direccion_y))
+            canvas.line(centro_motivo_x - (2.2 * direccion_x), centro_motivo_y, centro_motivo_x + (2.2 * direccion_x), centro_motivo_y)
+            canvas.line(centro_motivo_x, centro_motivo_y - (2.2 * direccion_y), centro_motivo_x, centro_motivo_y + (2.2 * direccion_y))
+            canvas.circle(centro_motivo_x, centro_motivo_y, 0.9, stroke=1, fill=0)
 
         centro_x = x + (ancho / 2)
         centro_y = y + (alto / 2)
-        for desplazamiento_x, desplazamiento_y in [(0, alto), (0, 0), (0, centro_y - y), (ancho, centro_y - y)]:
+        for desplazamiento_x, desplazamiento_y in [(0, centro_y - y), (ancho, centro_y - y), (ancho / 2, alto), (ancho / 2, 0)]:
             base_x = x + desplazamiento_x
             base_y = y + desplazamiento_y
             canvas.line(base_x - 8, base_y, base_x, base_y + 8)
             canvas.line(base_x, base_y + 8, base_x + 8, base_y)
             canvas.line(base_x + 8, base_y, base_x, base_y - 8)
             canvas.line(base_x, base_y - 8, base_x - 8, base_y)
+            canvas.circle(base_x, base_y, 1.1, stroke=1, fill=0)
 
     @staticmethod
     def _dibujar_motivo_floral_medieval(canvas, origen_x, origen_y, direccion_x, direccion_y, tamano):
