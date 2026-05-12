@@ -99,8 +99,10 @@ class DialogoConfiguracionInteractiva:
         self.estado_rutas_label = None
         self.entrada_portada = None
         self.boton_portada = None
+        self.etiqueta_ayuda_portada = None
         self.entrada_ancho = None
         self.entrada_alto = None
+        self.etiqueta_ayuda_tamano = None
         self.titulo_var = None
         self.subtitulo_var = None
         self.autor_var = None
@@ -122,6 +124,7 @@ class DialogoConfiguracionInteractiva:
         self.boton_imagen_adorno = None
         self.canvas_preview_adorno = None
         self.preview_adorno_imagen = None
+        self.etiqueta_estado_adorno = None
         self.boton_cancelar = None
         self.boton_continuar = None
         self.boton_regresar = None
@@ -331,6 +334,8 @@ class DialogoConfiguracionInteractiva:
         self.entrada_portada.grid(row=3, column=1, sticky="ew", padx=(8, 8), pady=(8, 4))
         self.boton_portada = self.tk.Button(titulo_frame, text="Elegir imagen...", command=self.elegir_portada)
         self.boton_portada.grid(row=3, column=2, sticky="w", pady=(8, 4))
+        self.etiqueta_ayuda_portada = self.tk.Label(titulo_frame, text="", anchor="w", justify="left", wraplength=720, fg="#5F5F5F")
+        self.etiqueta_ayuda_portada.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(4, 0))
         titulo_frame.columnconfigure(1, weight=1)
         self.actualizar_estado_portada()
 
@@ -362,6 +367,8 @@ class DialogoConfiguracionInteractiva:
         self.combo_margen.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=3)
         self.etiqueta_rango_margen = self.tk.Label(documento_frame, text="")
         self.etiqueta_rango_margen.grid(row=3, column=2, sticky="w", padx=(8, 0), pady=3)
+        self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=520, fg="#5F5F5F")
+        self.etiqueta_ayuda_tamano.grid(row=4, column=0, columnspan=4, sticky="ew", pady=(6, 0))
         self.margen_var.trace_add("write", self._registrar_margen_seleccionado)
         self.tamano_pagina_var.trace_add("write", self.actualizar_estado_tamano_personalizado)
         self.actualizar_estado_tamano_personalizado()
@@ -399,10 +406,12 @@ class DialogoConfiguracionInteractiva:
             wraplength=470,
         )
         ayuda.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+        self.etiqueta_estado_adorno = self.tk.Label(adornos_frame, text="", anchor="w", justify="left", wraplength=470, fg="#5F5F5F")
+        self.etiqueta_estado_adorno.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(6, 0))
 
         preview_frame = self.tk.Frame(adornos_frame, padx=8)
-        preview_frame.grid(row=0, column=3, rowspan=4, sticky="ne", padx=(16, 0))
-        self.tk.Label(preview_frame, text="Preview", anchor="w").pack(fill="x")
+        preview_frame.grid(row=0, column=3, rowspan=5, sticky="ne", padx=(16, 0))
+        self.tk.Label(preview_frame, text="Vista previa", anchor="w").pack(fill="x")
         self.canvas_preview_adorno = self.tk.Canvas(preview_frame, width=180, height=120, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
         self.canvas_preview_adorno.pack(pady=(6, 0))
 
@@ -753,6 +762,17 @@ class DialogoConfiguracionInteractiva:
             self.boton_imagen_adorno.configure(state="normal" if adornos_activos and estilo_personalizado else "disabled")
         if self.entrada_imagen_adorno is not None:
             self.entrada_imagen_adorno.configure(state="readonly")
+        if self.etiqueta_estado_adorno is not None:
+            if not adornos_activos:
+                texto_estado = "Los adornos están desactivados. Puedes activarlos más tarde sin perder el PNG o el preset que ya tengas elegido."
+            elif estilo_personalizado:
+                if self.imagen_adorno_var.get().strip():
+                    texto_estado = "Se usará el PNG seleccionado como borde completo de página. Conviene dejar el centro transparente para no tapar el contenido."
+                else:
+                    texto_estado = "Has elegido borde personalizado. Selecciona un PNG transparente para completar esta opción."
+            else:
+                texto_estado = f"Se aplicará el preset {self.estilo_adorno_var.get()} y el margen mínimo pasará al rango decorado mientras esté activo."
+            self.etiqueta_estado_adorno.configure(text=texto_estado)
         self._actualizar_preview_adornos()
 
     def _actualizar_preview_adornos(self, *_args):
@@ -928,12 +948,28 @@ class DialogoConfiguracionInteractiva:
         estado = "normal" if self.portada_habilitada_var.get() else "disabled"
         self.boton_portada.configure(state=estado)
         self.entrada_portada.configure(state="readonly")
+        if self.etiqueta_ayuda_portada is not None:
+            ruta_portada = self.portada_var.get().strip()
+            if self.portada_habilitada_var.get():
+                if ruta_portada:
+                    texto = "La portada está activa y usará la imagen seleccionada. Si la desactivas, la ruta se conservará por si quieres reactivarla luego."
+                else:
+                    texto = "Activa la portada solo si quieres añadir una imagen inicial al PDF. Puedes dejar título, subtítulo y autor vacíos sin problema."
+            else:
+                texto = "La portada está desactivada. Si ya elegiste una imagen, se conserva para que puedas recuperarla más tarde con un clic."
+            self.etiqueta_ayuda_portada.configure(text=texto)
 
     def actualizar_estado_tamano_personalizado(self, *_args):
         es_personalizado = self.tamano_pagina_var.get().strip().upper() == cfg.OPCION_TAMANO_PERSONALIZADO
         estado = "normal" if es_personalizado else "disabled"
         self.entrada_ancho.configure(state=estado)
         self.entrada_alto.configure(state=estado)
+        if self.etiqueta_ayuda_tamano is not None:
+            if es_personalizado:
+                texto = "Introduce ancho y alto entre 5 y 100 cm. Estos campos solo se aplican cuando el tamaño de página es PERSONALIZADO."
+            else:
+                texto = "Usa un tamaño estándar para una configuración rápida, o cambia a PERSONALIZADO si necesitas medidas exactas."
+            self.etiqueta_ayuda_tamano.configure(text=texto)
 
     def restablecer_valores(self):
         for clave, valor in self.configuracion_inicial.items():
