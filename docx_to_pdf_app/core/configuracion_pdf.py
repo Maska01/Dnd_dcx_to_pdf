@@ -55,8 +55,30 @@ MARGEN_MAXIMO_CM = 3.5
 ADORNOS_MARGEN_ACTIVOS = False
 ESTILO_ADORNO_MARGEN = "CLASICO"
 IMAGEN_ADORNO_MARGEN = ""
+PORTADA_PAGINA_COMPLETA = False
+PORTADA_MODO_AJUSTE = "CUBRIR"
 MINIMO_RENGLONES_CAJA_ANTES_DE_MOVER = 3
 IMAGEN_PORTADA_PREDETERMINADA = r"C:\ruta\a\tu\imagen_portada.jpg"
+
+MODOS_AJUSTE_PORTADA_DISPONIBLES = {
+    "Cubrir hoja completa": "CUBRIR",
+    "Encajar completa sin recorte": "ENCAJAR",
+}
+
+
+def normalizar_modo_ajuste_portada(valor):
+    texto = str(valor or "").strip().upper()
+    if texto == "ENCAJAR":
+        return "ENCAJAR"
+    return "CUBRIR"
+
+
+def obtener_etiqueta_modo_ajuste_portada(valor):
+    codigo = normalizar_modo_ajuste_portada(valor)
+    for etiqueta, valor_codigo in MODOS_AJUSTE_PORTADA_DISPONIBLES.items():
+        if valor_codigo == codigo:
+            return etiqueta
+    return "Cubrir hoja completa"
 
 TAMANOS_PAGINA_DISPONIBLES = {
     "A3": A3,
@@ -326,12 +348,14 @@ def obtener_configuracion_documento_predeterminada():
         "adornos_margen_activos": ADORNOS_MARGEN_ACTIVOS,
         "estilo_adorno_margen": ESTILO_ADORNO_MARGEN,
         "imagen_adorno_margen": IMAGEN_ADORNO_MARGEN,
+        "portada_pagina_completa": PORTADA_PAGINA_COMPLETA,
+        "portada_modo_ajuste": PORTADA_MODO_AJUSTE,
     }
 
 
 def aplicar_configuracion_documento(configuracion_documento):
     global FUENTE_TITULO, FUENTE_TEXTO, TAMANO_PAGINA, MARGEN
-    global ADORNOS_MARGEN_ACTIVOS, ESTILO_ADORNO_MARGEN, IMAGEN_ADORNO_MARGEN
+    global ADORNOS_MARGEN_ACTIVOS, ESTILO_ADORNO_MARGEN, IMAGEN_ADORNO_MARGEN, PORTADA_PAGINA_COMPLETA, PORTADA_MODO_AJUSTE
 
     valores = obtener_configuracion_documento_predeterminada()
     valores.update(configuracion_documento or {})
@@ -360,6 +384,8 @@ def aplicar_configuracion_documento(configuracion_documento):
     ADORNOS_MARGEN_ACTIVOS = bool(valores.get("adornos_margen_activos", ADORNOS_MARGEN_ACTIVOS))
     ESTILO_ADORNO_MARGEN = normalizar_estilo_adorno_margen(valores.get("estilo_adorno_margen", ESTILO_ADORNO_MARGEN))
     IMAGEN_ADORNO_MARGEN = str(valores.get("imagen_adorno_margen", IMAGEN_ADORNO_MARGEN) or "").strip()
+    PORTADA_PAGINA_COMPLETA = bool(valores.get("portada_pagina_completa", PORTADA_PAGINA_COMPLETA))
+    PORTADA_MODO_AJUSTE = normalizar_modo_ajuste_portada(valores.get("portada_modo_ajuste", PORTADA_MODO_AJUSTE))
 
     margen_cm = normalizar_margen_cm(valores.get("margen_cm", MARGEN / cm), adornos_activos=ADORNOS_MARGEN_ACTIVOS)
     MARGEN = margen_cm * cm

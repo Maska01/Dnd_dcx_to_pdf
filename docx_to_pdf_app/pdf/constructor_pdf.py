@@ -54,22 +54,48 @@ def _medir_altura_flowable(flowable, ancho_disponible, alto_disponible):
     return alto
 
 
-def _calcular_dimensiones_portada(imagen_portada, ancho_maximo, alto_maximo):
+def _obtener_dimensiones_imagen(imagen_portada):
     with PILImage.open(imagen_portada) as imagen:
-        ancho_original, alto_original = imagen.size
+        return imagen.size
+
+
+def _calcular_dimensiones_portada(imagen_portada, ancho_maximo, alto_maximo):
+    ancho_original, alto_original = _obtener_dimensiones_imagen(imagen_portada)
     if not ancho_original or not alto_original:
         raise ValueError("La imagen de portada no tiene dimensiones válidas.")
     escala = min(ancho_maximo / ancho_original, alto_maximo / alto_original)
     return ancho_original * escala, alto_original * escala
 
 
-def _construir_pagina_portada_imagen(historia, ancho_util, alto_util, imagen_portada=None):
+def _calcular_portada_cubriendo_pagina(imagen_portada, ancho_pagina, alto_pagina):
+    ancho_original, alto_original = _obtener_dimensiones_imagen(imagen_portada)
+    if not ancho_original or not alto_original:
+        raise ValueError("La imagen de portada no tiene dimensiones válidas.")
+    escala = max(ancho_pagina / ancho_original, alto_pagina / alto_original)
+    ancho_final = ancho_original * escala
+    alto_final = alto_original * escala
+    posicion_x = (ancho_pagina - ancho_final) / 2
+    posicion_y = (alto_pagina - alto_final) / 2
+    return posicion_x, posicion_y, ancho_final, alto_final
+
+
+def _calcular_portada_encajada_en_pagina(imagen_portada, ancho_pagina, alto_pagina):
+    ancho_original, alto_original = _obtener_dimensiones_imagen(imagen_portada)
+    if not ancho_original or not alto_original:
+        raise ValueError("La imagen de portada no tiene dimensiones válidas.")
+    return 0, 0, ancho_pagina, alto_pagina
+
+
+def _construir_pagina_portada_imagen(historia, ancho_util, alto_util, imagen_portada=None, portada_pagina_completa=False):
     if not imagen_portada:
         return False
     if not os.path.exists(imagen_portada):
         print(f"ℹ️  Imagen de portada no encontrada en: {imagen_portada} (se omite). Cambia la ruta cuando tengas la imagen.")
         return False
     try:
+        if portada_pagina_completa:
+            historia.append(Spacer(1, 1))
+            return True
         ancho_portada, alto_portada = _calcular_dimensiones_portada(imagen_portada, ancho_util, alto_util)
         imagen_portada_flujo = Image(imagen_portada, width=ancho_portada, height=alto_portada)
         imagen_portada_flujo.hAlign = "CENTER"
@@ -114,8 +140,14 @@ class DocumentoConIndice(BaseDocTemplate):
         frame = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="normal")
         self.ancho_util_contenido = self.width - frame.leftPadding - frame.rightPadding
         self.alto_util_contenido = self.height - frame.topPadding - frame.bottomPadding
+        self.portada_pagina_completa_activa = False
+        self.portada_pagina_completa_ruta = ""
         self.addPageTemplates([PageTemplate(id="Todo", frames=frame, onPage=self._dibujar_fondo_pagina)])
         self._contador_marcadores = 0
+
+    def configurar_portada_pagina_completa(self, imagen_portada=None, activa=False):
+        self.portada_pagina_completa_activa = bool(activa and imagen_portada and os.path.exists(imagen_portada))
+        self.portada_pagina_completa_ruta = str(imagen_portada or "").strip() if self.portada_pagina_completa_activa else ""
 
     def beforeDocument(self):
         super().beforeDocument()
@@ -123,10 +155,28 @@ class DocumentoConIndice(BaseDocTemplate):
 
     def _dibujar_fondo_pagina(self, canvas, doc):
         canvas.saveState()
+        if self._dibujar_portada_pagina_completa(canvas, doc):
+            canvas.restoreState()
+            return
         canvas.setFillColor(cfg.COLOR_FONDO_PAGINA)
         canvas.rect(0, 0, doc.pagesize[0], doc.pagesize[1], stroke=0, fill=1)
         self._dibujar_adornos_margen(canvas, doc)
         canvas.restoreState()
+
+    def _dibujar_portada_pagina_completa(self, canvas, doc):
+        if doc.page != 1 or not self.portada_pagina_completa_activa or not self.portada_pagina_completa_ruta:
+            return False
+        try:
+            if cfg.PORTADA_MODO_AJUSTE == "ENCAJAR":
+                canvas.setFillColor(cfg.COLOR_FONDO_PAGINA)
+                canvas.rect(0, 0, doc.pagesize[0], doc.pagesize[1], stroke=0, fill=1)
+                posicion_x, posicion_y, ancho, alto = _calcular_portada_encajada_en_pagina(self.portada_pagina_completa_ruta, doc.pagesize[0], doc.pagesize[1])
+            else:
+                posicion_x, posicion_y, ancho, alto = _calcular_portada_cubriendo_pagina(self.portada_pagina_completa_ruta, doc.pagesize[0], doc.pagesize[1])
+            canvas.drawImage(self.portada_pagina_completa_ruta, posicion_x, posicion_y, width=ancho, height=alto, mask="auto")
+            return True
+        except Exception:
+            return False
 
     def _dibujar_adornos_margen(self, canvas, doc):
         if not cfg.ADORNOS_MARGEN_ACTIVOS:
@@ -658,11 +708,12 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None, subtitulo=None, 
     documento_word = Document(ruta_docx)
     estilos = cfg.construir_estilos()
     documento_pdf = DocumentoConIndice(str(ruta_pdf), pagesize=cfg.TAMANO_PAGINA, leftMargin=cfg.MARGEN, rightMargin=cfg.MARGEN, topMargin=cfg.MARGEN, bottomMargin=cfg.MARGEN, title=titulo or "Aventura", author=autor or "")
+    documento_pdf.configurar_portada_pagina_completa(imagen_portada=imagen_portada, activa=cfg.PORTADA_PAGINA_COMPLETA)
     ancho_util = documento_pdf.ancho_util_contenido
     alto_util = documento_pdf.alto_util_contenido
     historia = []
     if titulo or subtitulo or autor or imagen_portada:
-        portada_agregada = _construir_pagina_portada_imagen(historia, ancho_util, alto_util, imagen_portada=imagen_portada)
+        portada_agregada = _construir_pagina_portada_imagen(historia, ancho_util, alto_util, imagen_portada=imagen_portada, portada_pagina_completa=cfg.PORTADA_PAGINA_COMPLETA)
         metadatos_disponibles = bool(titulo or subtitulo or autor)
         if portada_agregada and metadatos_disponibles:
             historia.append(PageBreak())

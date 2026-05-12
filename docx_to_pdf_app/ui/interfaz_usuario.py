@@ -85,6 +85,9 @@ class DialogoConfiguracionInteractiva:
         self.variables_color = {}
         self.vistas_previas = {}
         self.notebook = None
+        self.contenedor_principal = None
+        self.interior_principal = None
+        self.barra_botones = None
         self.entrada_var = None
         self.salida_var = None
         self.estado_rutas_var = None
@@ -109,6 +112,10 @@ class DialogoConfiguracionInteractiva:
         self.autor_var = None
         self.portada_habilitada_var = None
         self.portada_var = None
+        self.portada_pagina_completa_var = None
+        self.check_portada_pagina_completa = None
+        self.portada_modo_ajuste_var = None
+        self.combo_portada_modo_ajuste = None
         self.tamano_pagina_var = None
         self.fuente_titulo_var = None
         self.fuente_texto_var = None
@@ -139,9 +146,9 @@ class DialogoConfiguracionInteractiva:
         self.margen_con_adornos_guardado = None
         self.adornos_activos_previos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
         self.ancho_ventana_objetivo = 980
-        self.alto_ventana_objetivo = 700
-        self.ancho_ventana_minimo = 860
-        self.alto_ventana_minimo = 620
+        self.alto_ventana_objetivo = 760
+        self.ancho_ventana_minimo = 900
+        self.alto_ventana_minimo = 700
 
     def ejecutar(self):
         if not self._importar_tkinter():
@@ -163,6 +170,7 @@ class DialogoConfiguracionInteractiva:
             }
         self._crear_ventana()
         self._construir_interfaz()
+        self._calcular_dimensiones_compartidas_ventana()
         self.raiz.protocol("WM_DELETE_WINDOW", self.cancelar)
         self.raiz.after(10, self.ajustar_tamano_ventana)
         self.raiz.mainloop()
@@ -193,9 +201,9 @@ class DialogoConfiguracionInteractiva:
         ancho_pantalla = max(800, int(self.raiz.winfo_screenwidth()))
         alto_pantalla = max(600, int(self.raiz.winfo_screenheight()))
         ancho_objetivo = min(980, max(820, ancho_pantalla - 80))
-        alto_objetivo = min(700, max(620, alto_pantalla - 120))
-        ancho_minimo = min(ancho_objetivo, max(760, ancho_pantalla - 140))
-        alto_minimo = min(alto_objetivo, max(560, alto_pantalla - 180))
+        alto_objetivo = min(760, max(680, alto_pantalla - 100))
+        ancho_minimo = min(ancho_objetivo, max(820, ancho_pantalla - 140))
+        alto_minimo = min(alto_objetivo, max(640, alto_pantalla - 160))
         self.ancho_ventana_objetivo = ancho_objetivo
         self.alto_ventana_objetivo = alto_objetivo
         self.ancho_ventana_minimo = ancho_minimo
@@ -204,9 +212,11 @@ class DialogoConfiguracionInteractiva:
     def _construir_interfaz(self):
         contenedor = self.tk.Frame(self.raiz, padx=10, pady=10)
         contenedor.pack(fill="both", expand=True)
+        self.contenedor_principal = contenedor
         self._configurar_estilo_notebook()
         interior = self.tk.Frame(contenedor)
         interior.pack(fill="both", expand=True)
+        self.interior_principal = interior
         self.variables_color = {clave: self.tk.StringVar(value=valor) for clave, valor in self.configuracion_inicial.items()}
         self.encabezado(interior)
         self.contenedor_paginas = self.tk.Frame(interior)
@@ -326,6 +336,8 @@ class DialogoConfiguracionInteractiva:
         portada_explicita = bool(self.portada_inicial and self.portada_inicial != cfg.IMAGEN_PORTADA_PREDETERMINADA)
         self.portada_habilitada_var = self.tk.BooleanVar(value=portada_explicita)
         self.portada_var = self.tk.StringVar(value=self.portada_inicial if portada_explicita else "")
+        self.portada_pagina_completa_var = self.tk.BooleanVar(value=bool(self.configuracion_documento_inicial.get("portada_pagina_completa", False)))
+        self.portada_modo_ajuste_var = self.tk.StringVar(value=cfg.obtener_etiqueta_modo_ajuste_portada(self.configuracion_documento_inicial.get("portada_modo_ajuste", "CUBRIR")))
         self.tk.Label(titulo_frame, text="Título de la aventura (opcional)").grid(row=0, column=0, sticky="w")
         self.tk.Entry(titulo_frame, textvariable=self.titulo_var, width=42).grid(row=0, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
         self.tk.Label(titulo_frame, text="Subtítulo (opcional)").grid(row=1, column=0, sticky="w")
@@ -337,8 +349,24 @@ class DialogoConfiguracionInteractiva:
         self.entrada_portada.grid(row=3, column=1, sticky="ew", padx=(8, 8), pady=(8, 4))
         self.boton_portada = self.tk.Button(titulo_frame, text="Elegir imagen...", command=self.elegir_portada)
         self.boton_portada.grid(row=3, column=2, sticky="w", pady=(8, 4))
+        self.check_portada_pagina_completa = self.tk.Checkbutton(
+            titulo_frame,
+            text="Ajustar imagen a hoja entera",
+            variable=self.portada_pagina_completa_var,
+            command=self.actualizar_estado_portada,
+        )
+        self.check_portada_pagina_completa.grid(row=4, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(0, 4))
+        self.tk.Label(titulo_frame, text="Modo de ajuste").grid(row=5, column=0, sticky="w", pady=(0, 4))
+        self.combo_portada_modo_ajuste = self.ttk.Combobox(
+            titulo_frame,
+            textvariable=self.portada_modo_ajuste_var,
+            values=list(cfg.MODOS_AJUSTE_PORTADA_DISPONIBLES.keys()),
+            state="readonly",
+            width=28,
+        )
+        self.combo_portada_modo_ajuste.grid(row=5, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(0, 4))
         self.etiqueta_ayuda_portada = self.tk.Label(titulo_frame, text="", anchor="w", justify="left", wraplength=820, fg="#5F5F5F")
-        self.etiqueta_ayuda_portada.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(4, 0))
+        self.etiqueta_ayuda_portada.grid(row=6, column=0, columnspan=3, sticky="ew", pady=(4, 0))
         titulo_frame.columnconfigure(1, weight=1)
         self.actualizar_estado_portada()
 
@@ -472,20 +500,23 @@ class DialogoConfiguracionInteractiva:
     def _construir_botones(self, contenedor):
         botones = self.tk.Frame(contenedor, padx=10, pady=8)
         botones.pack(fill="x")
+        self.barra_botones = botones
+        botones.columnconfigure(0, weight=1)
+        botones.columnconfigure(1, weight=1)
         self.estado_operacion_var = self.tk.StringVar(value="")
         self.etiqueta_estado_operacion = self.tk.Label(botones, textvariable=self.estado_operacion_var, anchor="w", justify="left", fg="#5F5F5F")
-        self.etiqueta_estado_operacion.pack(fill="x", pady=(0, 6))
+        self.etiqueta_estado_operacion.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 6))
         acciones_izquierda = self.tk.Frame(botones)
-        acciones_izquierda.pack(side="left")
+        acciones_izquierda.grid(row=1, column=0, sticky="w")
         acciones_derecha = self.tk.Frame(botones)
-        acciones_derecha.pack(side="right")
+        acciones_derecha.grid(row=1, column=1, sticky="e")
 
-        self.boton_restablecer = self.ttk.Button(acciones_izquierda, text="Restablecer valores", width=18, style="Secundario.TButton", command=self.restablecer_valores)
-        self.boton_regresar = self.ttk.Button(acciones_izquierda, text="Regresar", width=12, style="Secundario.TButton", command=self.regresar_a_archivos)
+        self.boton_restablecer = self.ttk.Button(acciones_izquierda, text="Restablecer valores", style="Secundario.TButton", command=self.restablecer_valores)
+        self.boton_regresar = self.ttk.Button(acciones_izquierda, text="Regresar", style="Secundario.TButton", command=self.regresar_a_archivos)
 
-        self.boton_cancelar = self.ttk.Button(acciones_derecha, text="Cancelar", width=12, style="Secundario.TButton", command=self.cancelar)
-        self.boton_continuar = self.ttk.Button(acciones_derecha, text="Continuar", width=15, style="Primario.TButton", command=self.continuar_a_personalizacion)
-        self.boton_aceptar = self.ttk.Button(acciones_derecha, text="Aceptar", width=15, style="Primario.TButton", command=self.aceptar)
+        self.boton_cancelar = self.ttk.Button(acciones_derecha, text="Cancelar", style="Secundario.TButton", command=self.cancelar)
+        self.boton_continuar = self.ttk.Button(acciones_derecha, text="Continuar", style="Primario.TButton", command=self.continuar_a_personalizacion)
+        self.boton_aceptar = self.ttk.Button(acciones_derecha, text="Aceptar", style="Primario.TButton", command=self.aceptar)
 
     def actualizar_preview(self, clave):
         valor = cfg._normalizar_color_hex(self.variables_color[clave].get(), self.configuracion_inicial[clave])
@@ -595,6 +626,34 @@ class DialogoConfiguracionInteractiva:
         self.boton_regresar.pack(side="left", padx=(8, 0))
         self.boton_cancelar.pack(side="left")
         self.boton_aceptar.pack(side="left", padx=(14, 0))
+        self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
+
+    def _calcular_dimensiones_compartidas_ventana(self):
+        if self.raiz is None:
+            return
+        self.raiz.update_idletasks()
+        ancho_pantalla = max(800, int(self.raiz.winfo_screenwidth()))
+        alto_pantalla = max(600, int(self.raiz.winfo_screenheight()))
+
+        ancho_paginas = max(self.pagina_archivos.winfo_reqwidth(), self.pagina_personalizacion.winfo_reqwidth())
+        alto_paginas = max(self.pagina_archivos.winfo_reqheight(), self.pagina_personalizacion.winfo_reqheight())
+        ancho_encabezado = max(self.titulo_encabezado.winfo_reqwidth(), self.descripcion_encabezado.winfo_reqwidth())
+        alto_encabezado = self.titulo_encabezado.winfo_reqheight() + self.descripcion_encabezado.winfo_reqheight() + 20
+        ancho_botones = self.barra_botones.winfo_reqwidth() if self.barra_botones is not None else 0
+        alto_botones = self.barra_botones.winfo_reqheight() if self.barra_botones is not None else 0
+
+        ancho_requerido = max(ancho_paginas, ancho_encabezado, ancho_botones) + 80
+        alto_requerido = alto_paginas + alto_encabezado + alto_botones + 70
+
+        ancho_objetivo = min(max(self.ancho_ventana_objetivo, ancho_requerido), ancho_pantalla)
+        alto_objetivo = min(max(self.alto_ventana_objetivo, alto_requerido), int(alto_pantalla * 0.9))
+        ancho_minimo = min(ancho_objetivo, max(self.ancho_ventana_minimo, ancho_requerido))
+        alto_minimo = min(alto_objetivo, max(self.alto_ventana_minimo, alto_requerido))
+
+        self.ancho_ventana_objetivo = ancho_objetivo
+        self.alto_ventana_objetivo = alto_objetivo
+        self.ancho_ventana_minimo = ancho_minimo
+        self.alto_ventana_minimo = alto_minimo
         self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
 
     def continuar_a_personalizacion(self):
@@ -952,11 +1011,23 @@ class DialogoConfiguracionInteractiva:
         estado = "normal" if self.portada_habilitada_var.get() else "disabled"
         self.boton_portada.configure(state=estado)
         self.entrada_portada.configure(state="readonly")
+        if self.check_portada_pagina_completa is not None:
+            self.check_portada_pagina_completa.configure(state=estado)
+        estado_modo = "readonly" if self.portada_habilitada_var.get() and self.portada_pagina_completa_var.get() else "disabled"
+        if self.combo_portada_modo_ajuste is not None:
+            self.combo_portada_modo_ajuste.configure(state=estado_modo)
         if self.etiqueta_ayuda_portada is not None:
             ruta_portada = self.portada_var.get().strip()
             if self.portada_habilitada_var.get():
                 if ruta_portada:
-                    texto = "La portada está activa y usará la imagen seleccionada. Si la desactivas, la ruta se conservará por si quieres reactivarla luego."
+                    if self.portada_pagina_completa_var is not None and self.portada_pagina_completa_var.get():
+                        modo = cfg.MODOS_AJUSTE_PORTADA_DISPONIBLES.get(self.portada_modo_ajuste_var.get(), "CUBRIR") if self.portada_modo_ajuste_var is not None else "CUBRIR"
+                        if modo == "ENCAJAR":
+                            texto = "La portada está activa y la imagen se redimensionará en ancho y alto para ocupar toda la hoja sin recorte, aunque su proporción original cambie."
+                        else:
+                            texto = "La portada está activa y la imagen cubrirá toda la primera página. Si la proporción no coincide con el papel, el PDF recortará los bordes sobrantes."
+                    else:
+                        texto = "La portada está activa y usará la imagen seleccionada centrada dentro del área útil. Si la desactivas, la ruta se conservará por si quieres reactivarla luego."
                 else:
                     texto = "Activa la portada solo si quieres añadir una imagen inicial al PDF. Puedes dejar título, subtítulo y autor vacíos sin problema."
             else:
@@ -999,6 +1070,8 @@ class DialogoConfiguracionInteractiva:
         portada_explicita = bool(self.portada_inicial and self.portada_inicial != cfg.IMAGEN_PORTADA_PREDETERMINADA)
         self.portada_habilitada_var.set(portada_explicita)
         self.portada_var.set(self.portada_inicial if portada_explicita else "")
+        self.portada_pagina_completa_var.set(bool(self.configuracion_documento_inicial.get("portada_pagina_completa", False)))
+        self.portada_modo_ajuste_var.set(cfg.obtener_etiqueta_modo_ajuste_portada(self.configuracion_documento_inicial.get("portada_modo_ajuste", "CUBRIR")))
         self.actualizar_estado_portada()
         self.actualizar_estado_tamano_personalizado()
         self.actualizar_estado_adornos()
@@ -1102,6 +1175,8 @@ class DialogoConfiguracionInteractiva:
             "adornos_margen_activos": adornos_margen_activos,
             "estilo_adorno_margen": estilo_adorno_margen,
             "imagen_adorno_margen": imagen_adorno_margen,
+            "portada_pagina_completa": bool(self.portada_pagina_completa_var.get()),
+            "portada_modo_ajuste": cfg.MODOS_AJUSTE_PORTADA_DISPONIBLES.get(self.portada_modo_ajuste_var.get(), "CUBRIR"),
         }
         self.resultado["valor"] = {
             "entrada": entrada,

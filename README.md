@@ -52,6 +52,7 @@ Desde el menú inicial puedes:
 - activar adornos de margen con preview, presets o un PNG transparente personalizado,
 - indicar título, subtítulo y autor,
 - activar una portada y elegir su imagen,
+- decidir si la portada se centra en el área útil o si se ajusta a hoja completa en modo `Cubrir` o `Encajar sin recorte` redimensionando ancho y alto,
 - cambiar también los colores de `Tesoro/Premio` y `Objeto`.
 
 Además de las fuentes estándar de `ReportLab`, el menú detecta automáticamente cualquier archivo `.ttf` u `.otf` que coloques dentro de `fonts/` y lo expone como opción seleccionable. El nombre visible se deriva del nombre del archivo y el conversor intenta enlazar variantes comunes como `Regular`, `Bold`, `Italic`, `Oblique` y `BoldItalic` cuando las encuentra.
