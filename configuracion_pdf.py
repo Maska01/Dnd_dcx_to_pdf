@@ -49,6 +49,12 @@ FUENTE_TITULO = "Helvetica-Bold"
 FUENTE_TEXTO = "Helvetica"
 TAMANO_PAGINA = A4
 MARGEN = 2 * cm
+MARGEN_MINIMO_CM = 0.5
+MARGEN_MINIMO_ADORNOS_CM = 1.5
+MARGEN_MAXIMO_CM = 3.5
+ADORNOS_MARGEN_ACTIVOS = False
+ESTILO_ADORNO_MARGEN = "CLASICO"
+IMAGEN_ADORNO_MARGEN = ""
 MINIMO_RENGLONES_CAJA_ANTES_DE_MOVER = 3
 IMAGEN_PORTADA_PREDETERMINADA = r"C:\ruta\a\tu\imagen_portada.jpg"
 
@@ -64,6 +70,13 @@ TAMANOS_PAGINA_DISPONIBLES = {
 }
 
 OPCION_TAMANO_PERSONALIZADO = "PERSONALIZADO"
+
+ESTILOS_ADORNO_MARGEN_DISPONIBLES = {
+    "Clásico": "CLASICO",
+    "Floral": "FLORAL",
+    "Geométrico": "GEOMETRICO",
+    "Personalizado (PNG)": "PERSONALIZADO",
+}
 
 DIRECTORIO_FUENTES = Path(__file__).resolve().parent / "fonts"
 
@@ -206,6 +219,41 @@ def fuente_disponible(nombre_fuente):
 FUENTES_DISPONIBLES = recargar_fuentes_disponibles()
 
 
+def normalizar_estilo_adorno_margen(valor):
+    texto = str(valor or "").strip()
+    if not texto:
+        return ESTILO_ADORNO_MARGEN
+    texto_mayusculas = texto.upper()
+    if texto_mayusculas in ESTILOS_ADORNO_MARGEN_DISPONIBLES.values():
+        return texto_mayusculas
+    texto_normalizado = " ".join(texto.split()).casefold()
+    for etiqueta, codigo in ESTILOS_ADORNO_MARGEN_DISPONIBLES.items():
+        if texto_normalizado == etiqueta.casefold():
+            return codigo
+    return ESTILO_ADORNO_MARGEN
+
+
+def obtener_etiqueta_estilo_adorno_margen(codigo):
+    codigo_normalizado = normalizar_estilo_adorno_margen(codigo)
+    for etiqueta, valor in ESTILOS_ADORNO_MARGEN_DISPONIBLES.items():
+        if valor == codigo_normalizado:
+            return etiqueta
+    return next(iter(ESTILOS_ADORNO_MARGEN_DISPONIBLES))
+
+
+def obtener_margen_minimo_cm(adornos_activos=False):
+    return MARGEN_MINIMO_ADORNOS_CM if adornos_activos else MARGEN_MINIMO_CM
+
+
+def normalizar_margen_cm(valor, adornos_activos=False, valor_predeterminado=2.0):
+    try:
+        margen_cm = float(valor)
+    except (TypeError, ValueError):
+        margen_cm = valor_predeterminado
+    margen_minimo = obtener_margen_minimo_cm(adornos_activos)
+    return min(max(margen_cm, margen_minimo), MARGEN_MAXIMO_CM)
+
+
 def _color_a_hex(color):
     return f"#{color.hexval()[2:].upper()}"
 
@@ -275,11 +323,15 @@ def obtener_configuracion_documento_predeterminada():
         "margen_cm": round(MARGEN / cm, 2),
         "ancho_pagina_cm": ancho_cm,
         "alto_pagina_cm": alto_cm,
+        "adornos_margen_activos": ADORNOS_MARGEN_ACTIVOS,
+        "estilo_adorno_margen": ESTILO_ADORNO_MARGEN,
+        "imagen_adorno_margen": IMAGEN_ADORNO_MARGEN,
     }
 
 
 def aplicar_configuracion_documento(configuracion_documento):
     global FUENTE_TITULO, FUENTE_TEXTO, TAMANO_PAGINA, MARGEN
+    global ADORNOS_MARGEN_ACTIVOS, ESTILO_ADORNO_MARGEN, IMAGEN_ADORNO_MARGEN
 
     valores = obtener_configuracion_documento_predeterminada()
     valores.update(configuracion_documento or {})
@@ -305,11 +357,11 @@ def aplicar_configuracion_documento(configuracion_documento):
     FUENTE_TITULO = fuente_titulo if fuente_disponible(fuente_titulo) else "Helvetica-Bold"
     FUENTE_TEXTO = fuente_texto if fuente_disponible(fuente_texto) else "Helvetica"
 
-    try:
-        margen_cm = float(valores.get("margen_cm", MARGEN / cm))
-    except (TypeError, ValueError):
-        margen_cm = 2.0
-    margen_cm = min(max(margen_cm, 0.5), 5.0)
+    ADORNOS_MARGEN_ACTIVOS = bool(valores.get("adornos_margen_activos", ADORNOS_MARGEN_ACTIVOS))
+    ESTILO_ADORNO_MARGEN = normalizar_estilo_adorno_margen(valores.get("estilo_adorno_margen", ESTILO_ADORNO_MARGEN))
+    IMAGEN_ADORNO_MARGEN = str(valores.get("imagen_adorno_margen", IMAGEN_ADORNO_MARGEN) or "").strip()
+
+    margen_cm = normalizar_margen_cm(valores.get("margen_cm", MARGEN / cm), adornos_activos=ADORNOS_MARGEN_ACTIVOS)
     MARGEN = margen_cm * cm
 
 
