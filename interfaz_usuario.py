@@ -132,6 +132,10 @@ class DialogoConfiguracionInteractiva:
         self.margen_sin_adornos_guardado = None
         self.margen_con_adornos_guardado = None
         self.adornos_activos_previos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
+        self.ancho_ventana_objetivo = 980
+        self.alto_ventana_objetivo = 700
+        self.ancho_ventana_minimo = 860
+        self.alto_ventana_minimo = 620
 
     def ejecutar(self):
         if not self._importar_tkinter():
@@ -175,9 +179,21 @@ class DialogoConfiguracionInteractiva:
     def _crear_ventana(self):
         self.raiz = self.tk.Tk()
         self.raiz.title("Configuración del PDF")
-        self.raiz.geometry("980x700")
-        self.raiz.minsize(980, 700)
-        self.raiz.attributes("-topmost", True)
+        self._configurar_dimensiones_ventana()
+        self.raiz.geometry(f"{self.ancho_ventana_objetivo}x{self.alto_ventana_objetivo}")
+        self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
+
+    def _configurar_dimensiones_ventana(self):
+        ancho_pantalla = max(800, int(self.raiz.winfo_screenwidth()))
+        alto_pantalla = max(600, int(self.raiz.winfo_screenheight()))
+        ancho_objetivo = min(980, max(820, ancho_pantalla - 80))
+        alto_objetivo = min(700, max(620, alto_pantalla - 120))
+        ancho_minimo = min(ancho_objetivo, max(760, ancho_pantalla - 140))
+        alto_minimo = min(alto_objetivo, max(560, alto_pantalla - 180))
+        self.ancho_ventana_objetivo = ancho_objetivo
+        self.alto_ventana_objetivo = alto_objetivo
+        self.ancho_ventana_minimo = ancho_minimo
+        self.alto_ventana_minimo = alto_minimo
 
     def _construir_interfaz(self):
         contenedor = self.tk.Frame(self.raiz, padx=14, pady=14)
@@ -469,11 +485,19 @@ class DialogoConfiguracionInteractiva:
 
     def crear_selector_color(self, parent, fila, clave, etiqueta):
         self.tk.Label(parent, text=etiqueta, anchor="w").grid(row=fila, column=0, sticky="w", padx=(0, 8), pady=4)
-        self.tk.Entry(parent, textvariable=self.variables_color[clave], width=10, justify="center").grid(row=fila, column=1, sticky="w", pady=4)
+        entrada_color = self.tk.Entry(parent, textvariable=self.variables_color[clave], width=10, justify="center")
+        entrada_color.grid(row=fila, column=1, sticky="w", pady=4)
+        entrada_color.bind("<FocusOut>", lambda _evento, clave_actual=clave: self._confirmar_color(clave_actual))
+        entrada_color.bind("<Return>", lambda _evento, clave_actual=clave: self._confirmar_color(clave_actual))
         preview = self.tk.Label(parent, width=5, relief="groove", bg=self.variables_color[clave].get())
         preview.grid(row=fila, column=2, padx=5, pady=4)
         self.vistas_previas[clave] = preview
         self.tk.Button(parent, text="Elegir...", command=lambda clave_actual=clave: self.elegir_color(clave_actual)).grid(row=fila, column=3, sticky="w", pady=4)
+
+    def _confirmar_color(self, clave):
+        if clave not in self.variables_color:
+            return
+        self.actualizar_preview(clave)
 
     @staticmethod
     def _ruta_texto(ruta):
@@ -538,7 +562,7 @@ class DialogoConfiguracionInteractiva:
         self.boton_cancelar.pack_forget()
         self.boton_cancelar.pack(side="left")
         self.boton_continuar.pack(side="left", padx=(14, 0))
-        self.raiz.minsize(980, 700)
+        self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
         self.ajustar_tamano_ventana()
 
     def _mostrar_pagina_personalizacion(self):
@@ -557,7 +581,7 @@ class DialogoConfiguracionInteractiva:
         self.boton_regresar.pack(side="left", padx=(8, 0))
         self.boton_cancelar.pack(side="left")
         self.boton_aceptar.pack(side="left", padx=(14, 0))
-        self.raiz.minsize(980, 700)
+        self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
         self.ajustar_tamano_ventana()
 
     def continuar_a_personalizacion(self):
@@ -904,8 +928,6 @@ class DialogoConfiguracionInteractiva:
         estado = "normal" if self.portada_habilitada_var.get() else "disabled"
         self.boton_portada.configure(state=estado)
         self.entrada_portada.configure(state="readonly")
-        if not self.portada_habilitada_var.get():
-            self.portada_var.set("")
 
     def actualizar_estado_tamano_personalizado(self, *_args):
         es_personalizado = self.tamano_pagina_var.get().strip().upper() == cfg.OPCION_TAMANO_PERSONALIZADO
@@ -1033,9 +1055,8 @@ class DialogoConfiguracionInteractiva:
 
     def ajustar_tamano_ventana(self):
         self.raiz.update_idletasks()
-        ancho_objetivo = 980
-        alto_pantalla = int(self.raiz.winfo_screenheight() * 0.9)
-        alto_objetivo = min(700, alto_pantalla)
+        ancho_objetivo = min(self.ancho_ventana_objetivo, self.raiz.winfo_screenwidth())
+        alto_objetivo = min(self.alto_ventana_objetivo, int(self.raiz.winfo_screenheight() * 0.9))
         ancho_pantalla = self.raiz.winfo_screenwidth()
         x_actual = self.raiz.winfo_x()
         y_actual = self.raiz.winfo_y()

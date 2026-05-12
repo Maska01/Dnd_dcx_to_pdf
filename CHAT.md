@@ -730,3 +730,192 @@ la armonización posterior.
 - `Tesoro` y `Premio` comparten la misma caja visual y solo cambia el titulo mostrado.
 - `Objeto` usa una caja propia.
 - El menu interactivo incorpora colores para `Caja Tesoro/Premio` y `Caja Objeto`.
+
+---
+
+## Resumen consolidado actualizado — Mayo 2026
+
+Este bloque reemplaza, a efectos prácticos, los resúmenes más antiguos de este
+archivo cuando se necesite retomar el proyecto con el menor ruido posible.
+
+### Estado funcional actual del proyecto
+
+- El proyecto ya no es un script monolítico: quedó dividido en módulos con
+  responsabilidades claras.
+- `convert.py` actúa como fachada compatible y punto de entrada de CLI.
+- El conversor genera PDFs con portada opcional, índice clickable,
+  bookmarks, fondo configurable, cajas temáticas, imágenes, tablas,
+  hipervínculos y adornos decorativos de margen.
+- El flujo interactivo actual es un asistente de dos pasos dentro de una sola
+  ventana:
+  1. selección de `docx` de entrada y `pdf` de salida,
+  2. personalización del documento.
+
+### Arquitectura vigente
+
+- `convert.py`: fachada principal, compatibilidad y entrada CLI.
+- `configuracion_pdf.py`: constantes visuales, fuentes, tamaños, márgenes y
+  configuración mutable del documento.
+- `procesamiento_word.py`: lectura del `.docx`, HTML intermedio, detección de
+  bloques y extracción de contenido.
+- `renderizado_cajas.py`: render de cajas, imágenes, tablas y flowables con
+  lógica de paginación.
+- `constructor_pdf.py`: ensamblado del PDF, TOC, portada y adornos de página.
+- `interfaz_usuario.py`: wizard interactivo, diálogos de archivo y lógica de
+  personalización.
+
+### Capacidades confirmadas en el estado actual
+
+- Portada opcional con imagen.
+- Índice automático con texto y número de página clicables.
+- Bookmarks visibles para `Índice`, `Título 1`, `Título 2` y `Título 3`.
+- Hipervínculos reales de Word preservados como enlaces clicables.
+- Cajas por estilo o detección semántica:
+  - `Cita`
+  - `Información adicional`
+  - `Consejo para el DM`
+- Bloques manuales soportados:
+  - `:::consejo`
+  - `:::info`
+  - `:::cita`
+  - `:::npc`
+  - `:::enemigo`
+  - `:::aliado`
+  - `:::tesoro`
+  - `:::premio`
+  - `:::objeto`
+- Contenido compuesto dentro de cajas y bloques manuales:
+  párrafos, listas, sangrías, enlaces, imágenes y tablas.
+- Detección automática de fuentes personalizadas desde `fonts/` para cualquier
+  archivo `.ttf` o `.otf` compatible.
+- Decoración opcional de márgenes mediante presets `Clásico`, `Floral`,
+  `Geométrico` o PNG transparente personalizado.
+
+### Estado actual de márgenes y decoración
+
+- El margen ya no se introduce manualmente: en el wizard se selecciona desde
+  una lista desplegable.
+- Rango sin decoración: `0.5` a `3.5` cm en pasos de `0.5`.
+- Rango con decoración: `1.5` a `3.5` cm en pasos de `0.5`.
+- El sistema recuerda por separado:
+  - el último margen usado sin adornos,
+  - el último margen usado con adornos.
+- Corrección más reciente validada:
+  - en la primera activación de decoración, si el margen actual sin adornos ya
+    es `>= 1.5`, se conserva ese valor;
+  - si es menor, se ajusta a `1.5`;
+  - al desactivar y reactivar después, se restaura el último margen decorado
+    guardado.
+
+### Ajustes visuales recientes importantes
+
+- Refinamiento del preset `Floral` con una propuesta más contenida de aire
+  ornamental/medieval.
+- Equilibrio de las esquinas del preset `Geométrico`.
+- Ajustes de seguridad para evitar que tablas y cajas choquen con el marco
+  decorativo.
+- Ventana interactiva pulida con tamaño fijo aproximado y acciones más claras.
+
+### Git y repositorio actual
+
+- Rama principal activa y sincronizada: `master`.
+- La rama de trabajo `decoracion-floritura-margenes` fue integrada en la rama
+  principal.
+- Commit relevante reciente del ajuste de márgenes persistentes:
+  - `c861278` — `feat: refine persistent margin presets for decorative borders`
+- Merge a mainline:
+  - `8f6096d` — `Merge branch 'decoracion-floritura-margenes'`
+- Remoto configurado actualmente:
+  - `origin` → `https://github.com/Maska01/Dnd_dcx_to_pdf.git`
+- Push ya realizado:
+  - `git push -u origin master`
+- Estado verificado al cierre de esta actualización:
+  - `master` al día con `origin/master`
+  - working tree limpio
+
+### Notas importantes de consistencia documental
+
+- `CHAT.md` contiene historial antiguo y algunas secciones obsoletas; para
+  retomar el proyecto conviene priorizar este bloque consolidado.
+- `README.md` describe bastante bien el proyecto actual, pero hay al menos una
+  deriva conocida en la documentación de márgenes decorativos:
+  - el texto aún menciona `1.4 cm`,
+  - el comportamiento real vigente es `1.5 cm` mínimo con decoración y
+    `3.5 cm` como máximo en ambos modos.
+
+---
+
+## Handoff listo para otro chat
+
+Copia y pega este bloque en un chat nuevo para retomar el proyecto con mínima
+pérdida de contexto.
+
+```text
+Proyecto: `docx_to_pdf`, conversor Python de `.docx` a PDF con estilo de
+aventura/rol.
+
+Ruta de trabajo:
+`C:\Users\uiv06676\OneDrive - Vitesco Technologies\Desktop\Personal_Projects\docx_to_pdf`
+
+Arquitectura actual:
+- `convert.py`: fachada/CLI
+- `configuracion_pdf.py`: constantes y configuración mutable
+- `procesamiento_word.py`: parsing DOCX y bloques
+- `renderizado_cajas.py`: render/paginación de cajas, imágenes y tablas
+- `constructor_pdf.py`: ensamblado del PDF, TOC, portada y adornos
+- `interfaz_usuario.py`: wizard interactivo
+
+Capacidades clave ya implementadas:
+- portada opcional
+- índice clickable + bookmarks PDF
+- hipervínculos reales
+- cajas especiales y bloques manuales (`consejo`, `info`, `cita`, `npc`,
+  `enemigo`, `aliado`, `tesoro`, `premio`, `objeto`)
+- imágenes y tablas dentro de cajas
+- fuentes custom desde `fonts/`
+- decoración de márgenes con presets y PNG personalizado
+
+Estado actual del wizard:
+- flujo de 2 pasos en una sola ventana:
+  1) seleccionar entrada `.docx` y salida `.pdf`
+  2) personalizar documento
+- usa dropdown para márgenes
+- rango sin decoración: `0.5..3.5` cm
+- rango con decoración: `1.5..3.5` cm
+- recuerda por separado el margen decorado y no decorado
+
+Última corrección funcional importante:
+- en la primera activación de decoración, si el margen actual sin adornos ya
+  es `>= 1.5`, debe conservarse
+- si es menor, debe subir a `1.5`
+- en reactivaciones posteriores debe restaurarse el último margen decorado
+  guardado
+- esta lógica ya fue corregida y validada con pruebas rápidas
+
+Git actual:
+- rama actual: `master`
+- rama feature integrada: `decoracion-floritura-margenes`
+- commit reciente clave: `c861278` (`feat: refine persistent margin presets for decorative borders`)
+- merge commit: `8f6096d`
+- remoto: `origin = https://github.com/Maska01/Dnd_dcx_to_pdf.git`
+- `master` ya fue pusheada a `origin`
+
+Observación documental:
+- `README.md` todavía menciona `1.4 cm` como mínimo con decoración, pero el
+  comportamiento real del código es `1.5 cm` y máximo `3.5 cm`
+
+Si sigues desde aquí, lo primero útil es revisar:
+- `interfaz_usuario.py`
+- `configuracion_pdf.py`
+- `constructor_pdf.py`
+- `README.md`
+```
+
+### Qué revisar primero al retomar en otro chat
+
+- Si el siguiente trabajo toca UX de márgenes o decoración, empezar por
+  `interfaz_usuario.py` y `configuracion_pdf.py`.
+- Si toca dibujo de marcos, revisar `constructor_pdf.py`.
+- Si toca contenido DOCX, parsing o nuevas cajas, revisar
+  `procesamiento_word.py` y `renderizado_cajas.py`.
+- Si toca documentación, contrastar `README.md` con este bloque consolidado.
