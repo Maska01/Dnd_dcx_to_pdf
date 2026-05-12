@@ -4,8 +4,8 @@ from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import CondPageBreak, Flowable, Image, Paragraph, Spacer, Table, TableStyle
 
-import configuracion_pdf as cfg
-from procesamiento_word import celda_docx_a_html, item_caja_plano
+from ..core import configuracion_pdf as cfg
+from ..core.procesamiento_word import celda_docx_a_html, item_caja_plano
 
 
 def crear_flujo_imagen_desde_descriptor(imagen, ancho_max, alto_max=None, permitir_ampliacion=True, usar_tamano_docx=False):
@@ -34,7 +34,7 @@ def crear_flujo_imagen_desde_descriptor(imagen, ancho_max, alto_max=None, permit
 
 
 def crear_flujo_imagen(blob, ancho_max, alto_max=None, permitir_ampliacion=True):
-    from procesamiento_word import _leer_dimensiones_imagen
+    from ..core.procesamiento_word import _leer_dimensiones_imagen
 
     dimensiones = _leer_dimensiones_imagen(blob)
     if dimensiones is None:

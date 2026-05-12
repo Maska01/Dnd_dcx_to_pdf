@@ -5,16 +5,16 @@ from pathlib import Path
 from reportlab.lib.pagesizes import A3, A4, A5, A6, B5, ELEVENSEVENTEEN, LEGAL, LETTER
 from reportlab.lib.units import cm
 
-import configuracion_pdf as cfg
-from constructor_pdf import DocumentoConIndice, construir_pdf as _construir_pdf
-from interfaz_usuario import (
+from ..core import configuracion_pdf as cfg
+from ..pdf.constructor_pdf import DocumentoConIndice, construir_pdf as _construir_pdf
+from ..ui.interfaz_usuario import (
     abrir_pdf_con_aplicacion_predeterminada,
     abrir_y_notificar_pdf_generado,
     pedir_configuracion_interactiva,
     seleccionar_archivo_dialogo,
     mostrar_aviso_generacion,
 )
-from procesamiento_word import (
+from ..core.procesamiento_word import (
     _dividir_html_en_salto,
     _extraer_bloque_prefijo_embebido,
     _quitar_prefijo_visible_en_html,
@@ -46,7 +46,7 @@ from procesamiento_word import (
     nivel_lista_parrafo,
     parrafo_a_html,
 )
-from renderizado_cajas import (
+from ..pdf.renderizado_cajas import (
     BloqueVisualConCabecera,
     CajaPartible,
     crear_fila_de_imagenes,

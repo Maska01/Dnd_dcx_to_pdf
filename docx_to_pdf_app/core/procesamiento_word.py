@@ -6,7 +6,7 @@ from docx.table import Table as TablaDocx
 from docx.text.paragraph import Paragraph as ParrafoDocx
 from PIL import Image as PILImage
 
-import configuracion_pdf as cfg
+from . import configuracion_pdf as cfg
 
 
 def estilo_para_parrafo(parrafo):

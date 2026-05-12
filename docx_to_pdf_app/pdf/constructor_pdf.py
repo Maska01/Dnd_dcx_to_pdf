@@ -8,8 +8,8 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import BaseDocTemplate, Frame, ListFlowable, ListItem, PageBreak, PageTemplate, Paragraph, Spacer, Image
 from reportlab.platypus.tableofcontents import TableOfContents
 
-import configuracion_pdf as cfg
-from procesamiento_word import (
+from ..core import configuracion_pdf as cfg
+from ..core.procesamiento_word import (
     agregar_imagenes_a_bloque,
     decorar_consejo_dm_html,
     decorar_info_adicional_html,
@@ -36,7 +36,7 @@ from procesamiento_word import (
     _parrafo_es_solo_salto_de_pagina,
     _parrafo_tiene_salto_de_pagina_previo,
 )
-from renderizado_cajas import (
+from .renderizado_cajas import (
     crear_flujos_imagenes,
     decorar_aliado_en_html,
     decorar_enemigo_en_html,
@@ -49,10 +49,71 @@ from renderizado_cajas import (
 )
 
 
+def _medir_altura_flowable(flowable, ancho_disponible, alto_disponible):
+    _, alto = flowable.wrap(ancho_disponible, max(1, alto_disponible))
+    return alto
+
+
+def _calcular_dimensiones_portada(imagen_portada, ancho_maximo, alto_maximo):
+    with PILImage.open(imagen_portada) as imagen:
+        ancho_original, alto_original = imagen.size
+    if not ancho_original or not alto_original:
+        raise ValueError("La imagen de portada no tiene dimensiones válidas.")
+    escala = min(ancho_maximo / ancho_original, alto_maximo / alto_original)
+    return ancho_original * escala, alto_original * escala
+
+
+def _construir_pagina_portada_imagen(historia, ancho_util, alto_util, imagen_portada=None):
+    if not imagen_portada:
+        return False
+    if not os.path.exists(imagen_portada):
+        print(f"ℹ️  Imagen de portada no encontrada en: {imagen_portada} (se omite). Cambia la ruta cuando tengas la imagen.")
+        return False
+    try:
+        ancho_portada, alto_portada = _calcular_dimensiones_portada(imagen_portada, ancho_util, alto_util)
+        imagen_portada_flujo = Image(imagen_portada, width=ancho_portada, height=alto_portada)
+        imagen_portada_flujo.hAlign = "CENTER"
+        espacio_superior = max(0, (alto_util - alto_portada) / 2)
+        if espacio_superior > 0:
+            historia.append(Spacer(1, espacio_superior))
+        historia.append(imagen_portada_flujo)
+        return True
+    except Exception as error:
+        print(f"⚠️  No se pudo cargar la imagen de portada: {error}")
+        return False
+
+
+def _construir_pagina_metadatos(historia, estilos, ancho_util, alto_util, titulo=None, autor=None, subtitulo=None):
+    elementos_texto = []
+    altura_texto = 0
+    if titulo:
+        parrafo_titulo = Paragraph(titulo, estilos["PortadaTitulo"])
+        elementos_texto.append(parrafo_titulo)
+        altura_texto += _medir_altura_flowable(parrafo_titulo, ancho_util, alto_util)
+    if subtitulo:
+        parrafo_subtitulo = Paragraph(subtitulo, estilos["PortadaSubtitulo"])
+        elementos_texto.append(parrafo_subtitulo)
+        altura_texto += _medir_altura_flowable(parrafo_subtitulo, ancho_util, alto_util)
+    if autor:
+        parrafo_autor = Paragraph(f"por <b>{autor}</b>", estilos["PortadaAutor"])
+        elementos_texto.append(Spacer(1, 1 * cfg.cm))
+        elementos_texto.append(parrafo_autor)
+        altura_texto += (1 * cfg.cm) + _medir_altura_flowable(parrafo_autor, ancho_util, alto_util)
+    if not elementos_texto:
+        return False
+    espacio_superior = max(0, (alto_util - altura_texto) / 2)
+    if espacio_superior > 0:
+        historia.append(Spacer(1, espacio_superior))
+    historia.extend(elementos_texto)
+    return True
+
+
 class DocumentoConIndice(BaseDocTemplate):
     def __init__(self, filename, **kw):
         super().__init__(filename, **kw)
         frame = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="normal")
+        self.ancho_util_contenido = self.width - frame.leftPadding - frame.rightPadding
+        self.alto_util_contenido = self.height - frame.topPadding - frame.bottomPadding
         self.addPageTemplates([PageTemplate(id="Todo", frames=frame, onPage=self._dibujar_fondo_pagina)])
         self._contador_marcadores = 0
 
@@ -597,31 +658,17 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None, subtitulo=None, 
     documento_word = Document(ruta_docx)
     estilos = cfg.construir_estilos()
     documento_pdf = DocumentoConIndice(str(ruta_pdf), pagesize=cfg.TAMANO_PAGINA, leftMargin=cfg.MARGEN, rightMargin=cfg.MARGEN, topMargin=cfg.MARGEN, bottomMargin=cfg.MARGEN, title=titulo or "Aventura", author=autor or "")
-    ancho_util = cfg.TAMANO_PAGINA[0] - 2 * cfg.MARGEN
+    ancho_util = documento_pdf.ancho_util_contenido
+    alto_util = documento_pdf.alto_util_contenido
     historia = []
     if titulo or subtitulo or autor or imagen_portada:
-        if imagen_portada and os.path.exists(imagen_portada):
-            try:
-                with PILImage.open(imagen_portada) as imagen:
-                    ancho, alto = imagen.size
-                ratio = (alto / ancho) if ancho else 1
-                imagen_portada_flujo = Image(imagen_portada, width=ancho_util, height=ancho_util * ratio)
-                imagen_portada_flujo.hAlign = "CENTER"
-                historia.extend([Spacer(1, 1 * cfg.cm), imagen_portada_flujo, Spacer(1, 1 * cfg.cm)])
-            except Exception as error:
-                print(f"⚠️  No se pudo cargar la imagen de portada: {error}")
-                historia.append(Spacer(1, 6 * cfg.cm))
-        else:
-            if imagen_portada:
-                print(f"ℹ️  Imagen de portada no encontrada en: {imagen_portada} (se omite). Cambia la ruta cuando tengas la imagen.")
-            historia.append(Spacer(1, 6 * cfg.cm))
-        if titulo:
-            historia.append(Paragraph(titulo, estilos["PortadaTitulo"]))
-        if subtitulo:
-            historia.append(Paragraph(subtitulo, estilos["PortadaSubtitulo"]))
-        if autor:
-            historia.extend([Spacer(1, 1 * cfg.cm), Paragraph(f"por <b>{autor}</b>", estilos["PortadaAutor"])])
-        historia.append(PageBreak())
+        portada_agregada = _construir_pagina_portada_imagen(historia, ancho_util, alto_util, imagen_portada=imagen_portada)
+        metadatos_disponibles = bool(titulo or subtitulo or autor)
+        if portada_agregada and metadatos_disponibles:
+            historia.append(PageBreak())
+        metadatos_agregados = _construir_pagina_metadatos(historia, estilos, ancho_util, alto_util, titulo=titulo, autor=autor, subtitulo=subtitulo)
+        if portada_agregada or metadatos_agregados:
+            historia.append(PageBreak())
     historia.append(Paragraph("Índice", estilos["TituloIndice"]))
     indice = TableOfContents()
     indice.levelStyles = [ParagraphStyle(name="IndiceNivel1", fontName=cfg.FUENTE_TITULO, fontSize=12, leading=18, textColor=cfg.COLOR_PRIMARIO, leftIndent=0), ParagraphStyle(name="IndiceNivel2", fontName=cfg.FUENTE_TEXTO, fontSize=11, leading=16, textColor=cfg.COLOR_SECUNDARIO, leftIndent=18)]

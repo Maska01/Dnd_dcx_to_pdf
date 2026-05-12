@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image as PILImage, ImageTk
 from reportlab.lib.colors import HexColor
 
-import configuracion_pdf as cfg
+from ..core import configuracion_pdf as cfg
 
 
 def seleccionar_archivo_dialogo(titulo, tipos_archivo, modo="abrir", archivo_inicial=None):

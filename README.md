@@ -4,16 +4,18 @@ Conversor de `.docx` a PDF pensado para aventuras y material de rol. Genera un d
 
 ## Estructura del proyecto
 
-La lógica principal ya no vive en un único archivo. El proyecto quedó dividido así:
+La lógica principal ya no vive en un único archivo. Ahora el proyecto está dividido por carpetas y la implementación queda concentrada únicamente dentro de `docx_to_pdf_app/`.
 
-- `convert.py`: fachada principal y CLI; mantiene compatibilidad como punto de entrada.
-- `configuracion_pdf.py`: constantes visuales, configuración mutable y construcción de estilos.
-- `procesamiento_word.py`: parsing de Word, HTML intermedio, detectores de bloques y helpers de imágenes/tablas.
-- `renderizado_cajas.py`: render de cajas, imágenes, tablas y flowables personalizados para paginación.
-- `constructor_pdf.py`: ensamblado del PDF, TOC, portada y estado del recorrido del documento.
-- `interfaz_usuario.py`: diálogos de archivo, avisos y menú interactivo.
+### Implementación real
 
-La modularización también eliminó el uso de funciones anidadas en el flujo principal para dejar responsabilidades más claras y facilitar cambios futuros.
+- `docx_to_pdf_app/cli/convert.py`: CLI y fachada principal real.
+- `docx_to_pdf_app/core/configuracion_pdf.py`: constantes visuales, configuración mutable y construcción de estilos.
+- `docx_to_pdf_app/core/procesamiento_word.py`: parsing de Word, HTML intermedio, detectores de bloques y helpers de imágenes/tablas.
+- `docx_to_pdf_app/pdf/renderizado_cajas.py`: render de cajas, imágenes, tablas y flowables personalizados para paginación.
+- `docx_to_pdf_app/pdf/constructor_pdf.py`: ensamblado del PDF, TOC, portada y estado del recorrido del documento.
+- `docx_to_pdf_app/ui/interfaz_usuario.py`: diálogos de archivo, avisos y menú interactivo.
+
+- `docx_to_pdf_app/__main__.py`: punto de entrada para ejecutar el proyecto con `python -m docx_to_pdf_app`.
 
 ## Instalación
 
@@ -24,14 +26,14 @@ pip install -r requirements.txt
 ## Uso básico
 
 ```powershell
-python convert.py mi_aventura.docx mi_aventura.pdf `
+python -m docx_to_pdf_app mi_aventura.docx mi_aventura.pdf `
     --titulo "Stranger Things" `
     --subtitulo "El Otro Lado" `
     --autor "Tu Nombre" `
     --portada "C:\ruta\a\tu\imagen.jpg"
 ```
 
-Si ejecutas `python convert.py` sin indicar entrada y salida, se abrirá directamente el menú interactivo unificado. Primero verás una pantalla compacta para elegir el `.docx` de entrada y la ruta `.pdf` de salida. Cuando ambas rutas sean válidas, podrás pulsar `Continuar` para pasar a la personalización.
+Si ejecutas `python -m docx_to_pdf_app` sin indicar entrada y salida, se abrirá directamente el menú interactivo unificado. Primero verás una pantalla compacta para elegir el `.docx` de entrada y la ruta `.pdf` de salida. Cuando ambas rutas sean válidas, podrás pulsar `Continuar` para pasar a la personalización.
 
 ## Menú interactivo
 
@@ -74,8 +76,8 @@ Si dejas título, subtítulo o autor en blanco, esos datos no se agregan al PDF.
 Puedes forzar u omitir el menú desde la línea de comandos:
 
 ```powershell
-python convert.py --menu-interactivo
-python convert.py mi_aventura.docx salida.pdf --sin-menu
+python -m docx_to_pdf_app --menu-interactivo
+python -m docx_to_pdf_app mi_aventura.docx salida.pdf --sin-menu
 ```
 
 Si usas `--sin-menu` y omites alguna ruta, el conversor conserva el flujo alternativo de diálogos simples solo para seleccionar los archivos faltantes.
