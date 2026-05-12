@@ -199,7 +199,7 @@ class DialogoConfiguracionInteractiva:
         self.alto_ventana_minimo = alto_minimo
 
     def _construir_interfaz(self):
-        contenedor = self.tk.Frame(self.raiz, padx=14, pady=14)
+        contenedor = self.tk.Frame(self.raiz, padx=10, pady=10)
         contenedor.pack(fill="both", expand=True)
         self._configurar_estilo_notebook()
         interior = self.tk.Frame(contenedor)
@@ -223,21 +223,21 @@ class DialogoConfiguracionInteractiva:
         except Exception:
             pass
         estilo.configure("MenuNotebook.TNotebook", tabposition="n")
-        estilo.configure("MenuNotebook.TNotebook.Tab", padding=(16, 8))
+        estilo.configure("MenuNotebook.TNotebook.Tab", padding=(12, 6))
         estilo.configure("Primario.TButton", padding=(14, 8), font=("Segoe UI", 9, "bold"))
         estilo.configure("Secundario.TButton", padding=(10, 8))
 
     def encabezado(self, interior):
         encabezado_frame = self.tk.Frame(interior, padx=4, pady=4)
-        encabezado_frame.pack(fill="x", pady=(0, 10))
+        encabezado_frame.pack(fill="x", pady=(0, 8))
         self.titulo_encabezado = self.tk.Label(encabezado_frame, text="Personaliza tu PDF antes de generarlo", font=("Segoe UI", 16, "bold"), anchor="w")
         self.titulo_encabezado.pack(fill="x")
-        self.descripcion_encabezado = self.tk.Label(encabezado_frame, text="Primero elige una entrada `.docx` y una salida `.pdf` válidas. Después podrás continuar a la personalización.", justify="left", wraplength=860, anchor="w")
+        self.descripcion_encabezado = self.tk.Label(encabezado_frame, text="Primero elige una entrada `.docx` y una salida `.pdf` válidas. Después podrás continuar a la personalización.", justify="left", wraplength=900, anchor="w")
         self.descripcion_encabezado.pack(fill="x", pady=(4, 0))
 
     def _construir_bloque_archivos(self, interior):
-        archivos_frame = self.tk.LabelFrame(interior, text="Archivos", padx=10, pady=10)
-        archivos_frame.pack(fill="x", pady=(0, 10))
+        archivos_frame = self.tk.LabelFrame(interior, text="Archivos", padx=8, pady=8)
+        archivos_frame.pack(fill="x", pady=(0, 8))
         self.entrada_var = self.tk.StringVar(value=self.entrada_inicial)
         salida_inicial = self._salida_inicial_normalizada()
         self.salida_var = self.tk.StringVar(value=salida_inicial)
@@ -261,8 +261,8 @@ class DialogoConfiguracionInteractiva:
         self.salida_var.trace_add("write", self.actualizar_estado_rutas)
 
     def _construir_pagina_personalizacion(self, interior):
-        resumen_frame = self.tk.LabelFrame(interior, text="Rutas seleccionadas", padx=10, pady=10)
-        resumen_frame.pack(fill="x", pady=(0, 10))
+        resumen_frame = self.tk.LabelFrame(interior, text="Rutas seleccionadas", padx=8, pady=8)
+        resumen_frame.pack(fill="x", pady=(0, 8))
         self.resumen_entrada_var = self.tk.StringVar(value=self.entrada_inicial)
         self.resumen_salida_var = self.tk.StringVar(value=self._salida_inicial_normalizada())
         self.tk.Label(resumen_frame, text="Entrada").grid(row=0, column=0, sticky="nw")
@@ -280,11 +280,11 @@ class DialogoConfiguracionInteractiva:
     def _crear_notebook(self, interior):
         notebook = self.ttk.Notebook(interior, style="MenuNotebook.TNotebook")
         notebook.pack(fill="both", expand=True)
-        pestana_general = self.tk.Frame(notebook, padx=14, pady=14)
-        pestana_decoracion = self.tk.Frame(notebook, padx=14, pady=14)
-        pestana_colores_base = self.tk.Frame(notebook, padx=14, pady=14)
-        pestana_colores_cajas = self.tk.Frame(notebook, padx=14, pady=14)
-        pestana_colores_personajes = self.tk.Frame(notebook, padx=14, pady=14)
+        pestana_general = self.tk.Frame(notebook, padx=10, pady=10)
+        pestana_decoracion = self.tk.Frame(notebook, padx=10, pady=10)
+        pestana_colores_base = self.tk.Frame(notebook, padx=10, pady=10)
+        pestana_colores_cajas = self.tk.Frame(notebook, padx=10, pady=10)
+        pestana_colores_personajes = self.tk.Frame(notebook, padx=10, pady=10)
         notebook.add(pestana_general, text="General")
         notebook.add(pestana_decoracion, text="Decoración")
         notebook.add(pestana_colores_base, text="Colores base")
@@ -306,17 +306,17 @@ class DialogoConfiguracionInteractiva:
 
         descripcion = self.tk.Label(
             contenedor,
-            text="Controla aquí las florituras y marcos decorativos del documento. Puedes usar un estilo predefinido o un PNG transparente personalizado.",
+            text="Controla aquí los marcos decorativos del documento con presets o con un PNG transparente personalizado.",
             anchor="w",
             justify="left",
-            wraplength=780,
+            wraplength=860,
         )
-        descripcion.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        descripcion.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         self._construir_bloque_adornos(contenedor, fila=1)
 
     def _construir_bloque_portada(self, panel_superior):
-        titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", padx=10, pady=10)
-        titulo_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 10))
+        titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", padx=8, pady=8)
+        titulo_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 8))
         self.titulo_var = self.tk.StringVar(value=self.titulo_inicial)
         self.subtitulo_var = self.tk.StringVar(value=self.subtitulo_inicial)
         self.autor_var = self.tk.StringVar(value=self.autor_inicial)
@@ -334,14 +334,14 @@ class DialogoConfiguracionInteractiva:
         self.entrada_portada.grid(row=3, column=1, sticky="ew", padx=(8, 8), pady=(8, 4))
         self.boton_portada = self.tk.Button(titulo_frame, text="Elegir imagen...", command=self.elegir_portada)
         self.boton_portada.grid(row=3, column=2, sticky="w", pady=(8, 4))
-        self.etiqueta_ayuda_portada = self.tk.Label(titulo_frame, text="", anchor="w", justify="left", wraplength=720, fg="#5F5F5F")
+        self.etiqueta_ayuda_portada = self.tk.Label(titulo_frame, text="", anchor="w", justify="left", wraplength=820, fg="#5F5F5F")
         self.etiqueta_ayuda_portada.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(4, 0))
         titulo_frame.columnconfigure(1, weight=1)
         self.actualizar_estado_portada()
 
     def _construir_bloque_documento(self, panel_superior):
-        documento_frame = self.tk.LabelFrame(panel_superior, text="Página, fuentes y márgenes", padx=10, pady=10)
-        documento_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 10))
+        documento_frame = self.tk.LabelFrame(panel_superior, text="Página, fuentes y márgenes", padx=8, pady=8)
+        documento_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 8))
         fuentes_disponibles = cfg.obtener_fuentes_disponibles()
         adornos_iniciales = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
         self.tamano_pagina_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("tamano_pagina", "A4"))
@@ -367,7 +367,7 @@ class DialogoConfiguracionInteractiva:
         self.combo_margen.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=3)
         self.etiqueta_rango_margen = self.tk.Label(documento_frame, text="")
         self.etiqueta_rango_margen.grid(row=3, column=2, sticky="w", padx=(8, 0), pady=3)
-        self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=520, fg="#5F5F5F")
+        self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=620, fg="#5F5F5F")
         self.etiqueta_ayuda_tamano.grid(row=4, column=0, columnspan=4, sticky="ew", pady=(6, 0))
         self.margen_var.trace_add("write", self._registrar_margen_seleccionado)
         self.tamano_pagina_var.trace_add("write", self.actualizar_estado_tamano_personalizado)
@@ -375,7 +375,7 @@ class DialogoConfiguracionInteractiva:
         self._actualizar_etiqueta_rango_margen()
 
     def _construir_bloque_adornos(self, parent, fila=0):
-        adornos_frame = self.tk.LabelFrame(parent, text="Adornos de margen", padx=10, pady=10)
+        adornos_frame = self.tk.LabelFrame(parent, text="Adornos de margen", padx=8, pady=8)
         adornos_frame.grid(row=fila, column=0, sticky="nsew")
 
         adornos_activos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
@@ -403,16 +403,16 @@ class DialogoConfiguracionInteractiva:
             text="Usa presets para un marco rápido o un PNG transparente ya preparado como borde completo de página.",
             anchor="w",
             justify="left",
-            wraplength=470,
+            wraplength=560,
         )
         ayuda.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
-        self.etiqueta_estado_adorno = self.tk.Label(adornos_frame, text="", anchor="w", justify="left", wraplength=470, fg="#5F5F5F")
+        self.etiqueta_estado_adorno = self.tk.Label(adornos_frame, text="", anchor="w", justify="left", wraplength=560, fg="#5F5F5F")
         self.etiqueta_estado_adorno.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(6, 0))
 
         preview_frame = self.tk.Frame(adornos_frame, padx=8)
         preview_frame.grid(row=0, column=3, rowspan=5, sticky="ne", padx=(16, 0))
         self.tk.Label(preview_frame, text="Vista previa", anchor="w").pack(fill="x")
-        self.canvas_preview_adorno = self.tk.Canvas(preview_frame, width=180, height=120, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
+        self.canvas_preview_adorno = self.tk.Canvas(preview_frame, width=180, height=112, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
         self.canvas_preview_adorno.pack(pady=(6, 0))
 
         adornos_frame.columnconfigure(1, weight=1)
@@ -467,7 +467,7 @@ class DialogoConfiguracionInteractiva:
         self.tk.Label(pestana_colores_personajes, text="Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
 
     def _construir_botones(self, contenedor):
-        botones = self.tk.Frame(contenedor, padx=12, pady=12)
+        botones = self.tk.Frame(contenedor, padx=10, pady=8)
         botones.pack(fill="x")
         acciones_izquierda = self.tk.Frame(botones)
         acciones_izquierda.pack(side="left")
@@ -572,7 +572,6 @@ class DialogoConfiguracionInteractiva:
         self.boton_cancelar.pack(side="left")
         self.boton_continuar.pack(side="left", padx=(14, 0))
         self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
-        self.ajustar_tamano_ventana()
 
     def _mostrar_pagina_personalizacion(self):
         self.pagina_actual = "personalizacion"
@@ -591,7 +590,6 @@ class DialogoConfiguracionInteractiva:
         self.boton_cancelar.pack(side="left")
         self.boton_aceptar.pack(side="left", padx=(14, 0))
         self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
-        self.ajustar_tamano_ventana()
 
     def continuar_a_personalizacion(self):
         if not self._rutas_actuales_validas():
@@ -1091,9 +1089,12 @@ class DialogoConfiguracionInteractiva:
 
     def ajustar_tamano_ventana(self):
         self.raiz.update_idletasks()
-        ancho_objetivo = min(self.ancho_ventana_objetivo, self.raiz.winfo_screenwidth())
-        alto_objetivo = min(self.alto_ventana_objetivo, int(self.raiz.winfo_screenheight() * 0.9))
         ancho_pantalla = self.raiz.winfo_screenwidth()
+        alto_pantalla = self.raiz.winfo_screenheight()
+        ancho_requerido = max(self.ancho_ventana_minimo, self.raiz.winfo_reqwidth())
+        alto_requerido = max(self.alto_ventana_minimo, self.raiz.winfo_reqheight())
+        ancho_objetivo = min(max(self.ancho_ventana_objetivo, ancho_requerido), ancho_pantalla)
+        alto_objetivo = min(max(self.alto_ventana_objetivo, alto_requerido), int(alto_pantalla * 0.9))
         x_actual = self.raiz.winfo_x()
         y_actual = self.raiz.winfo_y()
         ancho_actual = max(1, self.raiz.winfo_width())
@@ -1101,7 +1102,7 @@ class DialogoConfiguracionInteractiva:
         centro_x = x_actual + (ancho_actual // 2)
         centro_y = y_actual + (alto_actual // 2)
         x_objetivo = max(0, min(centro_x - (ancho_objetivo // 2), ancho_pantalla - ancho_objetivo))
-        y_objetivo = max(0, min(centro_y - (alto_objetivo // 2), self.raiz.winfo_screenheight() - alto_objetivo))
+        y_objetivo = max(0, min(centro_y - (alto_objetivo // 2), alto_pantalla - alto_objetivo))
         self.raiz.geometry(f"{ancho_objetivo}x{alto_objetivo}+{x_objetivo}+{y_objetivo}")
 
 
