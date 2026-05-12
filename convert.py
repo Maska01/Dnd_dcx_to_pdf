@@ -184,6 +184,22 @@ def _pedir_configuracion_interactiva(*args, **kwargs):
     return pedir_configuracion_interactiva(*args, **kwargs)
 
 
+def _generar_pdf_desde_configuracion_interactiva(configuracion):
+    entrada = Path(configuracion["entrada"])
+    salida = Path(configuracion["salida"])
+    aplicar_configuracion_visual(configuracion["configuracion_visual"])
+    aplicar_configuracion_documento(configuracion["configuracion_documento"])
+    construir_pdf(
+        entrada,
+        salida,
+        titulo=configuracion["titulo"] or None,
+        autor=configuracion["autor"] or None,
+        subtitulo=configuracion["subtitulo"] or None,
+        imagen_portada=configuracion["imagen_portada"],
+    )
+    _abrir_y_notificar_pdf_generado(salida)
+
+
 
 _renderizar_caja = renderizar_caja
 _tabla_docx_a_flujo = tabla_docx_a_flujo
@@ -226,7 +242,7 @@ def principal():
         portada_inicial = imagen_portada
         if portada_inicial == IMAGEN_PORTADA_PREDETERMINADA and not os.path.exists(portada_inicial):
             portada_inicial = ""
-        configuracion = _pedir_configuracion_interactiva(
+        _pedir_configuracion_interactiva(
             configuracion_visual,
             configuracion_documento,
             titulo_inicial=titulo,
@@ -235,17 +251,9 @@ def principal():
             portada_inicial=portada_inicial,
             entrada_inicial=str(entrada or ""),
             salida_inicial=str(salida or (entrada.with_suffix(".pdf") if entrada else "")),
+            accion_aceptar=_generar_pdf_desde_configuracion_interactiva,
         )
-        if configuracion is None:
-            raise SystemExit("❌ Operación cancelada por el usuario.")
-        entrada = Path(configuracion["entrada"])
-        salida = Path(configuracion["salida"])
-        configuracion_visual = configuracion["configuracion_visual"]
-        configuracion_documento = configuracion["configuracion_documento"]
-        titulo = configuracion["titulo"]
-        subtitulo = configuracion["subtitulo"]
-        autor = configuracion["autor"]
-        imagen_portada = configuracion["imagen_portada"]
+        return
     else:
         if entrada is None:
             print("📂 Selecciona el archivo Word de entrada...")

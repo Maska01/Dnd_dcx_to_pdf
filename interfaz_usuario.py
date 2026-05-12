@@ -65,7 +65,7 @@ def abrir_y_notificar_pdf_generado(ruta_pdf, abridor=None, notificador=None):
 
 
 class DialogoConfiguracionInteractiva:
-    def __init__(self, configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial="", entrada_inicial="", salida_inicial=""):
+    def __init__(self, configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial="", entrada_inicial="", salida_inicial="", accion_aceptar=None):
         self.configuracion_inicial = dict(configuracion_inicial)
         self.configuracion_documento_inicial = dict(configuracion_documento_inicial)
         self.titulo_inicial = titulo_inicial or ""
@@ -74,6 +74,7 @@ class DialogoConfiguracionInteractiva:
         self.portada_inicial = portada_inicial or ""
         self.entrada_inicial = str(entrada_inicial or "").strip()
         self.salida_inicial = str(salida_inicial or "").strip()
+        self.accion_aceptar = accion_aceptar
         self.resultado = {"valor": None}
         self.tk = None
         self.ttk = None
@@ -130,6 +131,8 @@ class DialogoConfiguracionInteractiva:
         self.boton_regresar = None
         self.boton_aceptar = None
         self.boton_restablecer = None
+        self.estado_operacion_var = None
+        self.etiqueta_estado_operacion = None
         self.ultima_salida_sugerida = ""
         self.pagina_actual = "archivos"
         self.margen_sin_adornos_guardado = None
@@ -469,6 +472,9 @@ class DialogoConfiguracionInteractiva:
     def _construir_botones(self, contenedor):
         botones = self.tk.Frame(contenedor, padx=10, pady=8)
         botones.pack(fill="x")
+        self.estado_operacion_var = self.tk.StringVar(value="")
+        self.etiqueta_estado_operacion = self.tk.Label(botones, textvariable=self.estado_operacion_var, anchor="w", justify="left", fg="#5F5F5F")
+        self.etiqueta_estado_operacion.pack(fill="x", pady=(0, 6))
         acciones_izquierda = self.tk.Frame(botones)
         acciones_izquierda.pack(side="left")
         acciones_derecha = self.tk.Frame(botones)
@@ -1001,6 +1007,28 @@ class DialogoConfiguracionInteractiva:
         self.resultado["valor"] = None
         self.raiz.quit()
 
+    def _establecer_estado_operacion(self, texto, color="#5F5F5F"):
+        if self.estado_operacion_var is not None:
+            self.estado_operacion_var.set(texto)
+        if self.etiqueta_estado_operacion is not None:
+            self.etiqueta_estado_operacion.configure(fg=color)
+
+    def _establecer_estado_controles_generacion(self, generando=False):
+        estado_secundario = "disabled" if generando else "normal"
+        estado_primario = "disabled" if generando else "normal"
+        if self.boton_aceptar is not None:
+            self.boton_aceptar.configure(state=estado_primario)
+        if self.boton_continuar is not None:
+            self.boton_continuar.configure(state=estado_primario if self._rutas_actuales_validas() else "disabled")
+        if self.boton_cancelar is not None:
+            self.boton_cancelar.configure(state=estado_secundario)
+        if self.boton_regresar is not None:
+            self.boton_regresar.configure(state=estado_secundario)
+        if self.boton_restablecer is not None:
+            self.boton_restablecer.configure(state=estado_secundario)
+        if self.raiz is not None:
+            self.raiz.configure(cursor="watch" if generando else "")
+
     def aceptar(self):
         entrada = self.entrada_var.get().strip()
         salida = self._normalizar_ruta_salida(self.salida_var.get())
@@ -1085,6 +1113,20 @@ class DialogoConfiguracionInteractiva:
             "autor": self.autor_var.get().strip(),
             "imagen_portada": imagen_portada,
         }
+        if self.accion_aceptar is not None:
+            self._establecer_estado_controles_generacion(generando=True)
+            self._establecer_estado_operacion("Generando PDF...", color="#1E5631")
+            self.raiz.update_idletasks()
+            try:
+                self.accion_aceptar(dict(self.resultado["valor"]))
+            except Exception as error:
+                self._establecer_estado_operacion("No se pudo generar el PDF. Revisa los datos e inténtalo de nuevo.", color="#7A1C1C")
+                self.messagebox.showerror("Error al generar el PDF", str(error))
+            else:
+                self._establecer_estado_operacion("PDF generado correctamente. Puedes cambiar opciones y volver a generar si lo necesitas.", color="#1E5631")
+            finally:
+                self._establecer_estado_controles_generacion(generando=False)
+            return
         self.raiz.quit()
 
     def ajustar_tamano_ventana(self):
@@ -1106,6 +1148,6 @@ class DialogoConfiguracionInteractiva:
         self.raiz.geometry(f"{ancho_objetivo}x{alto_objetivo}+{x_objetivo}+{y_objetivo}")
 
 
-def pedir_configuracion_interactiva(configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial="", entrada_inicial="", salida_inicial=""):
-    dialogo = DialogoConfiguracionInteractiva(configuracion_inicial, configuracion_documento_inicial, titulo_inicial=titulo_inicial, subtitulo_inicial=subtitulo_inicial, autor_inicial=autor_inicial, portada_inicial=portada_inicial, entrada_inicial=entrada_inicial, salida_inicial=salida_inicial)
+def pedir_configuracion_interactiva(configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial="", entrada_inicial="", salida_inicial="", accion_aceptar=None):
+    dialogo = DialogoConfiguracionInteractiva(configuracion_inicial, configuracion_documento_inicial, titulo_inicial=titulo_inicial, subtitulo_inicial=subtitulo_inicial, autor_inicial=autor_inicial, portada_inicial=portada_inicial, entrada_inicial=entrada_inicial, salida_inicial=salida_inicial, accion_aceptar=accion_aceptar)
     return dialogo.ejecutar()
