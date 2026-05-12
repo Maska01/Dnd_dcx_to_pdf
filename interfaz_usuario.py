@@ -110,6 +110,7 @@ class DialogoConfiguracionInteractiva:
         self.fuente_titulo_var = None
         self.fuente_texto_var = None
         self.margen_var = None
+        self.combo_margen = None
         self.etiqueta_rango_margen = None
         self.ancho_pagina_var = None
         self.alto_pagina_var = None
@@ -129,6 +130,7 @@ class DialogoConfiguracionInteractiva:
         self.ultima_salida_sugerida = ""
         self.pagina_actual = "archivos"
         self.margen_sin_adornos_guardado = None
+        self.margen_con_adornos_guardado = None
         self.adornos_activos_previos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
 
     def ejecutar(self):
@@ -320,10 +322,11 @@ class DialogoConfiguracionInteractiva:
         documento_frame = self.tk.LabelFrame(panel_superior, text="Página, fuentes y márgenes", padx=10, pady=10)
         documento_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 10))
         fuentes_disponibles = cfg.obtener_fuentes_disponibles()
+        adornos_iniciales = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
         self.tamano_pagina_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("tamano_pagina", "A4"))
         self.fuente_titulo_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("fuente_titulo", cfg.FUENTE_TITULO))
         self.fuente_texto_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("fuente_texto", cfg.FUENTE_TEXTO))
-        self.margen_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("margen_cm", 2.0)))
+        self.margen_var = self.tk.StringVar(value=self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=adornos_iniciales)))
         self.ancho_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
         self.alto_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
         self.tk.Label(documento_frame, text="Tamaño de página").grid(row=0, column=0, sticky="w", pady=3)
@@ -339,9 +342,11 @@ class DialogoConfiguracionInteractiva:
         self.tk.Label(documento_frame, text="Fuente de texto").grid(row=2, column=0, sticky="w", pady=3)
         self.ttk.Combobox(documento_frame, textvariable=self.fuente_texto_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=2, column=1, sticky="w", padx=(8, 0), pady=3)
         self.tk.Label(documento_frame, text="Margen (cm)").grid(row=3, column=0, sticky="w", pady=3)
-        self.tk.Entry(documento_frame, textvariable=self.margen_var, width=10).grid(row=3, column=1, sticky="w", padx=(8, 0), pady=3)
+        self.combo_margen = self.ttk.Combobox(documento_frame, textvariable=self.margen_var, values=self._opciones_margen_disponibles(adornos_iniciales), state="readonly", width=10)
+        self.combo_margen.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=3)
         self.etiqueta_rango_margen = self.tk.Label(documento_frame, text="")
         self.etiqueta_rango_margen.grid(row=3, column=2, sticky="w", padx=(8, 0), pady=3)
+        self.margen_var.trace_add("write", self._registrar_margen_seleccionado)
         self.tamano_pagina_var.trace_add("write", self.actualizar_estado_tamano_personalizado)
         self.actualizar_estado_tamano_personalizado()
         self._actualizar_etiqueta_rango_margen()
@@ -387,6 +392,8 @@ class DialogoConfiguracionInteractiva:
 
         adornos_frame.columnconfigure(1, weight=1)
         self.imagen_adorno_var.trace_add("write", self._actualizar_preview_adornos)
+        self._inicializar_estado_margenes()
+        self._actualizar_opciones_margen()
         self.actualizar_estado_adornos()
 
     def _construir_pestanas_colores(self, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes):
@@ -597,13 +604,72 @@ class DialogoConfiguracionInteractiva:
 
     @staticmethod
     def _formatear_margen_cm(valor):
-        return f"{valor:.2f}".rstrip("0").rstrip(".")
+        return f"{valor:.1f}"
+
+    @staticmethod
+    def _valores_margen_disponibles(adornos_activos=False):
+        minimo = cfg.obtener_margen_minimo_cm(adornos_activos)
+        valores = []
+        valor_actual = minimo
+        while valor_actual <= cfg.MARGEN_MAXIMO_CM + 1e-9:
+            valores.append(round(valor_actual, 2))
+            valor_actual += 0.5
+        return valores
+
+    def _opciones_margen_disponibles(self, adornos_activos=False):
+        return [self._formatear_margen_cm(valor) for valor in self._valores_margen_disponibles(adornos_activos)]
+
+    def _ajustar_margen_a_lista(self, valor, adornos_activos=False, valor_predeterminado=2.0):
+        margen_normalizado = cfg.normalizar_margen_cm(valor, adornos_activos=adornos_activos, valor_predeterminado=valor_predeterminado)
+        valores_disponibles = self._valores_margen_disponibles(adornos_activos)
+        return min(valores_disponibles, key=lambda opcion: (abs(opcion - margen_normalizado), opcion))
 
     def _obtener_margen_actual_cm(self):
         try:
             return float(str(self.margen_var.get()).replace(",", ".").strip())
         except (AttributeError, TypeError, ValueError):
             return None
+
+    def _inicializar_estado_margenes(self):
+        adornos_activos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
+        margen_inicial = self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=adornos_activos)
+        self.margen_var.set(self._formatear_margen_cm(margen_inicial))
+        if adornos_activos:
+            self.margen_con_adornos_guardado = margen_inicial
+            self.margen_sin_adornos_guardado = self._ajustar_margen_a_lista(margen_inicial, adornos_activos=False)
+        else:
+            self.margen_sin_adornos_guardado = margen_inicial
+            self.margen_con_adornos_guardado = None
+
+    def _actualizar_opciones_margen(self):
+        adornos_activos = bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())
+        opciones = self._opciones_margen_disponibles(adornos_activos)
+        if self.combo_margen is not None:
+            self.combo_margen.configure(values=opciones, state="readonly")
+        margen_actual = self._obtener_margen_actual_cm()
+        if margen_actual is None:
+            margen_actual = 2.0
+        margen_ajustado = self._ajustar_margen_a_lista(margen_actual, adornos_activos=adornos_activos)
+        texto_ajustado = self._formatear_margen_cm(margen_ajustado)
+        if self.margen_var is not None and self.margen_var.get() != texto_ajustado:
+            self.margen_var.set(texto_ajustado)
+
+    def _registrar_margen_seleccionado(self, *_args):
+        if self.margen_var is None:
+            return
+        adornos_activos = bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())
+        margen_actual = self._obtener_margen_actual_cm()
+        if margen_actual is None:
+            return
+        margen_ajustado = self._ajustar_margen_a_lista(margen_actual, adornos_activos=adornos_activos)
+        texto_ajustado = self._formatear_margen_cm(margen_ajustado)
+        if self.margen_var.get() != texto_ajustado:
+            self.margen_var.set(texto_ajustado)
+            return
+        if adornos_activos:
+            self.margen_con_adornos_guardado = margen_ajustado
+        else:
+            self.margen_sin_adornos_guardado = margen_ajustado
 
     def _actualizar_etiqueta_rango_margen(self):
         if self.etiqueta_rango_margen is None:
@@ -622,24 +688,40 @@ class DialogoConfiguracionInteractiva:
         margen_actual = self._obtener_margen_actual_cm()
         if adornos_activos:
             if not self.adornos_activos_previos:
-                if margen_actual is None:
-                    self.margen_sin_adornos_guardado = None
+                if margen_actual is not None:
+                    self.margen_sin_adornos_guardado = self._ajustar_margen_a_lista(margen_actual, adornos_activos=False)
+                minimo_decorado = cfg.obtener_margen_minimo_cm(True)
+                if self.margen_con_adornos_guardado is not None:
+                    margen_destino = self._ajustar_margen_a_lista(self.margen_con_adornos_guardado, adornos_activos=True)
+                elif margen_actual is not None and margen_actual >= minimo_decorado:
+                    margen_destino = self._ajustar_margen_a_lista(margen_actual, adornos_activos=True)
                 else:
-                    self.margen_sin_adornos_guardado = cfg.normalizar_margen_cm(margen_actual, adornos_activos=False, valor_predeterminado=2.0)
-            margen_minimo = cfg.obtener_margen_minimo_cm(True)
-            if margen_actual is None or margen_actual < margen_minimo:
-                self.margen_var.set(self._formatear_margen_cm(margen_minimo))
+                    margen_destino = self._ajustar_margen_a_lista(minimo_decorado, adornos_activos=True)
+                self.margen_var.set(self._formatear_margen_cm(margen_destino))
+            elif margen_actual is None:
+                margen_destino = self.margen_con_adornos_guardado if self.margen_con_adornos_guardado is not None else cfg.obtener_margen_minimo_cm(True)
+                self.margen_var.set(self._formatear_margen_cm(self._ajustar_margen_a_lista(margen_destino, adornos_activos=True)))
         else:
-            if self.adornos_activos_previos and self.margen_sin_adornos_guardado is not None:
-                margen_restaurado = cfg.normalizar_margen_cm(self.margen_sin_adornos_guardado, adornos_activos=False, valor_predeterminado=2.0)
-                self.margen_var.set(self._formatear_margen_cm(margen_restaurado))
-            self.margen_sin_adornos_guardado = None
+            if self.adornos_activos_previos:
+                if margen_actual is not None:
+                    self.margen_con_adornos_guardado = self._ajustar_margen_a_lista(margen_actual, adornos_activos=True)
+                margen_destino = self.margen_sin_adornos_guardado
+                if margen_destino is None:
+                    base = margen_actual if margen_actual is not None else cfg.MARGEN_MINIMO_CM
+                    margen_destino = self._ajustar_margen_a_lista(base, adornos_activos=False)
+                else:
+                    margen_destino = self._ajustar_margen_a_lista(margen_destino, adornos_activos=False)
+                self.margen_var.set(self._formatear_margen_cm(margen_destino))
+            elif margen_actual is None:
+                margen_destino = self.margen_sin_adornos_guardado if self.margen_sin_adornos_guardado is not None else cfg.MARGEN_MINIMO_CM
+                self.margen_var.set(self._formatear_margen_cm(self._ajustar_margen_a_lista(margen_destino, adornos_activos=False)))
         self.adornos_activos_previos = adornos_activos
 
     def actualizar_estado_adornos(self, *_args):
         adornos_activos = self.adornos_habilitados_var.get()
         estilo_personalizado = self._codigo_estilo_adorno_seleccionado() == "PERSONALIZADO"
         self._sincronizar_margen_con_adornos()
+        self._actualizar_opciones_margen()
         self._actualizar_etiqueta_rango_margen()
         if self.combo_estilo_adorno is not None:
             self.combo_estilo_adorno.configure(state="readonly" if adornos_activos else "disabled")
@@ -841,14 +923,17 @@ class DialogoConfiguracionInteractiva:
         self.tamano_pagina_var.set(self.configuracion_documento_inicial.get("tamano_pagina", "A4"))
         self.fuente_titulo_var.set(self.configuracion_documento_inicial.get("fuente_titulo", cfg.FUENTE_TITULO))
         self.fuente_texto_var.set(self.configuracion_documento_inicial.get("fuente_texto", cfg.FUENTE_TEXTO))
-        self.margen_var.set(str(self.configuracion_documento_inicial.get("margen_cm", 2.0)))
+        self.margen_var.set(self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False)))))
         self.margen_sin_adornos_guardado = None
+        self.margen_con_adornos_guardado = None
         self.adornos_activos_previos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
         self.ancho_pagina_var.set(str(self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
         self.alto_pagina_var.set(str(self.configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
         self.adornos_habilitados_var.set(bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False)))
         self.estilo_adorno_var.set(cfg.obtener_etiqueta_estilo_adorno_margen(self.configuracion_documento_inicial.get("estilo_adorno_margen", cfg.ESTILO_ADORNO_MARGEN)))
         self.imagen_adorno_var.set(str(self.configuracion_documento_inicial.get("imagen_adorno_margen", "") or "").strip())
+        self._inicializar_estado_margenes()
+        self._actualizar_opciones_margen()
         portada_explicita = bool(self.portada_inicial and self.portada_inicial != cfg.IMAGEN_PORTADA_PREDETERMINADA)
         self.portada_habilitada_var.set(portada_explicita)
         self.portada_var.set(self.portada_inicial if portada_explicita else "")
@@ -891,10 +976,14 @@ class DialogoConfiguracionInteractiva:
         except (TypeError, ValueError):
             self.messagebox.showerror("Margen inválido", "El margen debe ser un número en centímetros.")
             return
+        margen_cm = self._ajustar_margen_a_lista(margen_cm, adornos_activos=adornos_margen_activos)
+        if margen_cm < margen_minimo_cm:
+            margen_cm = self._ajustar_margen_a_lista(margen_minimo_cm, adornos_activos=adornos_margen_activos)
+            self.margen_var.set(self._formatear_margen_cm(margen_cm))
         if margen_cm > cfg.MARGEN_MAXIMO_CM:
             self.messagebox.showerror("Margen inválido", f"El margen debe estar entre {self._formatear_margen_cm(margen_minimo_cm)} y {self._formatear_margen_cm(cfg.MARGEN_MAXIMO_CM)} cm.")
             return
-        margen_cm = cfg.normalizar_margen_cm(margen_cm, adornos_activos=adornos_margen_activos, valor_predeterminado=2.0)
+        margen_cm = self._ajustar_margen_a_lista(margen_cm, adornos_activos=adornos_margen_activos)
         self.margen_var.set(self._formatear_margen_cm(margen_cm))
         tamano_pagina = self.tamano_pagina_var.get().strip().upper()
         ancho_pagina_cm = self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)
