@@ -4,4 +4,5 @@
 venv/
 *.pdf
 *.docx
+tmp_toc_click_test/
 
