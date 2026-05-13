@@ -1,5 +1,6 @@
 import io
 
+from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import CondPageBreak, Flowable, Image, Paragraph, Spacer, Table, TableStyle
@@ -189,6 +190,106 @@ def altura_minima_visible_caja(estilo_base, decorador=None):
     return altura
 
 
+def _color_con_alpha(color, alpha):
+    try:
+        return colors.Color(color.red, color.green, color.blue, alpha=alpha)
+    except Exception:
+        return color
+
+
+def _radio_esquinas_pack_caja():
+    pack = cfg.normalizar_pack_decoracion_cajas(getattr(cfg, "PACK_DECORACION_CAJAS", "NINGUNO"))
+    if pack == "PERGAMINO_NOBLE":
+        return 10
+    if pack == "HERALDICA_CAMPANA":
+        return 6
+    return 0
+
+
+def _obtener_padding_pack_caja():
+    pack = cfg.normalizar_pack_decoracion_cajas(getattr(cfg, "PACK_DECORACION_CAJAS", "NINGUNO"))
+    if pack == "NINGUNO":
+        return 10, 10, 6, 6
+    if pack == "PERGAMINO_NOBLE":
+        return 20, 20, 18, 18
+    if pack == "HERALDICA_CAMPANA":
+        return 16, 16, 12, 12
+    return 14, 14, 10, 10
+
+
+def _dibujar_pack_pergamino_noble(canvas, width, height, estilo_base):
+    color_borde = estilo_base.borderColor or cfg.COLOR_SECUNDARIO
+    color_secundario = _color_con_alpha(color_borde, 0.45)
+    canvas.setStrokeColor(color_secundario)
+    canvas.setLineWidth(0.7)
+    canvas.roundRect(3.5, 3.5, max(0, width - 7), max(0, height - 7), 8, stroke=1, fill=0)
+    canvas.setStrokeColor(color_borde)
+    canvas.setLineWidth(1.0)
+    canvas.roundRect(0.9, 0.9, max(0, width - 1.8), max(0, height - 1.8), 10, stroke=1, fill=0)
+    for pos_x, pos_y, dir_x, dir_y in [(12, height - 12, 1, -1), (width - 12, height - 12, -1, -1), (12, 12, 1, 1), (width - 12, 12, -1, 1)]:
+        canvas.bezier(pos_x, pos_y + (4 * dir_y), pos_x, pos_y, pos_x + (8 * dir_x), pos_y, pos_x + (8 * dir_x), pos_y + (4 * dir_y))
+        canvas.circle(pos_x + (4 * dir_x), pos_y + (2 * dir_y), 0.8, stroke=1, fill=0)
+    centro_x = width / 2
+    canvas.line(centro_x - 20, height - 6, centro_x + 20, height - 6)
+    canvas.line(centro_x - 20, 6, centro_x + 20, 6)
+
+
+def _dibujar_pack_grimorio_arcano(canvas, width, height, estilo_base):
+    color_borde = estilo_base.borderColor or cfg.COLOR_SECUNDARIO
+    color_suave = _color_con_alpha(color_borde, 0.5)
+    canvas.setStrokeColor(color_borde)
+    canvas.setLineWidth(1.0)
+    canvas.rect(1.2, 1.2, max(0, width - 2.4), max(0, height - 2.4), stroke=1, fill=0)
+    canvas.setStrokeColor(color_suave)
+    canvas.setLineWidth(0.7)
+    canvas.rect(5.5, 5.5, max(0, width - 11), max(0, height - 11), stroke=1, fill=0)
+    for centro_x, centro_y in [(width / 2, height - 7), (width / 2, 7), (7, height / 2), (width - 7, height / 2)]:
+        canvas.saveState()
+        canvas.translate(centro_x, centro_y)
+        canvas.rotate(45)
+        canvas.rect(-3.2, -3.2, 6.4, 6.4, stroke=1, fill=0)
+        canvas.restoreState()
+    for pos_x, pos_y in [(10, height - 10), (width - 10, height - 10), (10, 10), (width - 10, 10)]:
+        canvas.line(pos_x - 4, pos_y, pos_x + 4, pos_y)
+        canvas.line(pos_x, pos_y - 4, pos_x, pos_y + 4)
+
+
+def _dibujar_pack_heraldica_campana(canvas, width, height, estilo_base):
+    color_borde = estilo_base.borderColor or cfg.COLOR_SECUNDARIO
+    color_suave = _color_con_alpha(color_borde, 0.55)
+    canvas.setStrokeColor(color_borde)
+    canvas.setLineWidth(1.1)
+    canvas.roundRect(1.2, 1.2, max(0, width - 2.4), max(0, height - 2.4), 6, stroke=1, fill=0)
+    canvas.setStrokeColor(color_suave)
+    canvas.setLineWidth(0.8)
+    canvas.line(12, height - 8, width - 12, height - 8)
+    canvas.line(12, 8, width - 12, 8)
+    centro_x = width / 2
+    canvas.saveState()
+    canvas.translate(centro_x, height - 8)
+    canvas.line(-18, 0, -8, 5)
+    canvas.line(-8, 5, 8, 5)
+    canvas.line(8, 5, 18, 0)
+    canvas.restoreState()
+    for pos_x, pos_y in [(9, height - 9), (width - 9, height - 9), (9, 9), (width - 9, 9)]:
+        canvas.circle(pos_x, pos_y, 1.5, stroke=1, fill=0)
+        canvas.circle(pos_x, pos_y, 3.2, stroke=1, fill=0)
+
+
+def dibujar_decoracion_pack_caja(canvas, width, height, estilo_base):
+    pack = cfg.normalizar_pack_decoracion_cajas(getattr(cfg, "PACK_DECORACION_CAJAS", "NINGUNO"))
+    if pack == "NINGUNO" or width <= 20 or height <= 20:
+        return
+    if pack == "PERGAMINO_NOBLE":
+        _dibujar_pack_pergamino_noble(canvas, width, height, estilo_base)
+        return
+    if pack == "GRIMORIO_ARCANO":
+        _dibujar_pack_grimorio_arcano(canvas, width, height, estilo_base)
+        return
+    if pack == "HERALDICA_CAMPANA":
+        _dibujar_pack_heraldica_campana(canvas, width, height, estilo_base)
+
+
 class CajaPartible(Flowable):
     def __init__(self, elementos, estilo_base, ancho_total, left_padding=10, right_padding=10, top_padding=6, bottom_padding=6, space_before=2, space_after=4):
         super().__init__()
@@ -306,14 +407,24 @@ class CajaPartible(Flowable):
     def draw(self):
         canvas = self.canv
         canvas.saveState()
+        radio_pack = _radio_esquinas_pack_caja()
         if self.estilo_base.backColor is not None:
             canvas.setFillColor(self.estilo_base.backColor)
             canvas.setStrokeColor(self.estilo_base.backColor)
-            canvas.rect(0, 0, self.width, self.height, stroke=0, fill=1)
+            if radio_pack > 0:
+                canvas.roundRect(0, 0, self.width, self.height, radio_pack, stroke=0, fill=1)
+            else:
+                canvas.rect(0, 0, self.width, self.height, stroke=0, fill=1)
         if self.estilo_base.borderWidth:
-            canvas.setStrokeColor(self.estilo_base.borderColor)
-            canvas.setLineWidth(self.estilo_base.borderWidth)
-            canvas.rect(0, 0, self.width, self.height, stroke=1, fill=0)
+            if radio_pack > 0:
+                canvas.setStrokeColor(self.estilo_base.borderColor)
+                canvas.setLineWidth(self.estilo_base.borderWidth)
+                canvas.roundRect(0, 0, self.width, self.height, radio_pack, stroke=1, fill=0)
+            else:
+                canvas.setStrokeColor(self.estilo_base.borderColor)
+                canvas.setLineWidth(self.estilo_base.borderWidth)
+                canvas.rect(0, 0, self.width, self.height, stroke=1, fill=0)
+        dibujar_decoracion_pack_caja(canvas, self.width, self.height, self.estilo_base)
         y = self.height - self.top_padding
         ancho_interno = self._ancho_interno(self.width)
         for elemento, ancho, alto, espacio_antes, espacio_despues in self._layout:
@@ -456,14 +567,16 @@ def normalizar_contenido_caja(contenido):
 
 
 def crear_caja_partible(contenido, estilo_base, ancho_total):
-    return CajaPartible(contenido, estilo_base, ancho_total, left_padding=10, right_padding=10, top_padding=6, bottom_padding=6, space_before=2, space_after=4)
+    left_padding, right_padding, top_padding, bottom_padding = _obtener_padding_pack_caja()
+    return CajaPartible(contenido, estilo_base, ancho_total, left_padding=left_padding, right_padding=right_padding, top_padding=top_padding, bottom_padding=bottom_padding, space_before=2, space_after=4)
 
 
 def renderizar_caja(partes, estilo_base, ancho_total, decorador=None):
     contenido = []
     primer_bloque = True
     indice = 0
-    ancho_interno = max(40, ancho_total - 20)
+    left_padding, right_padding, _, _ = _obtener_padding_pack_caja()
+    ancho_interno = max(40, ancho_total - left_padding - right_padding)
     alto_max_imagen = max(80, cfg.TAMANO_PAGINA[1] - (2 * cfg.MARGEN) - 48)
     for parte in partes:
         if parte is None:

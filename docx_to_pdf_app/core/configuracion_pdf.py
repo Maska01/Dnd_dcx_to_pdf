@@ -55,6 +55,7 @@ MARGEN_MAXIMO_CM = 3.5
 ADORNOS_MARGEN_ACTIVOS = False
 ESTILO_ADORNO_MARGEN = "CLASICO"
 IMAGEN_ADORNO_MARGEN = ""
+PACK_DECORACION_CAJAS = "NINGUNO"
 PORTADA_PAGINA_COMPLETA = False
 PORTADA_MODO_AJUSTE = "CUBRIR"
 MINIMO_RENGLONES_CAJA_ANTES_DE_MOVER = 3
@@ -99,6 +100,28 @@ ESTILOS_ADORNO_MARGEN_DISPONIBLES = {
     "Geométrico": "GEOMETRICO",
     "Personalizado (PNG)": "PERSONALIZADO",
 }
+
+PACKS_DECORACION_CAJAS_DISPONIBLES = {
+    "Sin pack adicional": "NINGUNO",
+    "Pergamino Noble": "PERGAMINO_NOBLE",
+    "Grimorio Arcano": "GRIMORIO_ARCANO",
+    "Heráldica de Campaña": "HERALDICA_CAMPANA",
+}
+
+
+def normalizar_pack_decoracion_cajas(valor):
+    texto = str(valor or "").strip().upper()
+    if texto in {"PERGAMINO_NOBLE", "GRIMORIO_ARCANO", "HERALDICA_CAMPANA"}:
+        return texto
+    return "NINGUNO"
+
+
+def obtener_etiqueta_pack_decoracion_cajas(valor):
+    codigo = normalizar_pack_decoracion_cajas(valor)
+    for etiqueta, valor_codigo in PACKS_DECORACION_CAJAS_DISPONIBLES.items():
+        if valor_codigo == codigo:
+            return etiqueta
+    return "Sin pack adicional"
 
 DIRECTORIO_FUENTES = Path(__file__).resolve().parent / "fonts"
 
@@ -348,6 +371,7 @@ def obtener_configuracion_documento_predeterminada():
         "adornos_margen_activos": ADORNOS_MARGEN_ACTIVOS,
         "estilo_adorno_margen": ESTILO_ADORNO_MARGEN,
         "imagen_adorno_margen": IMAGEN_ADORNO_MARGEN,
+        "pack_decoracion_cajas": PACK_DECORACION_CAJAS,
         "portada_pagina_completa": PORTADA_PAGINA_COMPLETA,
         "portada_modo_ajuste": PORTADA_MODO_AJUSTE,
     }
@@ -355,7 +379,7 @@ def obtener_configuracion_documento_predeterminada():
 
 def aplicar_configuracion_documento(configuracion_documento):
     global FUENTE_TITULO, FUENTE_TEXTO, TAMANO_PAGINA, MARGEN
-    global ADORNOS_MARGEN_ACTIVOS, ESTILO_ADORNO_MARGEN, IMAGEN_ADORNO_MARGEN, PORTADA_PAGINA_COMPLETA, PORTADA_MODO_AJUSTE
+    global ADORNOS_MARGEN_ACTIVOS, ESTILO_ADORNO_MARGEN, IMAGEN_ADORNO_MARGEN, PACK_DECORACION_CAJAS, PORTADA_PAGINA_COMPLETA, PORTADA_MODO_AJUSTE
 
     valores = obtener_configuracion_documento_predeterminada()
     valores.update(configuracion_documento or {})
@@ -384,6 +408,7 @@ def aplicar_configuracion_documento(configuracion_documento):
     ADORNOS_MARGEN_ACTIVOS = bool(valores.get("adornos_margen_activos", ADORNOS_MARGEN_ACTIVOS))
     ESTILO_ADORNO_MARGEN = normalizar_estilo_adorno_margen(valores.get("estilo_adorno_margen", ESTILO_ADORNO_MARGEN))
     IMAGEN_ADORNO_MARGEN = str(valores.get("imagen_adorno_margen", IMAGEN_ADORNO_MARGEN) or "").strip()
+    PACK_DECORACION_CAJAS = normalizar_pack_decoracion_cajas(valores.get("pack_decoracion_cajas", PACK_DECORACION_CAJAS))
     PORTADA_PAGINA_COMPLETA = bool(valores.get("portada_pagina_completa", PORTADA_PAGINA_COMPLETA))
     PORTADA_MODO_AJUSTE = normalizar_modo_ajuste_portada(valores.get("portada_modo_ajuste", PORTADA_MODO_AJUSTE))
 

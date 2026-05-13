@@ -50,6 +50,7 @@ Desde el menú inicial puedes:
 - personalizar texto, borde y fondo de cada caja especial,
 - modificar tamaño de página, márgenes y fuentes,
 - activar adornos de margen con preview, presets o un PNG transparente personalizado,
+- activar un pack decorativo global para las cajas (`Pergamino Noble`, `Grimorio Arcano` o `Heráldica de Campaña`),
 - indicar título, subtítulo y autor,
 - activar una portada y elegir su imagen,
 - decidir si la portada se centra en el área útil o si se ajusta a hoja completa en modo `Cubrir` o `Encajar sin recorte` redimensionando ancho y alto,

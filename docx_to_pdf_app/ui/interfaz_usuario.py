@@ -125,14 +125,19 @@ class DialogoConfiguracionInteractiva:
         self.ancho_pagina_var = None
         self.alto_pagina_var = None
         self.adornos_habilitados_var = None
+        self.decoracion_cajas_habilitada_var = None
         self.estilo_adorno_var = None
         self.imagen_adorno_var = None
+        self.pack_decoracion_cajas_var = None
         self.combo_estilo_adorno = None
+        self.combo_pack_decoracion_cajas = None
         self.entrada_imagen_adorno = None
         self.boton_imagen_adorno = None
         self.canvas_preview_adorno = None
+        self.canvas_preview_cajas = None
         self.preview_adorno_imagen = None
-        self.etiqueta_estado_adorno = None
+        self.etiqueta_estado_margenes = None
+        self.etiqueta_estado_cajas = None
         self.boton_cancelar = None
         self.boton_continuar = None
         self.boton_regresar = None
@@ -406,47 +411,84 @@ class DialogoConfiguracionInteractiva:
         self._actualizar_etiqueta_rango_margen()
 
     def _construir_bloque_adornos(self, parent, fila=0):
-        adornos_frame = self.tk.LabelFrame(parent, text="Adornos de margen", padx=8, pady=8)
-        adornos_frame.grid(row=fila, column=0, sticky="nsew")
+        decoracion_frame = self.tk.Frame(parent)
+        decoracion_frame.grid(row=fila, column=0, sticky="nsew")
+        decoracion_frame.columnconfigure(0, weight=1)
 
         adornos_activos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
         estilo_inicial = cfg.normalizar_estilo_adorno_margen(self.configuracion_documento_inicial.get("estilo_adorno_margen", cfg.ESTILO_ADORNO_MARGEN))
         imagen_inicial = str(self.configuracion_documento_inicial.get("imagen_adorno_margen", "") or "").strip()
+        pack_inicial = cfg.normalizar_pack_decoracion_cajas(self.configuracion_documento_inicial.get("pack_decoracion_cajas", "NINGUNO"))
 
         self.adornos_habilitados_var = self.tk.BooleanVar(value=adornos_activos)
+        self.decoracion_cajas_habilitada_var = self.tk.BooleanVar(value=pack_inicial != "NINGUNO")
         self.estilo_adorno_var = self.tk.StringVar(value=cfg.obtener_etiqueta_estilo_adorno_margen(estilo_inicial))
         self.imagen_adorno_var = self.tk.StringVar(value=imagen_inicial)
+        self.pack_decoracion_cajas_var = self.tk.StringVar(value=cfg.obtener_etiqueta_pack_decoracion_cajas(pack_inicial if pack_inicial != "NINGUNO" else "PERGAMINO_NOBLE"))
 
-        self.tk.Checkbutton(adornos_frame, text="Activar florituras en los márgenes", variable=self.adornos_habilitados_var, command=self.actualizar_estado_adornos).grid(row=0, column=0, columnspan=2, sticky="w")
-        self.tk.Label(adornos_frame, text="Estilo").grid(row=1, column=0, sticky="w", pady=(8, 3))
-        self.combo_estilo_adorno = self.ttk.Combobox(adornos_frame, textvariable=self.estilo_adorno_var, values=list(cfg.ESTILOS_ADORNO_MARGEN_DISPONIBLES.keys()), state="readonly", width=24)
-        self.combo_estilo_adorno.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
-        self.combo_estilo_adorno.bind("<<ComboboxSelected>>", lambda _evento: self.actualizar_estado_adornos())
+        margenes_frame = self.tk.LabelFrame(decoracion_frame, text="Decoración de márgenes", padx=10, pady=10)
+        margenes_frame.grid(row=0, column=0, sticky="ew")
+        margenes_frame.columnconfigure(1, weight=1)
+        cajas_frame = self.tk.LabelFrame(decoracion_frame, text="Decoración de cajas", padx=10, pady=10)
+        cajas_frame.grid(row=1, column=0, sticky="ew", pady=(10, 0))
+        cajas_frame.columnconfigure(1, weight=1)
 
-        self.tk.Label(adornos_frame, text="PNG personalizado").grid(row=2, column=0, sticky="w", pady=3)
-        self.entrada_imagen_adorno = self.tk.Entry(adornos_frame, textvariable=self.imagen_adorno_var, width=42, state="readonly")
-        self.entrada_imagen_adorno.grid(row=2, column=1, sticky="ew", padx=(8, 8), pady=3)
-        self.boton_imagen_adorno = self.tk.Button(adornos_frame, text="Elegir PNG...", command=self.elegir_imagen_adorno)
-        self.boton_imagen_adorno.grid(row=2, column=2, sticky="w", pady=3)
-
-        ayuda = self.tk.Label(
-            adornos_frame,
-            text="Usa presets para un marco rápido o un PNG transparente ya preparado como borde completo de página.",
+        self.tk.Label(
+            margenes_frame,
+            text="Estas opciones afectan el borde decorativo de cada página del PDF.",
             anchor="w",
             justify="left",
-            wraplength=560,
-        )
-        ayuda.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
-        self.etiqueta_estado_adorno = self.tk.Label(adornos_frame, text="", anchor="w", justify="left", wraplength=560, fg="#5F5F5F")
-        self.etiqueta_estado_adorno.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(6, 0))
+            wraplength=520,
+        ).grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 8))
+        self.tk.Checkbutton(margenes_frame, text="Activar florituras en los márgenes", variable=self.adornos_habilitados_var, command=self.actualizar_estado_adornos).grid(row=1, column=0, columnspan=2, sticky="w")
+        self.tk.Label(margenes_frame, text="Estilo").grid(row=2, column=0, sticky="w", pady=(8, 3))
+        self.combo_estilo_adorno = self.ttk.Combobox(margenes_frame, textvariable=self.estilo_adorno_var, values=list(cfg.ESTILOS_ADORNO_MARGEN_DISPONIBLES.keys()), state="readonly", width=24)
+        self.combo_estilo_adorno.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
+        self.combo_estilo_adorno.bind("<<ComboboxSelected>>", lambda _evento: self.actualizar_estado_adornos())
 
-        preview_frame = self.tk.Frame(adornos_frame, padx=8)
-        preview_frame.grid(row=0, column=3, rowspan=5, sticky="ne", padx=(16, 0))
-        self.tk.Label(preview_frame, text="Vista previa", anchor="w").pack(fill="x")
-        self.canvas_preview_adorno = self.tk.Canvas(preview_frame, width=180, height=112, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
+        self.tk.Label(margenes_frame, text="PNG personalizado").grid(row=3, column=0, sticky="w", pady=3)
+        self.entrada_imagen_adorno = self.tk.Entry(margenes_frame, textvariable=self.imagen_adorno_var, width=42, state="readonly")
+        self.entrada_imagen_adorno.grid(row=3, column=1, sticky="ew", padx=(8, 8), pady=3)
+        self.boton_imagen_adorno = self.tk.Button(margenes_frame, text="Elegir PNG...", command=self.elegir_imagen_adorno)
+        self.boton_imagen_adorno.grid(row=3, column=2, sticky="w", pady=3)
+
+        self.etiqueta_estado_margenes = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=520, fg="#5F5F5F")
+        self.etiqueta_estado_margenes.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+
+        preview_margenes_frame = self.tk.Frame(margenes_frame, padx=8)
+        preview_margenes_frame.grid(row=0, column=3, rowspan=5, sticky="ne", padx=(16, 0))
+        self.tk.Label(preview_margenes_frame, text="Vista previa de márgenes", anchor="w").pack(fill="x")
+        self.canvas_preview_adorno = self.tk.Canvas(preview_margenes_frame, width=160, height=220, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
         self.canvas_preview_adorno.pack(pady=(6, 0))
 
-        adornos_frame.columnconfigure(1, weight=1)
+        self.tk.Label(
+            cajas_frame,
+            text="Estas opciones solo cambian el estilo de las cajas temáticas del documento; no afectan los márgenes de página.",
+            anchor="w",
+            justify="left",
+            wraplength=520,
+        ).grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 8))
+        self.tk.Checkbutton(cajas_frame, text="Activar decoraciones para las cajas", variable=self.decoracion_cajas_habilitada_var, command=self.actualizar_estado_adornos).grid(row=1, column=0, columnspan=2, sticky="w")
+        self.tk.Label(cajas_frame, text="Pack decorativo para cajas").grid(row=2, column=0, sticky="w", pady=(8, 3))
+        self.combo_pack_decoracion_cajas = self.ttk.Combobox(
+            cajas_frame,
+            textvariable=self.pack_decoracion_cajas_var,
+            values=[etiqueta for etiqueta, codigo in cfg.PACKS_DECORACION_CAJAS_DISPONIBLES.items() if codigo != "NINGUNO"],
+            state="readonly",
+            width=24,
+        )
+        self.combo_pack_decoracion_cajas.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
+        self.combo_pack_decoracion_cajas.bind("<<ComboboxSelected>>", self.actualizar_estado_adornos)
+
+        self.etiqueta_estado_cajas = self.tk.Label(cajas_frame, text="", anchor="w", justify="left", wraplength=520, fg="#5F5F5F")
+        self.etiqueta_estado_cajas.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+
+        preview_cajas_frame = self.tk.Frame(cajas_frame, padx=8)
+        preview_cajas_frame.grid(row=0, column=3, rowspan=4, sticky="ne", padx=(16, 0))
+        self.tk.Label(preview_cajas_frame, text="Vista previa de cajas", anchor="w").pack(fill="x")
+        self.canvas_preview_cajas = self.tk.Canvas(preview_cajas_frame, width=180, height=112, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
+        self.canvas_preview_cajas.pack(pady=(6, 0))
+
         self.imagen_adorno_var.trace_add("write", self._actualizar_preview_adornos)
         self._inicializar_estado_margenes()
         self._actualizar_opciones_margen()
@@ -522,6 +564,8 @@ class DialogoConfiguracionInteractiva:
         valor = cfg._normalizar_color_hex(self.variables_color[clave].get(), self.configuracion_inicial[clave])
         self.variables_color[clave].set(valor)
         self.vistas_previas[clave].configure(bg=valor)
+        if clave in {"color_fondo_pagina", "color_info_texto", "color_info_borde", "color_info_fondo"}:
+            self._actualizar_preview_adornos()
 
     def elegir_color(self, clave):
         color = self.colorchooser.askcolor(color=self.variables_color[clave].get(), title="Selecciona un color", parent=self.raiz)[1]
@@ -815,83 +859,238 @@ class DialogoConfiguracionInteractiva:
 
     def actualizar_estado_adornos(self, *_args):
         adornos_activos = self.adornos_habilitados_var.get()
+        cajas_activas = bool(self.decoracion_cajas_habilitada_var and self.decoracion_cajas_habilitada_var.get())
         estilo_personalizado = self._codigo_estilo_adorno_seleccionado() == "PERSONALIZADO"
         self._sincronizar_margen_con_adornos()
         self._actualizar_opciones_margen()
         self._actualizar_etiqueta_rango_margen()
         if self.combo_estilo_adorno is not None:
             self.combo_estilo_adorno.configure(state="readonly" if adornos_activos else "disabled")
+        if self.combo_pack_decoracion_cajas is not None:
+            self.combo_pack_decoracion_cajas.configure(state="readonly" if cajas_activas else "disabled")
         if self.boton_imagen_adorno is not None:
             self.boton_imagen_adorno.configure(state="normal" if adornos_activos and estilo_personalizado else "disabled")
         if self.entrada_imagen_adorno is not None:
             self.entrada_imagen_adorno.configure(state="readonly")
-        if self.etiqueta_estado_adorno is not None:
+        if self.etiqueta_estado_margenes is not None:
             if not adornos_activos:
-                texto_estado = "Los adornos están desactivados. Puedes activarlos más tarde sin perder el PNG o el preset que ya tengas elegido."
+                texto_margenes = "Las florituras de margen están desactivadas. Puedes reactivarlas sin perder el preset o el PNG que ya seleccionaste."
             elif estilo_personalizado:
                 if self.imagen_adorno_var.get().strip():
-                    texto_estado = "Se usará el PNG seleccionado como borde completo de página. Conviene dejar el centro transparente para no tapar el contenido."
+                    texto_margenes = "Se usará el PNG seleccionado como borde completo de página. Lo ideal es dejar el centro transparente para no tapar el contenido."
                 else:
-                    texto_estado = "Has elegido borde personalizado. Selecciona un PNG transparente para completar esta opción."
+                    texto_margenes = "Has elegido borde personalizado. Selecciona un PNG transparente para completar la decoración de márgenes."
             else:
-                texto_estado = f"Se aplicará el preset {self.estilo_adorno_var.get()} y el margen mínimo pasará al rango decorado mientras esté activo."
-            self.etiqueta_estado_adorno.configure(text=texto_estado)
+                texto_margenes = f"Se aplicará el preset {self.estilo_adorno_var.get()} en los márgenes de cada página y el margen mínimo pasará al rango decorado mientras esté activo."
+            self.etiqueta_estado_margenes.configure(text=texto_margenes)
+        if self.etiqueta_estado_cajas is not None:
+            pack_actual = cfg.PACKS_DECORACION_CAJAS_DISPONIBLES.get(self.pack_decoracion_cajas_var.get(), "NINGUNO") if self.pack_decoracion_cajas_var is not None else "NINGUNO"
+            if not cajas_activas:
+                texto_cajas = "La decoración de cajas está desactivada. Las cajas especiales conservarán su estilo actual."
+            elif pack_actual == "NINGUNO":
+                texto_cajas = "Selecciona un pack para aplicar un estilo decorativo coherente a todas las cajas del documento."
+            else:
+                texto_cajas = f"Las cajas especiales usarán el pack {self.pack_decoracion_cajas_var.get()}. Esta opción no cambia los márgenes de página."
+            self.etiqueta_estado_cajas.configure(text=texto_cajas)
         self._actualizar_preview_adornos()
+
+    def _codigo_pack_cajas_seleccionado(self):
+        if self.pack_decoracion_cajas_var is None:
+            return "NINGUNO"
+        return cfg.PACKS_DECORACION_CAJAS_DISPONIBLES.get(self.pack_decoracion_cajas_var.get(), "NINGUNO")
 
     def _actualizar_preview_adornos(self, *_args):
         if self.canvas_preview_adorno is None:
+            self._actualizar_preview_cajas()
             return
         canvas = self.canvas_preview_adorno
         canvas.delete("all")
         color_fondo = self.variables_color.get("color_fondo_pagina")
         fondo = color_fondo.get() if color_fondo is not None else "#F7F1E3"
         fondo = cfg._normalizar_color_hex(fondo, "#F7F1E3")
-        canvas.create_rectangle(16, 8, 164, 112, fill=fondo, outline="#D4C5AF")
+        page_box = self._obtener_geometria_preview_margen(canvas)
+        x1, y1, x2, y2 = page_box
+        canvas.create_rectangle(x1, y1, x2, y2, fill=fondo, outline="#D4C5AF")
 
         if not self.adornos_habilitados_var.get():
-            canvas.create_text(90, 60, text="Sin adornos", fill="#666666", font=("Segoe UI", 9))
+            canvas.create_text((x1 + x2) / 2, (y1 + y2) / 2, text="Sin adornos", fill="#666666", font=("Segoe UI", 9))
             self.preview_adorno_imagen = None
+            self._actualizar_preview_cajas()
             return
 
         estilo = self._codigo_estilo_adorno_seleccionado()
         if estilo == "PERSONALIZADO":
-            self._dibujar_preview_adorno_personalizado(canvas)
+            self._dibujar_preview_adorno_personalizado(canvas, page_box)
+            self._actualizar_preview_cajas()
             return
         if estilo == "FLORAL":
-            self._dibujar_preview_adorno_floral(canvas)
+            self._dibujar_preview_adorno_floral(canvas, page_box)
+            self._actualizar_preview_cajas()
             return
         if estilo == "GEOMETRICO":
-            self._dibujar_preview_adorno_geometrico(canvas)
-            return
-        self._dibujar_preview_adorno_clasico(canvas)
+            self._dibujar_preview_adorno_geometrico(canvas, page_box)
+        else:
+            self._dibujar_preview_adorno_clasico(canvas, page_box)
+        self._actualizar_preview_cajas()
 
-    def _dibujar_preview_adorno_personalizado(self, canvas):
+    @staticmethod
+    def _obtener_geometria_preview_margen(canvas):
+        ancho_canvas = int(float(canvas.cget("width")))
+        alto_canvas = int(float(canvas.cget("height")))
+        aspecto_pagina = 21.0 / 29.7
+        max_ancho = max(60, ancho_canvas - 24)
+        max_alto = max(80, alto_canvas - 20)
+        ancho_pagina = max_ancho
+        alto_pagina = ancho_pagina / aspecto_pagina
+        if alto_pagina > max_alto:
+            alto_pagina = max_alto
+            ancho_pagina = alto_pagina * aspecto_pagina
+        x1 = int(round((ancho_canvas - ancho_pagina) / 2))
+        y1 = int(round((alto_canvas - alto_pagina) / 2))
+        x2 = int(round(x1 + ancho_pagina))
+        y2 = int(round(y1 + alto_pagina))
+        return x1, y1, x2, y2
+
+    def _actualizar_preview_cajas(self):
+        if self.canvas_preview_cajas is None:
+            return
+        canvas = self.canvas_preview_cajas
+        canvas.delete("all")
+        color_fondo = self.variables_color.get("color_fondo_pagina")
+        fondo_pagina = color_fondo.get() if color_fondo is not None else "#F7F1E3"
+        fondo_pagina = cfg._normalizar_color_hex(fondo_pagina, "#F7F1E3")
+        canvas.create_rectangle(0, 0, 180, 112, fill=fondo_pagina, outline="")
+        color_borde = cfg._normalizar_color_hex(self.variables_color.get("color_info_borde").get(), "#2AA198") if self.variables_color.get("color_info_borde") is not None else "#2AA198"
+
+        if not (self.decoracion_cajas_habilitada_var and self.decoracion_cajas_habilitada_var.get()):
+            self._dibujar_preview_caja_base(canvas, "NINGUNO")
+            return
+
+        pack = self._codigo_pack_cajas_seleccionado()
+        self._dibujar_preview_caja_base(canvas, pack)
+        if pack == "PERGAMINO_NOBLE":
+            self._dibujar_preview_pack_pergamino_noble(canvas, color_borde)
+        elif pack == "GRIMORIO_ARCANO":
+            self._dibujar_preview_pack_grimorio_arcano(canvas, color_borde)
+        elif pack == "HERALDICA_CAMPANA":
+            self._dibujar_preview_pack_heraldica_campana(canvas)
+
+    @staticmethod
+    def _dibujar_preview_caja_redondeada(canvas, x1, y1, x2, y2, radio, fill, outline, width=1):
+        radio = max(0, min(radio, (x2 - x1) / 2, (y2 - y1) / 2))
+        if radio <= 0:
+            canvas.create_rectangle(x1, y1, x2, y2, fill=fill, outline=outline, width=width)
+            return
+        canvas.create_rectangle(x1 + radio, y1, x2 - radio, y2, fill=fill, outline="")
+        canvas.create_rectangle(x1, y1 + radio, x2, y2 - radio, fill=fill, outline="")
+        canvas.create_arc(x1, y1, x1 + (2 * radio), y1 + (2 * radio), start=90, extent=90, style="pieslice", fill=fill, outline="")
+        canvas.create_arc(x2 - (2 * radio), y1, x2, y1 + (2 * radio), start=0, extent=90, style="pieslice", fill=fill, outline="")
+        canvas.create_arc(x1, y2 - (2 * radio), x1 + (2 * radio), y2, start=180, extent=90, style="pieslice", fill=fill, outline="")
+        canvas.create_arc(x2 - (2 * radio), y2 - (2 * radio), x2, y2, start=270, extent=90, style="pieslice", fill=fill, outline="")
+        canvas.create_line(x1 + radio, y1, x2 - radio, y1, fill=outline, width=width)
+        canvas.create_line(x1 + radio, y2, x2 - radio, y2, fill=outline, width=width)
+        canvas.create_line(x1, y1 + radio, x1, y2 - radio, fill=outline, width=width)
+        canvas.create_line(x2, y1 + radio, x2, y2 - radio, fill=outline, width=width)
+        canvas.create_arc(x1, y1, x1 + (2 * radio), y1 + (2 * radio), start=90, extent=90, style="arc", outline=outline, width=width)
+        canvas.create_arc(x2 - (2 * radio), y1, x2, y1 + (2 * radio), start=0, extent=90, style="arc", outline=outline, width=width)
+        canvas.create_arc(x1, y2 - (2 * radio), x1 + (2 * radio), y2, start=180, extent=90, style="arc", outline=outline, width=width)
+        canvas.create_arc(x2 - (2 * radio), y2 - (2 * radio), x2, y2, start=270, extent=90, style="arc", outline=outline, width=width)
+
+    def _dibujar_preview_caja_base(self, canvas, pack):
+        color_borde = cfg._normalizar_color_hex(self.variables_color.get("color_info_borde").get(), "#2AA198") if self.variables_color.get("color_info_borde") is not None else "#2AA198"
+        color_fondo = cfg._normalizar_color_hex(self.variables_color.get("color_info_fondo").get(), "#E7F6F5") if self.variables_color.get("color_info_fondo") is not None else "#E7F6F5"
+        if pack == "PERGAMINO_NOBLE":
+            self._dibujar_preview_caja_redondeada(canvas, 16, 20, 164, 94, 10, color_fondo, color_borde, width=2)
+            return
+        if pack == "HERALDICA_CAMPANA":
+            self._dibujar_preview_caja_redondeada(canvas, 16, 20, 164, 94, 8, color_fondo, color_borde, width=2)
+            return
+        canvas.create_rectangle(16, 20, 164, 94, fill=color_fondo, outline=color_borde, width=2)
+
+    @staticmethod
+    def _dibujar_preview_pack_pergamino_noble(canvas, color_borde):
+        canvas.create_arc(16, 20, 36, 40, start=90, extent=90, style="arc", outline=color_borde, width=2)
+        canvas.create_arc(144, 20, 164, 40, start=0, extent=90, style="arc", outline=color_borde, width=2)
+        canvas.create_arc(16, 74, 36, 94, start=180, extent=90, style="arc", outline=color_borde, width=2)
+        canvas.create_arc(144, 74, 164, 94, start=270, extent=90, style="arc", outline=color_borde, width=2)
+        canvas.create_line(48, 28, 132, 28, fill=color_borde)
+        canvas.create_line(48, 86, 132, 86, fill=color_borde)
+        for pos_x, pos_y, dir_x, dir_y in [(28, 32, 1, 1), (152, 32, -1, 1), (28, 82, 1, -1), (152, 82, -1, -1)]:
+            canvas.create_line(
+                pos_x,
+                pos_y + (4 * dir_y),
+                pos_x,
+                pos_y,
+                pos_x + (8 * dir_x),
+                pos_y,
+                pos_x + (8 * dir_x),
+                pos_y + (4 * dir_y),
+                smooth=True,
+                fill=color_borde,
+                width=1,
+            )
+            canvas.create_oval(
+                pos_x + (4 * dir_x) - 1.2,
+                pos_y + (2 * dir_y) - 1.2,
+                pos_x + (4 * dir_x) + 1.2,
+                pos_y + (2 * dir_y) + 1.2,
+                outline=color_borde,
+            )
+
+    @staticmethod
+    def _dibujar_preview_pack_grimorio_arcano(canvas, color_borde):
+        canvas.create_rectangle(22, 26, 158, 88, outline=color_borde)
+        for cx, cy in [(90, 24), (90, 90), (20, 57), (160, 57)]:
+            canvas.create_polygon(cx, cy - 4, cx + 4, cy, cx, cy + 4, cx - 4, cy, outline=color_borde, fill="")
+        for pos_x, pos_y in [(28, 32), (152, 32), (28, 82), (152, 82)]:
+            canvas.create_line(pos_x - 4, pos_y, pos_x + 4, pos_y, fill=color_borde)
+            canvas.create_line(pos_x, pos_y - 4, pos_x, pos_y + 4, fill=color_borde)
+
+    @staticmethod
+    def _dibujar_preview_pack_heraldica_campana(canvas):
+        canvas.create_arc(16, 20, 32, 36, start=90, extent=90, style="arc", outline="#2AA198", width=2)
+        canvas.create_arc(148, 20, 164, 36, start=0, extent=90, style="arc", outline="#2AA198", width=2)
+        canvas.create_arc(16, 78, 32, 94, start=180, extent=90, style="arc", outline="#2AA198", width=2)
+        canvas.create_arc(148, 78, 164, 94, start=270, extent=90, style="arc", outline="#2AA198", width=2)
+        canvas.create_line(32, 24, 148, 24, fill="#2AA198")
+        canvas.create_line(32, 90, 148, 90, fill="#2AA198")
+        canvas.create_line(76, 24, 90, 16, 104, 24, fill="#2AA198", smooth=True)
+        for x, y in [(22, 26), (158, 26), (22, 88), (158, 88)]:
+            canvas.create_oval(x - 2.5, y - 2.5, x + 2.5, y + 2.5, outline="#2AA198")
+
+    def _dibujar_preview_adorno_personalizado(self, canvas, page_box):
+        x1, y1, x2, y2 = page_box
         ruta = self.imagen_adorno_var.get().strip()
         if not ruta or not Path(ruta).is_file():
-            canvas.create_text(90, 54, text="Selecciona un PNG\ntransparente", fill="#666666", justify="center", font=("Segoe UI", 9))
-            canvas.create_rectangle(26, 18, 154, 102, outline="#8B0000", dash=(4, 3))
+            canvas.create_text((x1 + x2) / 2, (y1 + y2) / 2, text="Selecciona un PNG\ntransparente", fill="#666666", justify="center", font=("Segoe UI", 9))
+            canvas.create_rectangle(x1 + 8, y1 + 8, x2 - 8, y2 - 8, outline="#8B0000", dash=(4, 3))
             self.preview_adorno_imagen = None
             return
         try:
             imagen = PILImage.open(ruta).convert("RGBA")
-            imagen.thumbnail((148, 104), PILImage.Resampling.LANCZOS)
+            imagen.thumbnail((max(20, (x2 - x1) - 8), max(20, (y2 - y1) - 8)), PILImage.Resampling.LANCZOS)
             self.preview_adorno_imagen = ImageTk.PhotoImage(imagen)
-            canvas.create_image(90, 60, image=self.preview_adorno_imagen)
+            canvas.create_image((x1 + x2) / 2, (y1 + y2) / 2, image=self.preview_adorno_imagen)
         except Exception:
-            canvas.create_text(90, 60, text="No se pudo cargar\nel PNG", fill="#7A1C1C", justify="center", font=("Segoe UI", 9))
+            canvas.create_text((x1 + x2) / 2, (y1 + y2) / 2, text="No se pudo cargar\nel PNG", fill="#7A1C1C", justify="center", font=("Segoe UI", 9))
             self.preview_adorno_imagen = None
 
     @staticmethod
-    def _dibujar_preview_adorno_clasico(canvas):
-        canvas.create_rectangle(26, 18, 154, 102, outline="#8B0000", width=2)
-        canvas.create_rectangle(34, 26, 146, 94, outline="#333333")
-        for x, y in [(90, 18), (90, 102), (26, 60), (154, 60)]:
-            canvas.create_oval(x - 3, y - 3, x + 3, y + 3, outline="#333333")
+    def _dibujar_preview_adorno_clasico(canvas, page_box):
+        x1, y1, x2, y2 = page_box
+        margen_ext = 8
+        margen_int = 16
+        canvas.create_rectangle(x1 + margen_ext, y1 + margen_ext, x2 - margen_ext, y2 - margen_ext, outline="#8B0000", width=2)
+        canvas.create_rectangle(x1 + margen_int, y1 + margen_int, x2 - margen_int, y2 - margen_int, outline="#333333")
+        centro_x = (x1 + x2) / 2
+        centro_y = (y1 + y2) / 2
+        for px, py in [(centro_x, y1 + margen_ext), (centro_x, y2 - margen_ext), (x1 + margen_ext, centro_y), (x2 - margen_ext, centro_y)]:
+            canvas.create_oval(px - 3, py - 3, px + 3, py + 3, outline="#333333")
         for esquina_x, esquina_y, direccion_x, direccion_y in [
-            (34, 26, 1, 1),
-            (146, 26, -1, 1),
-            (34, 94, 1, -1),
-            (146, 94, -1, -1),
+            (x1 + margen_int, y1 + margen_int, 1, 1),
+            (x2 - margen_int, y1 + margen_int, -1, 1),
+            (x1 + margen_int, y2 - margen_int, 1, -1),
+            (x2 - margen_int, y2 - margen_int, -1, -1),
         ]:
             canvas.create_line(esquina_x, esquina_y, esquina_x + (10 * direccion_x), esquina_y, fill="#333333")
             canvas.create_line(esquina_x, esquina_y, esquina_x, esquina_y + (10 * direccion_y), fill="#333333")
@@ -916,16 +1115,27 @@ class DialogoConfiguracionInteractiva:
             )
 
     @staticmethod
-    def _dibujar_preview_adorno_geometrico(canvas):
-        canvas.create_rectangle(26, 18, 154, 102, outline="#333333", width=2, dash=(5, 3))
+    def _dibujar_preview_adorno_geometrico(canvas, page_box):
+        x1, y1, x2, y2 = page_box
+        margen = 8
+        canvas.create_rectangle(x1 + margen, y1 + margen, x2 - margen, y2 - margen, outline="#333333", width=2, dash=(5, 3))
         for x1, y1, x2, y2 in [
-            (26, 18, 44, 18), (26, 18, 26, 36),
-            (154, 18, 136, 18), (154, 18, 154, 36),
-            (26, 102, 44, 102), (26, 102, 26, 84),
-            (154, 102, 136, 102), (154, 102, 154, 84),
+            (page_box[0] + margen, page_box[1] + margen, page_box[0] + margen + 18, page_box[1] + margen),
+            (page_box[0] + margen, page_box[1] + margen, page_box[0] + margen, page_box[1] + margen + 18),
+            (page_box[2] - margen, page_box[1] + margen, page_box[2] - margen - 18, page_box[1] + margen),
+            (page_box[2] - margen, page_box[1] + margen, page_box[2] - margen, page_box[1] + margen + 18),
+            (page_box[0] + margen, page_box[3] - margen, page_box[0] + margen + 18, page_box[3] - margen),
+            (page_box[0] + margen, page_box[3] - margen, page_box[0] + margen, page_box[3] - margen - 18),
+            (page_box[2] - margen, page_box[3] - margen, page_box[2] - margen - 18, page_box[3] - margen),
+            (page_box[2] - margen, page_box[3] - margen, page_box[2] - margen, page_box[3] - margen - 18),
         ]:
             canvas.create_line(x1, y1, x2, y2, fill="#8B0000", width=2)
-        for centro_x, centro_y in [(38, 30), (142, 30), (38, 90), (142, 90)]:
+        for centro_x, centro_y in [
+            (page_box[0] + 20, page_box[1] + 20),
+            (page_box[2] - 20, page_box[1] + 20),
+            (page_box[0] + 20, page_box[3] - 20),
+            (page_box[2] - 20, page_box[3] - 20),
+        ]:
             canvas.create_line(centro_x, centro_y - 5, centro_x + 5, centro_y, fill="#8B0000")
             canvas.create_line(centro_x + 5, centro_y, centro_x, centro_y + 5, fill="#8B0000")
             canvas.create_line(centro_x, centro_y + 5, centro_x - 5, centro_y, fill="#8B0000")
@@ -933,7 +1143,9 @@ class DialogoConfiguracionInteractiva:
             canvas.create_line(centro_x - 2, centro_y, centro_x + 2, centro_y, fill="#8B0000")
             canvas.create_line(centro_x, centro_y - 2, centro_x, centro_y + 2, fill="#8B0000")
             canvas.create_oval(centro_x - 1, centro_y - 1, centro_x + 1, centro_y + 1, outline="#8B0000")
-        for centro_x, centro_y in [(26, 60), (154, 60), (90, 18), (90, 102)]:
+        centro_x = (page_box[0] + page_box[2]) / 2
+        centro_y = (page_box[1] + page_box[3]) / 2
+        for centro_x, centro_y in [(page_box[0] + margen, centro_y), (page_box[2] - margen, centro_y), (centro_x, page_box[1] + margen), (centro_x, page_box[3] - margen)]:
             canvas.create_line(centro_x - 7, centro_y, centro_x, centro_y - 7, fill="#8B0000")
             canvas.create_line(centro_x, centro_y - 7, centro_x + 7, centro_y, fill="#8B0000")
             canvas.create_line(centro_x + 7, centro_y, centro_x, centro_y + 7, fill="#8B0000")
@@ -941,45 +1153,55 @@ class DialogoConfiguracionInteractiva:
             canvas.create_oval(centro_x - 1.2, centro_y - 1.2, centro_x + 1.2, centro_y + 1.2, outline="#8B0000")
 
     @staticmethod
-    def _dibujar_preview_adorno_floral(canvas):
-        canvas.create_rectangle(28, 20, 152, 100, outline="#8B0000", width=1)
-        canvas.create_rectangle(35, 27, 145, 93, outline="#333333")
+    def _dibujar_preview_adorno_floral(canvas, page_box):
+        x1, y1, x2, y2 = page_box
+        borde_ext = 10
+        borde_int = 17
+        canvas.create_rectangle(x1 + borde_ext, y1 + borde_ext, x2 - borde_ext, y2 - borde_ext, outline="#8B0000", width=1)
+        canvas.create_rectangle(x1 + borde_int, y1 + borde_int, x2 - borde_int, y2 - borde_int, outline="#333333")
+
+        arriba = y1 + borde_int + 5
+        abajo = y2 - borde_int - 5
+        izquierda = x1 + borde_int + 5
+        derecha = x2 - borde_int - 5
 
         for puntos in [
-            (40, 88, 44, 88, 49, 83, 54, 78),
-            (40, 88, 40, 84, 45, 79, 54, 78),
-            (140, 88, 136, 88, 131, 83, 126, 78),
-            (140, 88, 140, 84, 135, 79, 126, 78),
-            (40, 32, 44, 32, 49, 37, 54, 42),
-            (40, 32, 40, 36, 45, 41, 54, 42),
-            (140, 32, 136, 32, 131, 37, 126, 42),
-            (140, 32, 140, 36, 135, 41, 126, 42),
+            (izquierda, abajo, izquierda + 4, abajo, izquierda + 9, abajo - 5, izquierda + 14, abajo - 10),
+            (izquierda, abajo, izquierda, abajo - 4, izquierda + 5, abajo - 9, izquierda + 14, abajo - 10),
+            (derecha, abajo, derecha - 4, abajo, derecha - 9, abajo - 5, derecha - 14, abajo - 10),
+            (derecha, abajo, derecha, abajo - 4, derecha - 5, abajo - 9, derecha - 14, abajo - 10),
+            (izquierda, arriba, izquierda + 4, arriba, izquierda + 9, arriba + 5, izquierda + 14, arriba + 10),
+            (izquierda, arriba, izquierda, arriba + 4, izquierda + 5, arriba + 9, izquierda + 14, arriba + 10),
+            (derecha, arriba, derecha - 4, arriba, derecha - 9, arriba + 5, derecha - 14, arriba + 10),
+            (derecha, arriba, derecha, arriba + 4, derecha - 5, arriba + 9, derecha - 14, arriba + 10),
         ]:
             canvas.create_line(*puntos, smooth=True, fill="#333333")
 
-        canvas.create_line(42, 34, 50, 42, fill="#333333")
-        canvas.create_line(138, 34, 130, 42, fill="#333333")
-        canvas.create_line(42, 86, 50, 78, fill="#333333")
-        canvas.create_line(138, 86, 130, 78, fill="#333333")
-        for x, y in [(47, 39), (133, 39), (47, 81), (133, 81)]:
+        canvas.create_line(izquierda + 2, arriba + 2, izquierda + 10, arriba + 10, fill="#333333")
+        canvas.create_line(derecha - 2, arriba + 2, derecha - 10, arriba + 10, fill="#333333")
+        canvas.create_line(izquierda + 2, abajo - 2, izquierda + 10, abajo - 10, fill="#333333")
+        canvas.create_line(derecha - 2, abajo - 2, derecha - 10, abajo - 10, fill="#333333")
+        for x, y in [(izquierda + 7, arriba + 7), (derecha - 7, arriba + 7), (izquierda + 7, abajo - 7), (derecha - 7, abajo - 7)]:
             canvas.create_oval(x - 1.5, y - 1.5, x + 1.5, y + 1.5, outline="#333333")
 
-        canvas.create_line(72, 20, 78, 20, 84, 13, 90, 17, smooth=True, fill="#333333")
-        canvas.create_line(108, 20, 102, 20, 96, 13, 90, 17, smooth=True, fill="#333333")
-        canvas.create_line(79, 24, 84, 16, 88, 15, 90, 21, smooth=True, fill="#333333")
-        canvas.create_line(101, 24, 96, 16, 92, 15, 90, 21, smooth=True, fill="#333333")
-        canvas.create_oval(88.5, 19.5, 91.5, 22.5, outline="#333333")
+        centro_x = (x1 + x2) / 2
+        canvas.create_line(centro_x - 18, y1 + borde_ext, centro_x - 12, y1 + borde_ext, centro_x - 6, y1 + 3, centro_x, y1 + 7, smooth=True, fill="#333333")
+        canvas.create_line(centro_x + 18, y1 + borde_ext, centro_x + 12, y1 + borde_ext, centro_x + 6, y1 + 3, centro_x, y1 + 7, smooth=True, fill="#333333")
+        canvas.create_line(centro_x - 11, y1 + borde_ext + 4, centro_x - 6, y1 + 2, centro_x - 2, y1 + 1, centro_x, y1 + 7, smooth=True, fill="#333333")
+        canvas.create_line(centro_x + 11, y1 + borde_ext + 4, centro_x + 6, y1 + 2, centro_x + 2, y1 + 1, centro_x, y1 + 7, smooth=True, fill="#333333")
+        canvas.create_oval(centro_x - 1.5, y1 + 5.5, centro_x + 1.5, y1 + 8.5, outline="#333333")
 
-        canvas.create_line(72, 100, 78, 100, 84, 107, 90, 103, smooth=True, fill="#333333")
-        canvas.create_line(108, 100, 102, 100, 96, 107, 90, 103, smooth=True, fill="#333333")
-        canvas.create_line(79, 96, 84, 104, 88, 105, 90, 99, smooth=True, fill="#333333")
-        canvas.create_line(101, 96, 96, 104, 92, 105, 90, 99, smooth=True, fill="#333333")
-        canvas.create_oval(88.5, 97.5, 91.5, 100.5, outline="#333333")
+        canvas.create_line(centro_x - 18, y2 - borde_ext, centro_x - 12, y2 - borde_ext, centro_x - 6, y2 - 3, centro_x, y2 - 7, smooth=True, fill="#333333")
+        canvas.create_line(centro_x + 18, y2 - borde_ext, centro_x + 12, y2 - borde_ext, centro_x + 6, y2 - 3, centro_x, y2 - 7, smooth=True, fill="#333333")
+        canvas.create_line(centro_x - 11, y2 - borde_ext - 4, centro_x - 6, y2 - 2, centro_x - 2, y2 - 1, centro_x, y2 - 7, smooth=True, fill="#333333")
+        canvas.create_line(centro_x + 11, y2 - borde_ext - 4, centro_x + 6, y2 - 2, centro_x + 2, y2 - 1, centro_x, y2 - 7, smooth=True, fill="#333333")
+        canvas.create_oval(centro_x - 1.5, y2 - 8.5, centro_x + 1.5, y2 - 5.5, outline="#333333")
 
-        canvas.create_line(28, 60, 36, 60, fill="#333333")
-        canvas.create_line(152, 60, 144, 60, fill="#333333")
-        canvas.create_oval(32, 58.5, 35, 61.5, outline="#333333")
-        canvas.create_oval(145, 58.5, 148, 61.5, outline="#333333")
+        centro_y = (y1 + y2) / 2
+        canvas.create_line(x1 + borde_ext, centro_y, x1 + borde_ext + 8, centro_y, fill="#333333")
+        canvas.create_line(x2 - borde_ext, centro_y, x2 - borde_ext - 8, centro_y, fill="#333333")
+        canvas.create_oval(x1 + borde_ext + 3, centro_y - 1.5, x1 + borde_ext + 6, centro_y + 1.5, outline="#333333")
+        canvas.create_oval(x2 - borde_ext - 6, centro_y - 1.5, x2 - borde_ext - 3, centro_y + 1.5, outline="#333333")
 
     def actualizar_estado_rutas(self, *_args):
         entrada_texto = self.entrada_var.get().strip()
@@ -1065,6 +1287,9 @@ class DialogoConfiguracionInteractiva:
         self.adornos_habilitados_var.set(bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False)))
         self.estilo_adorno_var.set(cfg.obtener_etiqueta_estilo_adorno_margen(self.configuracion_documento_inicial.get("estilo_adorno_margen", cfg.ESTILO_ADORNO_MARGEN)))
         self.imagen_adorno_var.set(str(self.configuracion_documento_inicial.get("imagen_adorno_margen", "") or "").strip())
+        pack_inicial = cfg.normalizar_pack_decoracion_cajas(self.configuracion_documento_inicial.get("pack_decoracion_cajas", "NINGUNO"))
+        self.decoracion_cajas_habilitada_var.set(pack_inicial != "NINGUNO")
+        self.pack_decoracion_cajas_var.set(cfg.obtener_etiqueta_pack_decoracion_cajas(pack_inicial if pack_inicial != "NINGUNO" else "PERGAMINO_NOBLE"))
         self._inicializar_estado_margenes()
         self._actualizar_opciones_margen()
         portada_explicita = bool(self.portada_inicial and self.portada_inicial != cfg.IMAGEN_PORTADA_PREDETERMINADA)
@@ -1157,6 +1382,7 @@ class DialogoConfiguracionInteractiva:
                 return
         estilo_adorno_margen = self._codigo_estilo_adorno_seleccionado()
         imagen_adorno_margen = self.imagen_adorno_var.get().strip()
+        decoracion_cajas_activa = bool(self.decoracion_cajas_habilitada_var.get()) if self.decoracion_cajas_habilitada_var is not None else False
         if adornos_margen_activos and estilo_adorno_margen == "PERSONALIZADO":
             if not imagen_adorno_margen:
                 self.messagebox.showerror("Adorno incompleto", "Selecciona un PNG transparente para el borde personalizado o cambia a un preset.")
@@ -1175,6 +1401,7 @@ class DialogoConfiguracionInteractiva:
             "adornos_margen_activos": adornos_margen_activos,
             "estilo_adorno_margen": estilo_adorno_margen,
             "imagen_adorno_margen": imagen_adorno_margen,
+            "pack_decoracion_cajas": self._codigo_pack_cajas_seleccionado() if decoracion_cajas_activa else "NINGUNO",
             "portada_pagina_completa": bool(self.portada_pagina_completa_var.get()),
             "portada_modo_ajuste": cfg.MODOS_AJUSTE_PORTADA_DISPONIBLES.get(self.portada_modo_ajuste_var.get(), "CUBRIR"),
         }
