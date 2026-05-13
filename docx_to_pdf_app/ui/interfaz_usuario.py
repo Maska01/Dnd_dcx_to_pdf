@@ -91,22 +91,28 @@ class DialogoConfiguracionInteractiva:
         self.entrada_var = None
         self.salida_var = None
         self.estado_rutas_var = None
+        self.descripcion_pasos_var = None
         self.titulo_encabezado = None
         self.descripcion_encabezado = None
+        self.etiqueta_paso_archivos = None
+        self.etiqueta_paso_personalizacion = None
         self.contenedor_paginas = None
         self.pagina_archivos = None
         self.pagina_personalizacion = None
-        self.resumen_entrada_var = None
-        self.resumen_salida_var = None
         self.entrada_archivo = None
         self.salida_archivo = None
         self.estado_rutas_label = None
         self.entrada_portada = None
         self.boton_portada = None
         self.etiqueta_ayuda_portada = None
+        self.etiqueta_validacion_portada = None
         self.entrada_ancho = None
         self.entrada_alto = None
         self.etiqueta_ayuda_tamano = None
+        self.etiqueta_validacion_tamano = None
+        self.etiqueta_validacion_margen = None
+        self.resumen_portada_var = None
+        self.resumen_documento_var = None
         self.titulo_var = None
         self.subtitulo_var = None
         self.autor_var = None
@@ -138,10 +144,12 @@ class DialogoConfiguracionInteractiva:
         self.preview_adorno_imagen = None
         self.etiqueta_estado_margenes = None
         self.etiqueta_estado_cajas = None
+        self.etiqueta_validacion_adorno = None
         self.boton_cancelar = None
         self.boton_continuar = None
         self.boton_regresar = None
         self.boton_aceptar = None
+        self.boton_aceptar_y_abrir = None
         self.boton_restablecer = None
         self.estado_operacion_var = None
         self.etiqueta_estado_operacion = None
@@ -150,10 +158,17 @@ class DialogoConfiguracionInteractiva:
         self.margen_sin_adornos_guardado = None
         self.margen_con_adornos_guardado = None
         self.adornos_activos_previos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
-        self.ancho_ventana_objetivo = 980
-        self.alto_ventana_objetivo = 760
-        self.ancho_ventana_minimo = 900
-        self.alto_ventana_minimo = 700
+        self.ancho_ventana_objetivo = 950
+        self.alto_ventana_objetivo = 740
+        self.ancho_ventana_minimo = 860
+        self.alto_ventana_minimo = 680
+        self.ancho_contenido_compacto = 820
+        self.ancho_tarjeta_archivos = 840
+        self.color_superficie = "#F6F2EA"
+        self.color_panel = "#FFFDFC"
+        self.color_borde_suave = "#D7CEC0"
+        self.color_texto_suave = "#6B665D"
+        self.color_acento = "#1E5631"
 
     def ejecutar(self):
         if not self._importar_tkinter():
@@ -198,6 +213,7 @@ class DialogoConfiguracionInteractiva:
     def _crear_ventana(self):
         self.raiz = self.tk.Tk()
         self.raiz.title("Configuración del PDF")
+        self.raiz.configure(bg=self.color_superficie)
         self._configurar_dimensiones_ventana()
         self.raiz.geometry(f"{self.ancho_ventana_objetivo}x{self.alto_ventana_objetivo}")
         self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
@@ -205,30 +221,31 @@ class DialogoConfiguracionInteractiva:
     def _configurar_dimensiones_ventana(self):
         ancho_pantalla = max(800, int(self.raiz.winfo_screenwidth()))
         alto_pantalla = max(600, int(self.raiz.winfo_screenheight()))
-        ancho_objetivo = min(980, max(820, ancho_pantalla - 80))
-        alto_objetivo = min(760, max(680, alto_pantalla - 100))
-        ancho_minimo = min(ancho_objetivo, max(820, ancho_pantalla - 140))
-        alto_minimo = min(alto_objetivo, max(640, alto_pantalla - 160))
+        ancho_objetivo = min(950, max(800, ancho_pantalla - 90))
+        alto_objetivo = min(740, max(660, alto_pantalla - 110))
+        ancho_minimo = min(ancho_objetivo, max(780, ancho_pantalla - 170))
+        alto_minimo = min(alto_objetivo, max(620, alto_pantalla - 180))
         self.ancho_ventana_objetivo = ancho_objetivo
         self.alto_ventana_objetivo = alto_objetivo
         self.ancho_ventana_minimo = ancho_minimo
         self.alto_ventana_minimo = alto_minimo
 
     def _construir_interfaz(self):
-        contenedor = self.tk.Frame(self.raiz, padx=10, pady=10)
+        contenedor = self.tk.Frame(self.raiz, padx=8, pady=8, bg=self.color_superficie)
         contenedor.pack(fill="both", expand=True)
         self.contenedor_principal = contenedor
         self._configurar_estilo_notebook()
-        interior = self.tk.Frame(contenedor)
+        interior = self.tk.Frame(contenedor, bg=self.color_superficie)
         interior.pack(fill="both", expand=True)
         self.interior_principal = interior
         self.variables_color = {clave: self.tk.StringVar(value=valor) for clave, valor in self.configuracion_inicial.items()}
         self.encabezado(interior)
+        self._construir_indicador_pasos(interior)
         self.contenedor_paginas = self.tk.Frame(interior)
         self.contenedor_paginas.pack(fill="both", expand=True)
         self.pagina_archivos = self.tk.Frame(self.contenedor_paginas)
         self.pagina_personalizacion = self.tk.Frame(self.contenedor_paginas)
-        self._construir_bloque_archivos(self.pagina_archivos)
+        self._construir_pagina_archivos(self.pagina_archivos)
         self._construir_pagina_personalizacion(self.pagina_personalizacion)
         self._construir_botones(contenedor)
         self._mostrar_pagina_archivos()
@@ -241,100 +258,290 @@ class DialogoConfiguracionInteractiva:
         except Exception:
             pass
         estilo.configure("MenuNotebook.TNotebook", tabposition="n")
-        estilo.configure("MenuNotebook.TNotebook.Tab", padding=(12, 6))
-        estilo.configure("Primario.TButton", padding=(14, 8), font=("Segoe UI", 9, "bold"))
-        estilo.configure("Secundario.TButton", padding=(10, 8))
+        estilo.configure("MenuNotebook.TNotebook.Tab", padding=(10, 5))
+        estilo.configure("Primario.TButton", padding=(12, 7), font=("Segoe UI", 9, "bold"))
+        estilo.configure("Secundario.TButton", padding=(9, 7))
 
     def encabezado(self, interior):
-        encabezado_frame = self.tk.Frame(interior, padx=4, pady=4)
-        encabezado_frame.pack(fill="x", pady=(0, 8))
-        self.titulo_encabezado = self.tk.Label(encabezado_frame, text="Personaliza tu PDF antes de generarlo", font=("Segoe UI", 16, "bold"), anchor="w")
+        encabezado_frame = self.tk.Frame(interior, padx=2, pady=2, bg=self.color_superficie)
+        encabezado_frame.pack(fill="x", pady=(0, 6))
+        self.titulo_encabezado = self.tk.Label(encabezado_frame, text="Personaliza tu PDF antes de generarlo", font=("Segoe UI", 16, "bold"), anchor="w", bg=self.color_superficie, fg="#1F1F1F")
         self.titulo_encabezado.pack(fill="x")
-        self.descripcion_encabezado = self.tk.Label(encabezado_frame, text="Primero elige una entrada `.docx` y una salida `.pdf` válidas. Después podrás continuar a la personalización.", justify="left", wraplength=900, anchor="w")
+        self.descripcion_encabezado = self.tk.Label(encabezado_frame, text="Primero elige un `.docx` y un destino `.pdf`. Después ajusta el estilo del documento.", justify="left", wraplength=self.ancho_contenido_compacto, anchor="w", bg=self.color_superficie, fg=self.color_texto_suave)
         self.descripcion_encabezado.pack(fill="x", pady=(4, 0))
+        self.tk.Frame(encabezado_frame, height=1, bg=self.color_borde_suave).pack(fill="x", pady=(8, 0))
+
+    def _construir_indicador_pasos(self, interior):
+        pasos_frame = self.tk.Frame(interior, padx=4, pady=2, bg=self.color_superficie)
+        pasos_frame.pack(fill="x", pady=(0, 6))
+        pasos_frame.columnconfigure(0, weight=0)
+        pasos_frame.columnconfigure(1, weight=0)
+        pasos_frame.columnconfigure(2, weight=0)
+        pasos_frame.columnconfigure(3, weight=1)
+        self.etiqueta_paso_archivos = self.tk.Label(pasos_frame, text="1. Archivos", padx=10, pady=4, relief="solid", borderwidth=1)
+        self.etiqueta_paso_archivos.grid(row=0, column=0, sticky="w")
+        self.tk.Label(pasos_frame, text="→", fg="#7A7A7A", bg=self.color_superficie).grid(row=0, column=1, padx=8)
+        self.etiqueta_paso_personalizacion = self.tk.Label(pasos_frame, text="2. Personalización", padx=10, pady=4, relief="solid", borderwidth=1)
+        self.etiqueta_paso_personalizacion.grid(row=0, column=2, sticky="w")
+        self.descripcion_pasos_var = self.tk.StringVar(value="Paso 1 de 2 · Elige entrada y salida.")
+        self.tk.Label(pasos_frame, textvariable=self.descripcion_pasos_var, anchor="e", justify="right", fg=self.color_texto_suave, bg=self.color_superficie).grid(row=0, column=3, sticky="e")
+        self._actualizar_indicador_pasos()
+
+    def _actualizar_indicador_pasos(self):
+        estilos = {
+            True: {"bg": self.color_acento, "fg": "#FFFFFF", "font": ("Segoe UI", 9, "bold"), "relief": "solid", "borderwidth": 1},
+            False: {"bg": "#EFE7DA", "fg": self.color_texto_suave, "font": ("Segoe UI", 9), "relief": "solid", "borderwidth": 1},
+        }
+        paso_archivos_activo = self.pagina_actual == "archivos"
+        paso_personalizacion_activo = self.pagina_actual == "personalizacion"
+        if self.etiqueta_paso_archivos is not None:
+            self.etiqueta_paso_archivos.configure(**estilos[paso_archivos_activo])
+        if self.etiqueta_paso_personalizacion is not None:
+            self.etiqueta_paso_personalizacion.configure(**estilos[paso_personalizacion_activo])
+        if self.descripcion_pasos_var is not None:
+            if paso_archivos_activo:
+                self.descripcion_pasos_var.set("Paso 1 de 2 · Elige entrada y salida.")
+            else:
+                self.descripcion_pasos_var.set("Paso 2 de 2 · Ajusta el estilo antes de generar.")
+
+    def _configurar_etiqueta_estado(self, etiqueta, texto, color="#5F5F5F"):
+        if etiqueta is None:
+            return
+        etiqueta.configure(text=texto, fg=color)
+
+    def _actualizar_validacion_portada(self):
+        if self.etiqueta_validacion_portada is None or self.portada_habilitada_var is None:
+            return
+        if not self.portada_habilitada_var.get():
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_portada, "Portada desactivada. Puedes activarla más tarde sin perder la imagen seleccionada.")
+            return
+        ruta = self.portada_var.get().strip() if self.portada_var is not None else ""
+        if not ruta:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_portada, "Falta seleccionar la imagen de portada.", color="#7A1C1C")
+            return
+        ruta_portada = Path(ruta)
+        if not ruta_portada.exists() or not ruta_portada.is_file():
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_portada, "La imagen de portada ya no existe en esa ruta.", color="#7A1C1C")
+            return
+        self._configurar_etiqueta_estado(self.etiqueta_validacion_portada, "Portada lista para generarse con la imagen seleccionada.", color="#1E5631")
+
+    def _actualizar_validacion_tamano(self):
+        if self.etiqueta_validacion_tamano is None or self.tamano_pagina_var is None:
+            return
+        tamano = self.tamano_pagina_var.get().strip().upper()
+        if tamano != cfg.OPCION_TAMANO_PERSONALIZADO:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_tamano, f"Se usará el tamaño de página {self.tamano_pagina_var.get().strip()}.", color="#1E5631")
+            return
+        try:
+            ancho = float(str(self.ancho_pagina_var.get()).replace(",", ".").strip())
+            alto = float(str(self.alto_pagina_var.get()).replace(",", ".").strip())
+        except (AttributeError, TypeError, ValueError):
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_tamano, "El ancho y el alto personalizados deben ser números válidos.", color="#7A1C1C")
+            return
+        if not (5.0 <= ancho <= 100.0 and 5.0 <= alto <= 100.0):
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_tamano, "El tamaño personalizado debe quedar entre 5 y 100 cm en ambos lados.", color="#7A1C1C")
+            return
+        self._configurar_etiqueta_estado(self.etiqueta_validacion_tamano, f"Página personalizada lista: {ancho:.1f} × {alto:.1f} cm.", color="#1E5631")
+
+    def _actualizar_validacion_margen(self):
+        if self.etiqueta_validacion_margen is None:
+            return
+        margen_cm = self._obtener_margen_actual_cm()
+        adornos_activos = bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())
+        minimo_cm = cfg.obtener_margen_minimo_cm(adornos_activos)
+        if margen_cm is None:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_margen, "No se pudo interpretar el margen actual.", color="#7A1C1C")
+            return
+        if margen_cm < minimo_cm or margen_cm > cfg.MARGEN_MAXIMO_CM:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_margen, f"El margen debe estar entre {self._formatear_margen_cm(minimo_cm)} y {self._formatear_margen_cm(cfg.MARGEN_MAXIMO_CM)} cm.", color="#7A1C1C")
+            return
+        texto = f"Margen listo: {self._formatear_margen_cm(margen_cm)} cm"
+        if adornos_activos:
+            texto += " con decoración de márgenes activa."
+        else:
+            texto += "."
+        self._configurar_etiqueta_estado(self.etiqueta_validacion_margen, texto, color="#1E5631")
+
+    def _actualizar_validacion_adorno(self):
+        if self.etiqueta_validacion_adorno is None:
+            return
+        adornos_activos = bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())
+        if not adornos_activos:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "Decoración de márgenes desactivada. El PDF mantendrá solo el margen normal.")
+            return
+        if self._codigo_estilo_adorno_seleccionado() != "PERSONALIZADO":
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, f"Preset {self.estilo_adorno_var.get()} listo para aplicarse en todas las páginas.", color="#1E5631")
+            return
+        ruta = self.imagen_adorno_var.get().strip() if self.imagen_adorno_var is not None else ""
+        if not ruta:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "Falta seleccionar un PNG transparente para el borde personalizado.", color="#7A1C1C")
+            return
+        ruta_png = Path(ruta)
+        if not ruta_png.exists() or not ruta_png.is_file() or ruta_png.suffix.lower() != ".png":
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "El adorno personalizado debe ser un archivo `.png` existente.", color="#7A1C1C")
+            return
+        self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "PNG personalizado listo. Intenta dejar el centro transparente para no tapar el contenido.", color="#1E5631")
+
+    def _actualizar_validaciones_inline(self):
+        self._actualizar_validacion_portada()
+        self._actualizar_validacion_tamano()
+        self._actualizar_validacion_margen()
+        self._actualizar_validacion_adorno()
 
     def _construir_bloque_archivos(self, interior):
-        archivos_frame = self.tk.LabelFrame(interior, text="Archivos", padx=8, pady=8)
-        archivos_frame.pack(fill="x", pady=(0, 8))
+        archivos_frame = self.tk.LabelFrame(interior, text="Archivos", padx=10, pady=10)
+        archivos_frame.pack(fill="x")
         self.entrada_var = self.tk.StringVar(value=self.entrada_inicial)
         salida_inicial = self._salida_inicial_normalizada()
         self.salida_var = self.tk.StringVar(value=salida_inicial)
         self.estado_rutas_var = self.tk.StringVar(value="Selecciona un archivo Word de entrada y una ruta PDF de salida para continuar.")
         self.ultima_salida_sugerida = salida_inicial if self._es_ruta_salida_valida(salida_inicial) else ""
 
-        self.tk.Label(archivos_frame, text="Archivo Word de entrada").grid(row=0, column=0, sticky="w", pady=3)
-        self.entrada_archivo = self.tk.Entry(archivos_frame, textvariable=self.entrada_var, width=66)
-        self.entrada_archivo.grid(row=0, column=1, sticky="ew", padx=(8, 8), pady=3)
-        self.tk.Button(archivos_frame, text="Elegir archivo...", command=self.elegir_archivo_entrada).grid(row=0, column=2, sticky="w", pady=3)
+        self.tk.Label(
+            archivos_frame,
+            text="Elige el Word de entrada y dónde guardar el PDF.",
+            justify="left",
+            anchor="w",
+            wraplength=760,
+        ).grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 8))
 
-        self.tk.Label(archivos_frame, text="Archivo PDF de salida").grid(row=1, column=0, sticky="w", pady=3)
-        self.salida_archivo = self.tk.Entry(archivos_frame, textvariable=self.salida_var, width=66)
-        self.salida_archivo.grid(row=1, column=1, sticky="ew", padx=(8, 8), pady=3)
-        self.tk.Button(archivos_frame, text="Elegir destino...", command=self.elegir_archivo_salida).grid(row=1, column=2, sticky="w", pady=3)
+        self.tk.Label(archivos_frame, text="Entrada (.docx)").grid(row=1, column=0, sticky="w", pady=3)
+        self.entrada_archivo = self.tk.Entry(archivos_frame, textvariable=self.entrada_var, width=54)
+        self.entrada_archivo.grid(row=1, column=1, sticky="ew", padx=(8, 8), pady=3)
+        self.tk.Button(archivos_frame, text="Elegir archivo...", command=self.elegir_archivo_entrada).grid(row=1, column=2, sticky="w", pady=3)
+
+        self.tk.Label(archivos_frame, text="Salida (.pdf)").grid(row=2, column=0, sticky="w", pady=3)
+        self.salida_archivo = self.tk.Entry(archivos_frame, textvariable=self.salida_var, width=54)
+        self.salida_archivo.grid(row=2, column=1, sticky="ew", padx=(8, 8), pady=3)
+        self.tk.Button(archivos_frame, text="Elegir destino...", command=self.elegir_archivo_salida).grid(row=2, column=2, sticky="w", pady=3)
 
         self.estado_rutas_label = self.tk.Label(archivos_frame, textvariable=self.estado_rutas_var, anchor="w", justify="left")
-        self.estado_rutas_label.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+        self.estado_rutas_label.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+        archivos_frame.columnconfigure(0, minsize=160)
         archivos_frame.columnconfigure(1, weight=1)
         self.entrada_var.trace_add("write", self.actualizar_estado_rutas)
         self.salida_var.trace_add("write", self.actualizar_estado_rutas)
 
-    def _construir_pagina_personalizacion(self, interior):
-        resumen_frame = self.tk.LabelFrame(interior, text="Rutas seleccionadas", padx=8, pady=8)
-        resumen_frame.pack(fill="x", pady=(0, 8))
-        self.resumen_entrada_var = self.tk.StringVar(value=self.entrada_inicial)
-        self.resumen_salida_var = self.tk.StringVar(value=self._salida_inicial_normalizada())
-        self.tk.Label(resumen_frame, text="Entrada").grid(row=0, column=0, sticky="nw")
-        self.tk.Label(resumen_frame, textvariable=self.resumen_entrada_var, anchor="w", justify="left", wraplength=720).grid(row=0, column=1, sticky="ew", padx=(8, 0))
-        self.tk.Label(resumen_frame, text="Salida").grid(row=1, column=0, sticky="nw", pady=(6, 0))
-        self.tk.Label(resumen_frame, textvariable=self.resumen_salida_var, anchor="w", justify="left", wraplength=720).grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(6, 0))
-        resumen_frame.columnconfigure(1, weight=1)
+    def _construir_pagina_archivos(self, parent):
+        parent.grid_rowconfigure(0, weight=1)
+        parent.grid_rowconfigure(1, weight=0)
+        parent.grid_rowconfigure(2, weight=1)
+        parent.grid_columnconfigure(0, weight=1)
 
-        notebook, pestana_general, pestana_decoracion, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes = self._crear_notebook(interior)
+        parent.grid_columnconfigure(1, weight=0)
+        parent.grid_columnconfigure(2, weight=1)
+
+        contenedor_centrado = self.tk.Frame(parent, width=self.ancho_tarjeta_archivos, bg=self.color_superficie)
+        contenedor_centrado.grid(row=1, column=1, sticky="n")
+        contenedor_centrado.grid_propagate(False)
+
+        tarjeta_archivos = self.tk.Frame(
+            contenedor_centrado,
+            bg=self.color_panel,
+            highlightthickness=1,
+            highlightbackground=self.color_borde_suave,
+            highlightcolor=self.color_borde_suave,
+            padx=10,
+            pady=10,
+        )
+        tarjeta_archivos.pack(fill="x")
+        self._construir_bloque_archivos(tarjeta_archivos)
+
+    def _construir_pagina_personalizacion(self, interior):
+        notebook, pestana_portada_metadatos, pestana_documento, pestana_margenes, pestana_cajas, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes = self._crear_notebook(interior)
         self.notebook = notebook
-        self._construir_pestana_general(pestana_general)
-        self._construir_pestana_decoracion(pestana_decoracion)
+        self._construir_pestana_portada_metadatos(pestana_portada_metadatos)
+        self._construir_pestana_documento(pestana_documento)
+        self._inicializar_estado_decoracion()
+        self._construir_pestana_margenes(pestana_margenes)
+        self._construir_pestana_cajas(pestana_cajas)
+        self._finalizar_estado_decoracion()
         self._construir_pestanas_colores(pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes)
 
     def _crear_notebook(self, interior):
         notebook = self.ttk.Notebook(interior, style="MenuNotebook.TNotebook")
         notebook.pack(fill="both", expand=True)
-        pestana_general = self.tk.Frame(notebook, padx=10, pady=10)
-        pestana_decoracion = self.tk.Frame(notebook, padx=10, pady=10)
-        pestana_colores_base = self.tk.Frame(notebook, padx=10, pady=10)
-        pestana_colores_cajas = self.tk.Frame(notebook, padx=10, pady=10)
-        pestana_colores_personajes = self.tk.Frame(notebook, padx=10, pady=10)
-        notebook.add(pestana_general, text="General")
-        notebook.add(pestana_decoracion, text="Decoración")
+        pestana_portada_metadatos = self.tk.Frame(notebook, padx=8, pady=8)
+        pestana_documento = self.tk.Frame(notebook, padx=8, pady=8)
+        pestana_margenes = self.tk.Frame(notebook, padx=8, pady=8)
+        pestana_cajas = self.tk.Frame(notebook, padx=8, pady=8)
+        pestana_colores_base = self.tk.Frame(notebook, padx=8, pady=8)
+        pestana_colores_cajas = self.tk.Frame(notebook, padx=8, pady=8)
+        pestana_colores_personajes = self.tk.Frame(notebook, padx=8, pady=8)
+        notebook.add(pestana_portada_metadatos, text="Portada y metadatos")
+        notebook.add(pestana_documento, text="Página, fuentes y márgenes")
+        notebook.add(pestana_margenes, text="Decoración de márgenes")
+        notebook.add(pestana_cajas, text="Decoración de cajas")
         notebook.add(pestana_colores_base, text="Colores base")
         notebook.add(pestana_colores_cajas, text="Cajas útiles")
         notebook.add(pestana_colores_personajes, text="NPC y combate")
-        return notebook, pestana_general, pestana_decoracion, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes
+        return notebook, pestana_portada_metadatos, pestana_documento, pestana_margenes, pestana_cajas, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes
 
-    def _construir_pestana_general(self, pestana_general):
-        panel_superior = self.tk.Frame(pestana_general)
-        panel_superior.pack(fill="both", expand=True)
-        panel_superior.columnconfigure(0, weight=1)
-        self._construir_bloque_portada(panel_superior)
-        self._construir_bloque_documento(panel_superior)
+    def _construir_pestana_portada_metadatos(self, pestana_portada_metadatos):
+        panel_superior = self.tk.Frame(pestana_portada_metadatos)
+        panel_superior.pack(fill="both", expand=True, anchor="n")
+        panel_superior.columnconfigure(0, weight=3)
+        panel_superior.columnconfigure(1, weight=2)
+        panel_superior.rowconfigure(1, weight=1)
 
-    def _construir_pestana_decoracion(self, pestana_decoracion):
-        contenedor = self.tk.Frame(pestana_decoracion)
+        columna_formulario = self.tk.Frame(panel_superior)
+        columna_formulario.grid(row=0, column=0, sticky="new", padx=(0, 8))
+        columna_resumen = self.tk.Frame(panel_superior)
+        columna_resumen.grid(row=0, column=1, sticky="nsew")
+        fila_inferior = self.tk.Frame(panel_superior)
+        fila_inferior.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(2, 0))
+
+        self._construir_bloque_portada(columna_formulario)
+        self._construir_panel_resumen_portada(columna_resumen)
+        self._construir_panel_ayuda_portada(fila_inferior)
+
+    def _construir_pestana_documento(self, pestana_documento):
+        panel_superior = self.tk.Frame(pestana_documento)
+        panel_superior.pack(fill="both", expand=True, anchor="n")
+        panel_superior.columnconfigure(0, weight=3)
+        panel_superior.columnconfigure(1, weight=2)
+
+        columna_formulario = self.tk.Frame(panel_superior)
+        columna_formulario.grid(row=0, column=0, sticky="new", padx=(0, 8))
+        columna_resumen = self.tk.Frame(panel_superior)
+        columna_resumen.grid(row=0, column=1, sticky="nsew")
+
+        self._construir_bloque_documento(columna_formulario)
+        self._construir_panel_resumen_documento(columna_resumen)
+
+    def _construir_pestana_margenes(self, pestana_margenes):
+        contenedor = self.tk.Frame(pestana_margenes)
         contenedor.pack(fill="both", expand=True)
         contenedor.columnconfigure(0, weight=1)
 
         descripcion = self.tk.Label(
             contenedor,
-            text="Controla aquí los marcos decorativos del documento con presets o con un PNG transparente personalizado.",
+            text="Configura el borde decorativo de cada página con presets o con un PNG transparente.",
             anchor="w",
             justify="left",
-            wraplength=860,
+            wraplength=self.ancho_contenido_compacto,
         )
-        descripcion.grid(row=0, column=0, sticky="ew", pady=(0, 8))
-        self._construir_bloque_adornos(contenedor, fila=1)
+        descripcion.grid(row=0, column=0, sticky="ew", pady=(0, 6))
+        self._construir_bloque_adornos_margenes(contenedor, fila=1)
+
+    def _construir_pestana_cajas(self, pestana_cajas):
+        contenedor = self.tk.Frame(pestana_cajas)
+        contenedor.pack(fill="both", expand=True)
+        contenedor.columnconfigure(0, weight=1)
+
+        descripcion = self.tk.Label(
+            contenedor,
+            text="Elige el estilo global de las cajas temáticas sin tocar los márgenes de página.",
+            anchor="w",
+            justify="left",
+            wraplength=self.ancho_contenido_compacto,
+        )
+        descripcion.grid(row=0, column=0, sticky="ew", pady=(0, 6))
+        self._construir_bloque_adornos_cajas(contenedor, fila=1)
 
     def _construir_bloque_portada(self, panel_superior):
         titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", padx=8, pady=8)
-        titulo_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 8))
+        titulo_frame.grid(row=0, column=0, sticky="new", pady=(0, 6))
         self.titulo_var = self.tk.StringVar(value=self.titulo_inicial)
         self.subtitulo_var = self.tk.StringVar(value=self.subtitulo_inicial)
         self.autor_var = self.tk.StringVar(value=self.autor_inicial)
@@ -343,25 +550,26 @@ class DialogoConfiguracionInteractiva:
         self.portada_var = self.tk.StringVar(value=self.portada_inicial if portada_explicita else "")
         self.portada_pagina_completa_var = self.tk.BooleanVar(value=bool(self.configuracion_documento_inicial.get("portada_pagina_completa", False)))
         self.portada_modo_ajuste_var = self.tk.StringVar(value=cfg.obtener_etiqueta_modo_ajuste_portada(self.configuracion_documento_inicial.get("portada_modo_ajuste", "CUBRIR")))
-        self.tk.Label(titulo_frame, text="Título de la aventura (opcional)").grid(row=0, column=0, sticky="w")
-        self.tk.Entry(titulo_frame, textvariable=self.titulo_var, width=42).grid(row=0, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Label(titulo_frame, text="Título (opcional)").grid(row=0, column=0, sticky="w")
+        self.tk.Entry(titulo_frame, textvariable=self.titulo_var, width=36).grid(row=0, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
         self.tk.Label(titulo_frame, text="Subtítulo (opcional)").grid(row=1, column=0, sticky="w")
-        self.tk.Entry(titulo_frame, textvariable=self.subtitulo_var, width=42).grid(row=1, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Entry(titulo_frame, textvariable=self.subtitulo_var, width=36).grid(row=1, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
         self.tk.Label(titulo_frame, text="Autor (opcional)").grid(row=2, column=0, sticky="w")
-        self.tk.Entry(titulo_frame, textvariable=self.autor_var, width=42).grid(row=2, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
-        self.tk.Checkbutton(titulo_frame, text="Agregar portada", variable=self.portada_habilitada_var, command=self.actualizar_estado_portada).grid(row=3, column=0, sticky="w", pady=(8, 4))
+        self.tk.Entry(titulo_frame, textvariable=self.autor_var, width=36).grid(row=2, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Label(titulo_frame, text="Portada", fg=self.color_texto_suave).grid(row=3, column=0, sticky="w", pady=(10, 2))
+        self.tk.Checkbutton(titulo_frame, text="Usar portada", variable=self.portada_habilitada_var, command=self.actualizar_estado_portada).grid(row=4, column=0, sticky="w", pady=(2, 4))
         self.entrada_portada = self.tk.Entry(titulo_frame, textvariable=self.portada_var, width=42, state="readonly")
-        self.entrada_portada.grid(row=3, column=1, sticky="ew", padx=(8, 8), pady=(8, 4))
+        self.entrada_portada.grid(row=4, column=1, sticky="ew", padx=(8, 8), pady=(2, 4))
         self.boton_portada = self.tk.Button(titulo_frame, text="Elegir imagen...", command=self.elegir_portada)
-        self.boton_portada.grid(row=3, column=2, sticky="w", pady=(8, 4))
+        self.boton_portada.grid(row=4, column=2, sticky="w", pady=(2, 4))
         self.check_portada_pagina_completa = self.tk.Checkbutton(
             titulo_frame,
-            text="Ajustar imagen a hoja entera",
+            text="Ajustar a página completa",
             variable=self.portada_pagina_completa_var,
             command=self.actualizar_estado_portada,
         )
-        self.check_portada_pagina_completa.grid(row=4, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(0, 4))
-        self.tk.Label(titulo_frame, text="Modo de ajuste").grid(row=5, column=0, sticky="w", pady=(0, 4))
+        self.check_portada_pagina_completa.grid(row=5, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(0, 4))
+        self.tk.Label(titulo_frame, text="Modo").grid(row=6, column=0, sticky="w", pady=(0, 4))
         self.combo_portada_modo_ajuste = self.ttk.Combobox(
             titulo_frame,
             textvariable=self.portada_modo_ajuste_var,
@@ -369,15 +577,65 @@ class DialogoConfiguracionInteractiva:
             state="readonly",
             width=28,
         )
-        self.combo_portada_modo_ajuste.grid(row=5, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(0, 4))
-        self.etiqueta_ayuda_portada = self.tk.Label(titulo_frame, text="", anchor="w", justify="left", wraplength=820, fg="#5F5F5F")
-        self.etiqueta_ayuda_portada.grid(row=6, column=0, columnspan=3, sticky="ew", pady=(4, 0))
+        self.combo_portada_modo_ajuste.grid(row=6, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(0, 4))
+        self.etiqueta_ayuda_portada = self.tk.Label(titulo_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_ayuda_portada.grid(row=7, column=0, columnspan=3, sticky="ew", pady=(4, 0))
+        self.etiqueta_validacion_portada = self.tk.Label(titulo_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_validacion_portada.grid(row=8, column=0, columnspan=3, sticky="ew", pady=(4, 0))
         titulo_frame.columnconfigure(1, weight=1)
+        self.titulo_var.trace_add("write", lambda *_args: self._actualizar_resumen_portada())
+        self.subtitulo_var.trace_add("write", lambda *_args: self._actualizar_resumen_portada())
+        self.autor_var.trace_add("write", lambda *_args: self._actualizar_resumen_portada())
         self.actualizar_estado_portada()
+
+    def _construir_panel_resumen_portada(self, parent):
+        resumen_frame = self.tk.LabelFrame(parent, text="Resumen rápido", padx=10, pady=10)
+        resumen_frame.pack(fill="both", expand=True)
+        self.resumen_portada_var = self.tk.StringVar(value="")
+        self.tk.Label(
+            resumen_frame,
+            textvariable=self.resumen_portada_var,
+            anchor="nw",
+            justify="left",
+            wraplength=260,
+            fg=self.color_texto_suave,
+        ).pack(fill="both", expand=True)
+        self._actualizar_resumen_portada()
+
+    def _construir_panel_ayuda_portada(self, parent):
+        ayuda_frame = self.tk.LabelFrame(parent, text="Sugerencias", padx=10, pady=10)
+        ayuda_frame.pack(fill="both", expand=True)
+        mensajes = [
+            "Usa título y subtítulo solo si deben aparecer en la portada.",
+            "Activa página completa si la imagen debe cubrir toda la hoja.",
+            "Si no quieres portada, deja solo los metadatos y continúa.",
+        ]
+        for mensaje in mensajes:
+            self.tk.Label(ayuda_frame, text=f"• {mensaje}", anchor="w", justify="left", wraplength=760, fg=self.color_texto_suave).pack(fill="x", pady=2)
+
+    def _actualizar_resumen_portada(self):
+        if self.resumen_portada_var is None:
+            return
+        titulo = self.titulo_var.get().strip() if self.titulo_var is not None else ""
+        subtitulo = self.subtitulo_var.get().strip() if self.subtitulo_var is not None else ""
+        autor = self.autor_var.get().strip() if self.autor_var is not None else ""
+        portada_activa = bool(self.portada_habilitada_var and self.portada_habilitada_var.get())
+        portada_texto = "Activa" if portada_activa else "Desactivada"
+        if portada_activa and self.portada_pagina_completa_var is not None and self.portada_pagina_completa_var.get():
+            portada_texto += " · página completa"
+        lineas = [
+            f"Título: {titulo or 'Sin título'}",
+            f"Subtítulo: {subtitulo or 'Sin subtítulo'}",
+            f"Autor: {autor or 'Sin autor'}",
+            f"Portada: {portada_texto}",
+        ]
+        if self.portada_var is not None and self.portada_var.get().strip():
+            lineas.append("Imagen seleccionada correctamente.")
+        self.resumen_portada_var.set("\n\n".join(lineas))
 
     def _construir_bloque_documento(self, panel_superior):
         documento_frame = self.tk.LabelFrame(panel_superior, text="Página, fuentes y márgenes", padx=8, pady=8)
-        documento_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 8))
+        documento_frame.grid(row=1, column=0, sticky="new", pady=(0, 6))
         fuentes_disponibles = cfg.obtener_fuentes_disponibles()
         adornos_iniciales = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
         self.tamano_pagina_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("tamano_pagina", "A4"))
@@ -386,35 +644,99 @@ class DialogoConfiguracionInteractiva:
         self.margen_var = self.tk.StringVar(value=self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=adornos_iniciales)))
         self.ancho_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
         self.alto_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
-        self.tk.Label(documento_frame, text="Tamaño de página").grid(row=0, column=0, sticky="w", pady=3)
-        self.ttk.Combobox(documento_frame, textvariable=self.tamano_pagina_var, values=[*cfg.TAMANOS_PAGINA_DISPONIBLES.keys(), cfg.OPCION_TAMANO_PERSONALIZADO], state="readonly", width=16).grid(row=0, column=1, sticky="w", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Ancho personalizado (cm)").grid(row=0, column=2, sticky="w", padx=(16, 0), pady=3)
+        documento_frame.columnconfigure(1, weight=1)
+        documento_frame.columnconfigure(3, weight=1)
+        self.tk.Label(documento_frame, text="Formato", fg=self.color_texto_suave).grid(row=0, column=0, sticky="w", pady=(0, 2))
+        self.tk.Label(documento_frame, text="Tamaño").grid(row=1, column=0, sticky="w", pady=3)
+        self.ttk.Combobox(documento_frame, textvariable=self.tamano_pagina_var, values=[*cfg.TAMANOS_PAGINA_DISPONIBLES.keys(), cfg.OPCION_TAMANO_PERSONALIZADO], state="readonly", width=16).grid(row=1, column=1, sticky="ew", padx=(8, 10), pady=3)
+        self.tk.Label(documento_frame, text="Ancho (cm)").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=3)
         self.entrada_ancho = self.tk.Entry(documento_frame, textvariable=self.ancho_pagina_var, width=10)
-        self.entrada_ancho.grid(row=0, column=3, sticky="w", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Alto personalizado (cm)").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=3)
+        self.entrada_ancho.grid(row=1, column=3, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Label(documento_frame, text="Alto (cm)").grid(row=2, column=2, sticky="w", padx=(16, 0), pady=3)
         self.entrada_alto = self.tk.Entry(documento_frame, textvariable=self.alto_pagina_var, width=10)
-        self.entrada_alto.grid(row=1, column=3, sticky="w", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Fuente de título").grid(row=1, column=0, sticky="w", pady=3)
-        self.ttk.Combobox(documento_frame, textvariable=self.fuente_titulo_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=1, column=1, sticky="w", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Fuente de texto").grid(row=2, column=0, sticky="w", pady=3)
-        self.ttk.Combobox(documento_frame, textvariable=self.fuente_texto_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=2, column=1, sticky="w", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Margen (cm)").grid(row=3, column=0, sticky="w", pady=3)
+        self.entrada_alto.grid(row=2, column=3, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Label(documento_frame, text="Tipografía", fg=self.color_texto_suave).grid(row=3, column=0, sticky="w", pady=(10, 2))
+        self.tk.Label(documento_frame, text="Fuente de títulos").grid(row=4, column=0, sticky="w", pady=3)
+        self.ttk.Combobox(documento_frame, textvariable=self.fuente_titulo_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=4, column=1, sticky="ew", padx=(8, 10), pady=3)
+        self.tk.Label(documento_frame, text="Fuente de texto").grid(row=4, column=2, sticky="w", padx=(16, 0), pady=3)
+        self.ttk.Combobox(documento_frame, textvariable=self.fuente_texto_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=4, column=3, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Label(documento_frame, text="Márgenes", fg=self.color_texto_suave).grid(row=5, column=0, sticky="w", pady=(10, 2))
+        self.tk.Label(documento_frame, text="Margen (cm)").grid(row=6, column=0, sticky="w", pady=3)
         self.combo_margen = self.ttk.Combobox(documento_frame, textvariable=self.margen_var, values=self._opciones_margen_disponibles(adornos_iniciales), state="readonly", width=10)
-        self.combo_margen.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=3)
+        self.combo_margen.grid(row=6, column=1, sticky="w", padx=(8, 10), pady=3)
         self.etiqueta_rango_margen = self.tk.Label(documento_frame, text="")
-        self.etiqueta_rango_margen.grid(row=3, column=2, sticky="w", padx=(8, 0), pady=3)
-        self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=620, fg="#5F5F5F")
-        self.etiqueta_ayuda_tamano.grid(row=4, column=0, columnspan=4, sticky="ew", pady=(6, 0))
+        self.etiqueta_rango_margen.grid(row=6, column=2, columnspan=2, sticky="w", padx=(8, 0), pady=3)
+        self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_ayuda_tamano.grid(row=7, column=0, columnspan=4, sticky="ew", pady=(6, 0))
+        self.etiqueta_validacion_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_validacion_tamano.grid(row=8, column=0, columnspan=4, sticky="ew", pady=(4, 0))
+        self.etiqueta_validacion_margen = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_validacion_margen.grid(row=9, column=0, columnspan=4, sticky="ew", pady=(4, 0))
         self.margen_var.trace_add("write", self._registrar_margen_seleccionado)
         self.tamano_pagina_var.trace_add("write", self.actualizar_estado_tamano_personalizado)
+        self.tamano_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.fuente_titulo_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.fuente_texto_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.ancho_pagina_var.trace_add("write", lambda *_args: self._actualizar_validacion_tamano())
+        self.ancho_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.alto_pagina_var.trace_add("write", lambda *_args: self._actualizar_validacion_tamano())
+        self.alto_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.margen_var.trace_add("write", lambda *_args: self._actualizar_validacion_margen())
+        self.margen_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.actualizar_estado_tamano_personalizado()
         self._actualizar_etiqueta_rango_margen()
+        self._actualizar_resumen_documento()
 
-    def _construir_bloque_adornos(self, parent, fila=0):
-        decoracion_frame = self.tk.Frame(parent)
-        decoracion_frame.grid(row=fila, column=0, sticky="nsew")
-        decoracion_frame.columnconfigure(0, weight=1)
+    def _construir_panel_resumen_documento(self, parent):
+        resumen_frame = self.tk.LabelFrame(parent, text="Vista rápida", padx=10, pady=10)
+        resumen_frame.pack(fill="x", expand=False)
+        self.resumen_documento_var = self.tk.StringVar(value="")
+        self.tk.Label(
+            resumen_frame,
+            textvariable=self.resumen_documento_var,
+            anchor="nw",
+            justify="left",
+            wraplength=260,
+            fg=self.color_texto_suave,
+        ).pack(fill="both", expand=True)
 
+        ayuda_frame = self.tk.LabelFrame(parent, text="Consejos", padx=10, pady=10)
+        ayuda_frame.pack(fill="both", expand=True, pady=(8, 0))
+        mensajes = [
+            "Usa tamaño estándar si no necesitas medidas exactas.",
+            "Con decoración activa, el margen mínimo aumenta.",
+            "Elige fuentes legibles para bloques largos de texto.",
+        ]
+        for mensaje in mensajes:
+            self.tk.Label(ayuda_frame, text=f"• {mensaje}", anchor="w", justify="left", wraplength=260, fg=self.color_texto_suave).pack(fill="x", pady=2)
+
+        self._actualizar_resumen_documento()
+
+    def _actualizar_resumen_documento(self):
+        if self.resumen_documento_var is None:
+            return
+        tamano = self.tamano_pagina_var.get().strip() if self.tamano_pagina_var is not None else "A4"
+        margen = self.margen_var.get().strip() if self.margen_var is not None else "2.0"
+        fuente_titulo = self.fuente_titulo_var.get().strip() if self.fuente_titulo_var is not None else cfg.FUENTE_TITULO
+        fuente_texto = self.fuente_texto_var.get().strip() if self.fuente_texto_var is not None else cfg.FUENTE_TEXTO
+        if tamano.upper() == cfg.OPCION_TAMANO_PERSONALIZADO:
+            ancho = self.ancho_pagina_var.get().strip() if self.ancho_pagina_var is not None else "21.0"
+            alto = self.alto_pagina_var.get().strip() if self.alto_pagina_var is not None else "29.7"
+            tamano_texto = f"Personalizado · {ancho} × {alto} cm"
+        else:
+            tamano_texto = tamano
+        self.resumen_documento_var.set(
+            "\n\n".join(
+                [
+                    f"Tamaño: {tamano_texto}",
+                    f"Fuente títulos: {fuente_titulo}",
+                    f"Fuente texto: {fuente_texto}",
+                    f"Margen actual: {margen} cm",
+                ]
+            )
+        )
+
+    def _inicializar_estado_decoracion(self):
         adornos_activos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
         estilo_inicial = cfg.normalizar_estilo_adorno_margen(self.configuracion_documento_inicial.get("estilo_adorno_margen", cfg.ESTILO_ADORNO_MARGEN))
         imagen_inicial = str(self.configuracion_documento_inicial.get("imagen_adorno_margen", "") or "").strip()
@@ -426,22 +748,20 @@ class DialogoConfiguracionInteractiva:
         self.imagen_adorno_var = self.tk.StringVar(value=imagen_inicial)
         self.pack_decoracion_cajas_var = self.tk.StringVar(value=cfg.obtener_etiqueta_pack_decoracion_cajas(pack_inicial if pack_inicial != "NINGUNO" else "PERGAMINO_NOBLE"))
 
-        margenes_frame = self.tk.LabelFrame(decoracion_frame, text="Decoración de márgenes", padx=10, pady=10)
-        margenes_frame.grid(row=0, column=0, sticky="ew")
+    def _construir_bloque_adornos_margenes(self, parent, fila=0):
+        margenes_frame = self.tk.LabelFrame(parent, text="Decoración de márgenes", padx=10, pady=10)
+        margenes_frame.grid(row=fila, column=0, sticky="new")
         margenes_frame.columnconfigure(1, weight=1)
-        cajas_frame = self.tk.LabelFrame(decoracion_frame, text="Decoración de cajas", padx=10, pady=10)
-        cajas_frame.grid(row=1, column=0, sticky="ew", pady=(10, 0))
-        cajas_frame.columnconfigure(1, weight=1)
 
         self.tk.Label(
             margenes_frame,
-            text="Estas opciones afectan el borde decorativo de cada página del PDF.",
+            text="Estas opciones afectan el borde de cada página.",
             anchor="w",
             justify="left",
-            wraplength=520,
+            wraplength=460,
         ).grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 8))
-        self.tk.Checkbutton(margenes_frame, text="Activar florituras en los márgenes", variable=self.adornos_habilitados_var, command=self.actualizar_estado_adornos).grid(row=1, column=0, columnspan=2, sticky="w")
-        self.tk.Label(margenes_frame, text="Estilo").grid(row=2, column=0, sticky="w", pady=(8, 3))
+        self.tk.Checkbutton(margenes_frame, text="Activar decoración", variable=self.adornos_habilitados_var, command=self.actualizar_estado_adornos).grid(row=1, column=0, columnspan=2, sticky="w")
+        self.tk.Label(margenes_frame, text="Preset").grid(row=2, column=0, sticky="w", pady=(8, 3))
         self.combo_estilo_adorno = self.ttk.Combobox(margenes_frame, textvariable=self.estilo_adorno_var, values=list(cfg.ESTILOS_ADORNO_MARGEN_DISPONIBLES.keys()), state="readonly", width=24)
         self.combo_estilo_adorno.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
         self.combo_estilo_adorno.bind("<<ComboboxSelected>>", lambda _evento: self.actualizar_estado_adornos())
@@ -452,24 +772,31 @@ class DialogoConfiguracionInteractiva:
         self.boton_imagen_adorno = self.tk.Button(margenes_frame, text="Elegir PNG...", command=self.elegir_imagen_adorno)
         self.boton_imagen_adorno.grid(row=3, column=2, sticky="w", pady=3)
 
-        self.etiqueta_estado_margenes = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=520, fg="#5F5F5F")
+        self.etiqueta_estado_margenes = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=460, fg="#5F5F5F")
         self.etiqueta_estado_margenes.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+        self.etiqueta_validacion_adorno = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=460, fg="#5F5F5F")
+        self.etiqueta_validacion_adorno.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(4, 0))
 
-        preview_margenes_frame = self.tk.Frame(margenes_frame, padx=8)
-        preview_margenes_frame.grid(row=0, column=3, rowspan=5, sticky="ne", padx=(16, 0))
+        preview_margenes_frame = self.tk.Frame(margenes_frame, padx=6)
+        preview_margenes_frame.grid(row=0, column=3, rowspan=6, sticky="ne", padx=(12, 0))
         self.tk.Label(preview_margenes_frame, text="Vista previa de márgenes", anchor="w").pack(fill="x")
         self.canvas_preview_adorno = self.tk.Canvas(preview_margenes_frame, width=160, height=220, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
         self.canvas_preview_adorno.pack(pady=(6, 0))
 
+    def _construir_bloque_adornos_cajas(self, parent, fila=0):
+        cajas_frame = self.tk.LabelFrame(parent, text="Decoración de cajas", padx=10, pady=10)
+        cajas_frame.grid(row=fila, column=0, sticky="new")
+        cajas_frame.columnconfigure(1, weight=1)
+
         self.tk.Label(
             cajas_frame,
-            text="Estas opciones solo cambian el estilo de las cajas temáticas del documento; no afectan los márgenes de página.",
+            text="Estas opciones solo cambian el estilo de las cajas; no afectan los márgenes.",
             anchor="w",
             justify="left",
-            wraplength=520,
+            wraplength=460,
         ).grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 8))
-        self.tk.Checkbutton(cajas_frame, text="Activar decoraciones para las cajas", variable=self.decoracion_cajas_habilitada_var, command=self.actualizar_estado_adornos).grid(row=1, column=0, columnspan=2, sticky="w")
-        self.tk.Label(cajas_frame, text="Pack decorativo para cajas").grid(row=2, column=0, sticky="w", pady=(8, 3))
+        self.tk.Checkbutton(cajas_frame, text="Activar decoración", variable=self.decoracion_cajas_habilitada_var, command=self.actualizar_estado_adornos).grid(row=1, column=0, columnspan=2, sticky="w")
+        self.tk.Label(cajas_frame, text="Pack").grid(row=2, column=0, sticky="w", pady=(8, 3))
         self.combo_pack_decoracion_cajas = self.ttk.Combobox(
             cajas_frame,
             textvariable=self.pack_decoracion_cajas_var,
@@ -480,16 +807,18 @@ class DialogoConfiguracionInteractiva:
         self.combo_pack_decoracion_cajas.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
         self.combo_pack_decoracion_cajas.bind("<<ComboboxSelected>>", self.actualizar_estado_adornos)
 
-        self.etiqueta_estado_cajas = self.tk.Label(cajas_frame, text="", anchor="w", justify="left", wraplength=520, fg="#5F5F5F")
+        self.etiqueta_estado_cajas = self.tk.Label(cajas_frame, text="", anchor="w", justify="left", wraplength=460, fg="#5F5F5F")
         self.etiqueta_estado_cajas.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
 
-        preview_cajas_frame = self.tk.Frame(cajas_frame, padx=8)
-        preview_cajas_frame.grid(row=0, column=3, rowspan=4, sticky="ne", padx=(16, 0))
+        preview_cajas_frame = self.tk.Frame(cajas_frame, padx=6)
+        preview_cajas_frame.grid(row=0, column=3, rowspan=4, sticky="ne", padx=(12, 0))
         self.tk.Label(preview_cajas_frame, text="Vista previa de cajas", anchor="w").pack(fill="x")
         self.canvas_preview_cajas = self.tk.Canvas(preview_cajas_frame, width=180, height=112, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
         self.canvas_preview_cajas.pack(pady=(6, 0))
 
+    def _finalizar_estado_decoracion(self):
         self.imagen_adorno_var.trace_add("write", self._actualizar_preview_adornos)
+        self.imagen_adorno_var.trace_add("write", lambda *_args: self._actualizar_validacion_adorno())
         self._inicializar_estado_margenes()
         self._actualizar_opciones_margen()
         self.actualizar_estado_adornos()
@@ -517,8 +846,8 @@ class DialogoConfiguracionInteractiva:
             contenedor_tarjetas = self.tk.Frame(pestana)
             contenedor_tarjetas.pack(fill="x", anchor="n")
             contenedor_tarjetas.columnconfigure(0, weight=1)
-            contenedor_tarjetas.columnconfigure(1, weight=0, minsize=300, uniform="tarjetas_colores")
-            contenedor_tarjetas.columnconfigure(2, weight=0, minsize=300, uniform="tarjetas_colores")
+            contenedor_tarjetas.columnconfigure(1, weight=0, minsize=260, uniform="tarjetas_colores")
+            contenedor_tarjetas.columnconfigure(2, weight=0, minsize=260, uniform="tarjetas_colores")
             contenedor_tarjetas.columnconfigure(3, weight=1)
             contenedores_tarjetas[nombre_pestana] = contenedor_tarjetas
         for nombre_pestana, nombres_grupos in distribucion_pestanas.items():
@@ -540,25 +869,27 @@ class DialogoConfiguracionInteractiva:
         self.tk.Label(pestana_colores_personajes, text="Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
 
     def _construir_botones(self, contenedor):
-        botones = self.tk.Frame(contenedor, padx=10, pady=8)
+        botones = self.tk.Frame(contenedor, padx=6, pady=8, bg=self.color_superficie)
         botones.pack(fill="x")
         self.barra_botones = botones
         botones.columnconfigure(0, weight=1)
         botones.columnconfigure(1, weight=1)
+        self.tk.Frame(botones, height=1, bg=self.color_borde_suave).grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 8))
         self.estado_operacion_var = self.tk.StringVar(value="")
-        self.etiqueta_estado_operacion = self.tk.Label(botones, textvariable=self.estado_operacion_var, anchor="w", justify="left", fg="#5F5F5F")
-        self.etiqueta_estado_operacion.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 6))
-        acciones_izquierda = self.tk.Frame(botones)
-        acciones_izquierda.grid(row=1, column=0, sticky="w")
-        acciones_derecha = self.tk.Frame(botones)
-        acciones_derecha.grid(row=1, column=1, sticky="e")
+        self.etiqueta_estado_operacion = self.tk.Label(botones, textvariable=self.estado_operacion_var, anchor="w", justify="left", fg=self.color_texto_suave, bg=self.color_superficie)
+        self.etiqueta_estado_operacion.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        acciones_izquierda = self.tk.Frame(botones, bg=self.color_superficie)
+        acciones_izquierda.grid(row=2, column=0, sticky="w")
+        acciones_derecha = self.tk.Frame(botones, bg=self.color_superficie)
+        acciones_derecha.grid(row=2, column=1, sticky="e")
 
         self.boton_restablecer = self.ttk.Button(acciones_izquierda, text="Restablecer valores", style="Secundario.TButton", command=self.restablecer_valores)
         self.boton_regresar = self.ttk.Button(acciones_izquierda, text="Regresar", style="Secundario.TButton", command=self.regresar_a_archivos)
 
         self.boton_cancelar = self.ttk.Button(acciones_derecha, text="Cancelar", style="Secundario.TButton", command=self.cancelar)
         self.boton_continuar = self.ttk.Button(acciones_derecha, text="Continuar", style="Primario.TButton", command=self.continuar_a_personalizacion)
-        self.boton_aceptar = self.ttk.Button(acciones_derecha, text="Aceptar", style="Primario.TButton", command=self.aceptar)
+        self.boton_aceptar = self.ttk.Button(acciones_derecha, text="Generar PDF", style="Primario.TButton", command=self.aceptar)
+        self.boton_aceptar_y_abrir = self.ttk.Button(acciones_derecha, text="Generar y abrir", style="Secundario.TButton", command=self.aceptar_y_abrir)
 
     def actualizar_preview(self, clave):
         valor = cfg._normalizar_color_hex(self.variables_color[clave].get(), self.configuracion_inicial[clave])
@@ -633,21 +964,17 @@ class DialogoConfiguracionInteractiva:
             return ""
         return str(Path(ruta_entrada_texto).with_suffix(".pdf"))
 
-    def _actualizar_resumen_rutas(self):
-        if self.resumen_entrada_var is not None:
-            self.resumen_entrada_var.set(self.entrada_var.get().strip())
-        if self.resumen_salida_var is not None:
-            self.resumen_salida_var.set(self._normalizar_ruta_salida(self.salida_var.get()))
-
     def _mostrar_pagina_archivos(self):
         self.pagina_actual = "archivos"
+        self._actualizar_indicador_pasos()
         self.pagina_personalizacion.pack_forget()
         self.pagina_archivos.pack(fill="both", expand=True)
         self.titulo_encabezado.configure(text="Personaliza tu PDF antes de generarlo")
-        self.descripcion_encabezado.configure(text="Primero elige una entrada `.docx` y una salida `.pdf` válidas. Después podrás continuar a la personalización.", wraplength=860)
+        self.descripcion_encabezado.configure(text="Primero elige un `.docx` y un destino `.pdf`. Después ajusta el estilo del documento.", wraplength=self.ancho_contenido_compacto)
         self.boton_restablecer.pack_forget()
         self.boton_regresar.pack_forget()
         self.boton_aceptar.pack_forget()
+        self.boton_aceptar_y_abrir.pack_forget()
         self.boton_continuar.pack_forget()
         self.boton_cancelar.pack_forget()
         self.boton_cancelar.pack(side="left")
@@ -656,20 +983,22 @@ class DialogoConfiguracionInteractiva:
 
     def _mostrar_pagina_personalizacion(self):
         self.pagina_actual = "personalizacion"
+        self._actualizar_indicador_pasos()
         self.pagina_archivos.pack_forget()
         self.pagina_personalizacion.pack(fill="both", expand=True)
-        self.titulo_encabezado.configure(text="Personaliza tu PDF")
-        self.descripcion_encabezado.configure(text="Ajusta metadatos, portada, página, fuentes, márgenes y colores. Puedes volver atrás si necesitas cambiar la entrada o la salida.", wraplength=860)
-        self._actualizar_resumen_rutas()
+        self.titulo_encabezado.configure(text="Configura el contenido y el estilo del PDF")
+        self.descripcion_encabezado.configure(text="Usa las pestañas para ajustar portada, página, decoración y colores. Puedes volver atrás si necesitas cambiar rutas.", wraplength=self.ancho_contenido_compacto)
         self.boton_restablecer.pack_forget()
         self.boton_regresar.pack_forget()
         self.boton_aceptar.pack_forget()
+        self.boton_aceptar_y_abrir.pack_forget()
         self.boton_continuar.pack_forget()
         self.boton_cancelar.pack_forget()
         self.boton_restablecer.pack(side="left")
         self.boton_regresar.pack(side="left", padx=(8, 0))
-        self.boton_cancelar.pack(side="left")
+        self.boton_cancelar.pack(side="left", padx=(16, 0))
         self.boton_aceptar.pack(side="left", padx=(14, 0))
+        self.boton_aceptar_y_abrir.pack(side="left", padx=(8, 0))
         self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
 
     def _calcular_dimensiones_compartidas_ventana(self):
@@ -686,8 +1015,8 @@ class DialogoConfiguracionInteractiva:
         ancho_botones = self.barra_botones.winfo_reqwidth() if self.barra_botones is not None else 0
         alto_botones = self.barra_botones.winfo_reqheight() if self.barra_botones is not None else 0
 
-        ancho_requerido = max(ancho_paginas, ancho_encabezado, ancho_botones) + 80
-        alto_requerido = alto_paginas + alto_encabezado + alto_botones + 70
+        ancho_requerido = max(ancho_paginas, ancho_encabezado, ancho_botones) + 60
+        alto_requerido = alto_paginas + alto_encabezado + alto_botones + 60
 
         ancho_objetivo = min(max(self.ancho_ventana_objetivo, ancho_requerido), ancho_pantalla)
         alto_objetivo = min(max(self.alto_ventana_objetivo, alto_requerido), int(alto_pantalla * 0.9))
@@ -733,11 +1062,13 @@ class DialogoConfiguracionInteractiva:
         ruta = self.filedialog.askopenfilename(title="Selecciona la imagen de portada", filetypes=[("Imágenes", "*.png;*.jpg;*.jpeg;*.webp;*.bmp"), ("Todos los archivos", "*.*")], parent=self.raiz)
         if ruta:
             self.portada_var.set(ruta)
+            self.actualizar_estado_portada()
 
     def elegir_imagen_adorno(self):
         ruta = self.filedialog.askopenfilename(title="Selecciona un PNG para adornar los márgenes", filetypes=[("PNG con transparencia", "*.png"), ("Todos los archivos", "*.*")], parent=self.raiz)
         if ruta:
             self.imagen_adorno_var.set(ruta)
+            self.actualizar_estado_adornos()
 
     def _codigo_estilo_adorno_seleccionado(self):
         return cfg.ESTILOS_ADORNO_MARGEN_DISPONIBLES.get(self.estilo_adorno_var.get(), cfg.ESTILO_ADORNO_MARGEN)
@@ -892,6 +1223,8 @@ class DialogoConfiguracionInteractiva:
             else:
                 texto_cajas = f"Las cajas especiales usarán el pack {self.pack_decoracion_cajas_var.get()}. Esta opción no cambia los márgenes de página."
             self.etiqueta_estado_cajas.configure(text=texto_cajas)
+        self._actualizar_validacion_adorno()
+        self._actualizar_validacion_margen()
         self._actualizar_preview_adornos()
 
     def _codigo_pack_cajas_seleccionado(self):
@@ -1227,7 +1560,6 @@ class DialogoConfiguracionInteractiva:
             self.estado_rutas_label.configure(fg="#7A1C1C")
         if self.boton_continuar is not None:
             self.boton_continuar.configure(state="normal" if entrada_valida and salida_valida else "disabled")
-        self._actualizar_resumen_rutas()
 
     def actualizar_estado_portada(self):
         estado = "normal" if self.portada_habilitada_var.get() else "disabled"
@@ -1255,6 +1587,7 @@ class DialogoConfiguracionInteractiva:
             else:
                 texto = "La portada está desactivada. Si ya elegiste una imagen, se conserva para que puedas recuperarla más tarde con un clic."
             self.etiqueta_ayuda_portada.configure(text=texto)
+        self._actualizar_validacion_portada()
 
     def actualizar_estado_tamano_personalizado(self, *_args):
         es_personalizado = self.tamano_pagina_var.get().strip().upper() == cfg.OPCION_TAMANO_PERSONALIZADO
@@ -1267,6 +1600,7 @@ class DialogoConfiguracionInteractiva:
             else:
                 texto = "Usa un tamaño estándar para una configuración rápida, o cambia a PERSONALIZADO si necesitas medidas exactas."
             self.etiqueta_ayuda_tamano.configure(text=texto)
+        self._actualizar_validacion_tamano()
 
     def restablecer_valores(self):
         for clave, valor in self.configuracion_inicial.items():
@@ -1300,6 +1634,7 @@ class DialogoConfiguracionInteractiva:
         self.actualizar_estado_portada()
         self.actualizar_estado_tamano_personalizado()
         self.actualizar_estado_adornos()
+        self._actualizar_validaciones_inline()
 
     def cancelar(self):
         self.resultado["valor"] = None
@@ -1316,6 +1651,8 @@ class DialogoConfiguracionInteractiva:
         estado_primario = "disabled" if generando else "normal"
         if self.boton_aceptar is not None:
             self.boton_aceptar.configure(state=estado_primario)
+        if self.boton_aceptar_y_abrir is not None:
+            self.boton_aceptar_y_abrir.configure(state=estado_primario)
         if self.boton_continuar is not None:
             self.boton_continuar.configure(state=estado_primario if self._rutas_actuales_validas() else "disabled")
         if self.boton_cancelar is not None:
@@ -1328,8 +1665,15 @@ class DialogoConfiguracionInteractiva:
             self.raiz.configure(cursor="watch" if generando else "")
 
     def aceptar(self):
+        return self._procesar_aceptacion(abrir_pdf_al_generar=False)
+
+    def aceptar_y_abrir(self):
+        return self._procesar_aceptacion(abrir_pdf_al_generar=True)
+
+    def _procesar_aceptacion(self, abrir_pdf_al_generar=False):
         entrada = self.entrada_var.get().strip()
         salida = self._normalizar_ruta_salida(self.salida_var.get())
+        self._actualizar_validaciones_inline()
         if not self._es_ruta_entrada_valida(entrada):
             self.messagebox.showerror("Entrada inválida", "Selecciona un archivo `.docx` de entrada válido.")
             return
@@ -1351,6 +1695,11 @@ class DialogoConfiguracionInteractiva:
         if self.portada_habilitada_var.get() and not imagen_portada:
             self.messagebox.showerror("Portada incompleta", "Selecciona la imagen de portada o desactiva la opción.")
             return
+        if self.portada_habilitada_var.get():
+            ruta_portada = Path(imagen_portada)
+            if not ruta_portada.exists() or not ruta_portada.is_file():
+                self.messagebox.showerror("Portada inválida", "La imagen de portada debe existir en disco antes de generar el PDF.")
+                return
         adornos_margen_activos = bool(self.adornos_habilitados_var.get())
         margen_minimo_cm = cfg.obtener_margen_minimo_cm(adornos_margen_activos)
         try:
@@ -1414,10 +1763,11 @@ class DialogoConfiguracionInteractiva:
             "subtitulo": self.subtitulo_var.get().strip(),
             "autor": self.autor_var.get().strip(),
             "imagen_portada": imagen_portada,
+            "abrir_pdf_al_generar": bool(abrir_pdf_al_generar),
         }
         if self.accion_aceptar is not None:
             self._establecer_estado_controles_generacion(generando=True)
-            self._establecer_estado_operacion("Generando PDF...", color="#1E5631")
+            self._establecer_estado_operacion("Generando PDF y abriendo el resultado..." if abrir_pdf_al_generar else "Generando PDF...", color="#1E5631")
             self.raiz.update_idletasks()
             try:
                 self.accion_aceptar(dict(self.resultado["valor"]))
@@ -1425,7 +1775,8 @@ class DialogoConfiguracionInteractiva:
                 self._establecer_estado_operacion("No se pudo generar el PDF. Revisa los datos e inténtalo de nuevo.", color="#7A1C1C")
                 self.messagebox.showerror("Error al generar el PDF", str(error))
             else:
-                self._establecer_estado_operacion("PDF generado correctamente. Puedes cambiar opciones y volver a generar si lo necesitas.", color="#1E5631")
+                texto_ok = "PDF generado y abierto correctamente. Puedes ajustar opciones y volver a generar si lo necesitas." if abrir_pdf_al_generar else "PDF generado correctamente. Puedes ajustar opciones y volver a generar si lo necesitas."
+                self._establecer_estado_operacion(texto_ok, color="#1E5631")
             finally:
                 self._establecer_estado_controles_generacion(generando=False)
             return
