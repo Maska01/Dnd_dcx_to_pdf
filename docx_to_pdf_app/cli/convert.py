@@ -200,7 +200,8 @@ def _generar_pdf_desde_configuracion_interactiva(configuracion):
         subtitulo=configuracion["subtitulo"] or None,
         imagen_portada=configuracion["imagen_portada"],
     )
-    _abrir_y_notificar_pdf_generado(salida)
+    if configuracion.get("abrir_pdf_al_generar"):
+        _abrir_y_notificar_pdf_generado(salida)
 
 
 
