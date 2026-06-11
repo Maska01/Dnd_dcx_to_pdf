@@ -5,7 +5,8 @@ from PIL import Image as PILImage, ImageTk
 from reportlab.lib.colors import HexColor
 
 from ..core import configuracion_pdf as cfg
-
+from tkinter.ttk import Label
+import tkinter.font as tkFont
 
 def seleccionar_archivo_dialogo(titulo, tipos_archivo, modo="abrir", archivo_inicial=None):
     try:
@@ -642,21 +643,26 @@ class DialogoConfiguracionInteractiva:
         self.resumen_portada_var.set("\n\n".join(lineas))
 
     def _construir_bloque_documento(self, panel_superior):
-        documento_frame = self.tk.LabelFrame(panel_superior, text="Páginas y fuentes", padx=8, pady=8)
+        Titulos = tkFont.Font(family="Arial", size=14)
+        Subitutlos = tkFont.Font(family="Arial", size=10)
+        Subitutlos = tkFont.Font(family="Arial", size=10)
+        
+        documento_frame = self.tk.LabelFrame(panel_superior, text="Páginas y fuentes", font=Titulos, padx=8, pady=8)
         documento_frame.grid(row=1, column=0, sticky="new", pady=(0, 6))
         fuentes_disponibles = cfg.obtener_fuentes_disponibles()
+
         self.tamano_pagina_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("tamano_pagina", "A4"))
         self.fuente_titulo_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("fuente_titulo", cfg.FUENTE_TITULO))
         self.fuente_texto_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("fuente_texto", cfg.FUENTE_TEXTO))
-        self.margen_var = self.tk.StringVar(value=self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False)))))
-        self.ancho_borde_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_borde_cajas", 2.0)))
-        self.espacio_antes_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_antes_cajas", 6.0)))
-        self.espacio_despues_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_despues_cajas", 8.0)))
+        
+        
         self.ancho_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
         self.alto_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
+        
         documento_frame.columnconfigure(1, weight=1)
         documento_frame.columnconfigure(3, weight=1)
-        self.tk.Label(documento_frame, text="Formato", fg=self.color_texto_suave).grid(row=0, column=0, sticky="w", pady=(0, 2))
+
+        self.tk.Label(documento_frame, text="Formato", font=Subitutlos).grid(row=0, column=0, sticky="w", pady=(0, 2))
         self.tk.Label(documento_frame, text="Tamaño").grid(row=1, column=0, sticky="w", pady=3)
         self.ttk.Combobox(documento_frame, textvariable=self.tamano_pagina_var, values=[*cfg.TAMANOS_PAGINA_DISPONIBLES.keys(), cfg.OPCION_TAMANO_PERSONALIZADO], state="readonly", width=16).grid(row=1, column=1, sticky="ew", padx=(8, 10), pady=3)
         self.tk.Label(documento_frame, text="Ancho (cm)").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=3)
@@ -670,6 +676,7 @@ class DialogoConfiguracionInteractiva:
         self.ttk.Combobox(documento_frame, textvariable=self.fuente_titulo_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=4, column=1, sticky="ew", padx=(8, 10), pady=3)
         self.tk.Label(documento_frame, text="Fuente de texto").grid(row=4, column=2, sticky="w", padx=(16, 0), pady=3)
         self.ttk.Combobox(documento_frame, textvariable=self.fuente_texto_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=4, column=3, sticky="ew", padx=(8, 0), pady=3)
+        
         self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
         self.etiqueta_ayuda_tamano.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(10, 0))
         self.etiqueta_validacion_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
@@ -682,19 +689,16 @@ class DialogoConfiguracionInteractiva:
             wraplength=760,
             fg="#5F5F5F",
         ).grid(row=7, column=0, columnspan=4, sticky="ew", pady=(10, 0))
-        self.margen_var.trace_add("write", self._registrar_margen_seleccionado)
+
         self.tamano_pagina_var.trace_add("write", self.actualizar_estado_tamano_personalizado)
         self.tamano_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.fuente_titulo_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.fuente_texto_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
-        self.ancho_borde_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
-        self.espacio_antes_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
-        self.espacio_despues_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+
         self.ancho_pagina_var.trace_add("write", lambda *_args: self._actualizar_validacion_tamano())
         self.ancho_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.alto_pagina_var.trace_add("write", lambda *_args: self._actualizar_validacion_tamano())
         self.alto_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
-        self.margen_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.actualizar_estado_tamano_personalizado()
         self._actualizar_resumen_documento()
 
@@ -892,12 +896,21 @@ class DialogoConfiguracionInteractiva:
             justify="left",
             wraplength=self.ancho_contenido_compacto,
         ).grid(row=0, column=0, columnspan=4, sticky="ew", pady=(0, 8))
+
+        self.ancho_borde_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_borde_cajas", 2.0)))
+        self.espacio_antes_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_antes_cajas", 6.0)))
+        self.espacio_despues_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_despues_cajas", 8.0)))
+
         self.tk.Label(configuracion_frame, text="Borde (pt)").grid(row=1, column=0, sticky="w", pady=3)
         self.tk.Entry(configuracion_frame, textvariable=self.ancho_borde_cajas_var, width=10).grid(row=1, column=1, sticky="w", padx=(8, 10), pady=3)
         self.tk.Label(configuracion_frame, text="Espacio antes (pt)").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=3)
         self.tk.Entry(configuracion_frame, textvariable=self.espacio_antes_cajas_var, width=10).grid(row=1, column=3, sticky="ew", padx=(8, 0), pady=3)
         self.tk.Label(configuracion_frame, text="Espacio después (pt)").grid(row=2, column=2, sticky="w", padx=(16, 0), pady=3)
         self.tk.Entry(configuracion_frame, textvariable=self.espacio_despues_cajas_var, width=10).grid(row=2, column=3, sticky="ew", padx=(8, 0), pady=3)
+
+        self.ancho_borde_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.espacio_antes_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.espacio_despues_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
 
     def _construir_bloque_configuracion_margenes(self, parent, fila=0):
         margenes_frame = self.tk.LabelFrame(parent, text="Configuración de márgenes", padx=10, pady=10)
@@ -912,15 +925,18 @@ class DialogoConfiguracionInteractiva:
             wraplength=self.ancho_contenido_compacto,
         ).grid(row=0, column=0, columnspan=4, sticky="ew", pady=(0, 8))
         self.tk.Label(margenes_frame, text="Margen (cm)").grid(row=1, column=0, sticky="w", pady=3)
+        self.margen_var = self.tk.StringVar(value=self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False)))))
         self.combo_margen = self.ttk.Combobox(margenes_frame, textvariable=self.margen_var, values=self._opciones_margen_disponibles(bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())), state="readonly", width=10)
         self.combo_margen.grid(row=1, column=1, sticky="w", padx=(8, 10), pady=3)
         self.etiqueta_rango_margen = self.tk.Label(margenes_frame, text="")
         self.etiqueta_rango_margen.grid(row=1, column=2, columnspan=2, sticky="w", padx=(8, 0), pady=3)
         self.etiqueta_validacion_margen = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
         self.etiqueta_validacion_margen.grid(row=2, column=0, columnspan=4, sticky="ew", pady=(4, 0))
-        self.margen_var.trace_add("write", lambda *_args: self._actualizar_validacion_margen())
+        self.margen_var.trace_add("write", self._registrar_margen_seleccionado)
         self._actualizar_opciones_margen()
         self._actualizar_etiqueta_rango_margen()
+        self.margen_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.margen_var.trace_add("write", lambda *_args: self._actualizar_validacion_margen())
 
     def _construir_botones(self, contenedor):
         botones = self.tk.Frame(contenedor, padx=6, pady=8, bg=self.color_superficie)
