@@ -580,7 +580,17 @@ def normalizar_contenido_caja(contenido):
 
 def crear_caja_partible(contenido, estilo_base, ancho_total):
     left_padding, right_padding, top_padding, bottom_padding = _obtener_padding_pack_caja()
-    return CajaPartible(contenido, estilo_base, ancho_total, left_padding=left_padding, right_padding=right_padding, top_padding=top_padding, bottom_padding=bottom_padding, space_before=2, space_after=4)
+    return CajaPartible(
+        contenido,
+        estilo_base,
+        ancho_total,
+        left_padding=left_padding,
+        right_padding=right_padding,
+        top_padding=top_padding,
+        bottom_padding=bottom_padding,
+        space_before=max(0, float(getattr(estilo_base, "spaceBefore", 0) or 0)),
+        space_after=max(0, float(getattr(estilo_base, "spaceAfter", 0) or 0)),
+    )
 
 
 def renderizar_caja(partes, estilo_base, ancho_total, decorador=None):

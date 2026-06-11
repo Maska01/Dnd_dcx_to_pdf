@@ -54,6 +54,9 @@ FUENTE_TITULO = "Helvetica-Bold"
 FUENTE_TEXTO = "Helvetica"
 TAMANO_PAGINA = A4
 MARGEN = 2 * cm
+ANCHO_BORDE_CAJAS = 2.0
+ESPACIO_ANTES_CAJAS = 6.0
+ESPACIO_DESPUES_CAJAS = 8.0
 MARGEN_MINIMO_CM = 0.5
 MARGEN_MINIMO_ADORNOS_CM = 1.5
 MARGEN_MAXIMO_CM = 3.5
@@ -375,6 +378,9 @@ def obtener_configuracion_documento_predeterminada():
         "fuente_titulo": FUENTE_TITULO,
         "fuente_texto": FUENTE_TEXTO,
         "margen_cm": round(MARGEN / cm, 2),
+        "ancho_borde_cajas": round(ANCHO_BORDE_CAJAS, 2),
+        "espacio_antes_cajas": round(ESPACIO_ANTES_CAJAS, 2),
+        "espacio_despues_cajas": round(ESPACIO_DESPUES_CAJAS, 2),
         "ancho_pagina_cm": ancho_cm,
         "alto_pagina_cm": alto_cm,
         "adornos_margen_activos": ADORNOS_MARGEN_ACTIVOS,
@@ -388,6 +394,7 @@ def obtener_configuracion_documento_predeterminada():
 
 def aplicar_configuracion_documento(configuracion_documento):
     global FUENTE_TITULO, FUENTE_TEXTO, TAMANO_PAGINA, MARGEN
+    global ANCHO_BORDE_CAJAS, ESPACIO_ANTES_CAJAS, ESPACIO_DESPUES_CAJAS
     global ADORNOS_MARGEN_ACTIVOS, ESTILO_ADORNO_MARGEN, IMAGEN_ADORNO_MARGEN, PACK_DECORACION_CAJAS, PORTADA_PAGINA_COMPLETA, PORTADA_MODO_AJUSTE
 
     valores = obtener_configuracion_documento_predeterminada()
@@ -413,6 +420,23 @@ def aplicar_configuracion_documento(configuracion_documento):
     fuente_texto = str(valores.get("fuente_texto", FUENTE_TEXTO)).strip()
     FUENTE_TITULO = fuente_titulo if fuente_disponible(fuente_titulo) else "Helvetica-Bold"
     FUENTE_TEXTO = fuente_texto if fuente_disponible(fuente_texto) else "Helvetica"
+
+    try:
+        ancho_borde_cajas = float(valores.get("ancho_borde_cajas", ANCHO_BORDE_CAJAS))
+    except (TypeError, ValueError):
+        ancho_borde_cajas = ANCHO_BORDE_CAJAS
+    try:
+        espacio_antes_cajas = float(valores.get("espacio_antes_cajas", ESPACIO_ANTES_CAJAS))
+    except (TypeError, ValueError):
+        espacio_antes_cajas = ESPACIO_ANTES_CAJAS
+    try:
+        espacio_despues_cajas = float(valores.get("espacio_despues_cajas", ESPACIO_DESPUES_CAJAS))
+    except (TypeError, ValueError):
+        espacio_despues_cajas = ESPACIO_DESPUES_CAJAS
+
+    ANCHO_BORDE_CAJAS = min(max(ancho_borde_cajas, 0.0), 10.0)
+    ESPACIO_ANTES_CAJAS = min(max(espacio_antes_cajas, 0.0), 40.0)
+    ESPACIO_DESPUES_CAJAS = min(max(espacio_despues_cajas, 0.0), 40.0)
 
     ADORNOS_MARGEN_ACTIVOS = bool(valores.get("adornos_margen_activos", ADORNOS_MARGEN_ACTIVOS))
     ESTILO_ADORNO_MARGEN = normalizar_estilo_adorno_margen(valores.get("estilo_adorno_margen", ESTILO_ADORNO_MARGEN))
@@ -482,14 +506,14 @@ def construir_estilos():
     estilos.add(ParagraphStyle(name="H2", fontName=FUENTE_TITULO, fontSize=16, leading=20, textColor=COLOR_PRIMARIO, spaceBefore=14, spaceAfter=8))
     estilos.add(ParagraphStyle(name="H3", fontName=FUENTE_TITULO, fontSize=13, leading=16, textColor=COLOR_SECUNDARIO, spaceBefore=10, spaceAfter=6))
     estilos.add(ParagraphStyle(name="Cuerpo", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_TEXTO_GENERAL, alignment=TA_JUSTIFY, spaceAfter=8))
-    estilos.add(ParagraphStyle(name="CajaCita", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_CITA_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_CITA_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_CITA_FONDO))
-    estilos.add(ParagraphStyle(name="CajaInfoAdicional", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_INFO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=3, spaceAfter=8, borderColor=COLOR_INFO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_INFO_FONDO))
-    estilos.add(ParagraphStyle(name="CajaConsejoDm", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_CONSEJO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_CONSEJO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_CONSEJO_FONDO))
-    estilos.add(ParagraphStyle(name="CajaNpc", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_NPC_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_NPC_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_NPC_FONDO))
-    estilos.add(ParagraphStyle(name="CajaEnemigo", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_ENEMIGO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_ENEMIGO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_ENEMIGO_FONDO))
-    estilos.add(ParagraphStyle(name="CajaAliado", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_ALIADO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_ALIADO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_ALIADO_FONDO))
-    estilos.add(ParagraphStyle(name="CajaTesoro", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_TESORO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_TESORO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_TESORO_FONDO))
-    estilos.add(ParagraphStyle(name="CajaPuzzle", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_PUZZLE_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_PUZZLE_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_PUZZLE_FONDO))
-    estilos.add(ParagraphStyle(name="CajaObjeto", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_OBJETO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_OBJETO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_OBJETO_FONDO))
+    estilos.add(ParagraphStyle(name="CajaCita", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_CITA_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=ESPACIO_ANTES_CAJAS, spaceAfter=ESPACIO_DESPUES_CAJAS, borderColor=COLOR_CITA_BORDE, borderWidth=ANCHO_BORDE_CAJAS, borderRadius=8, borderPadding=4, backColor=COLOR_CITA_FONDO))
+    estilos.add(ParagraphStyle(name="CajaInfoAdicional", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_INFO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=ESPACIO_ANTES_CAJAS, spaceAfter=ESPACIO_DESPUES_CAJAS, borderColor=COLOR_INFO_BORDE, borderWidth=ANCHO_BORDE_CAJAS, borderRadius=8, borderPadding=4, backColor=COLOR_INFO_FONDO))
+    estilos.add(ParagraphStyle(name="CajaConsejoDm", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_CONSEJO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=ESPACIO_ANTES_CAJAS, spaceAfter=ESPACIO_DESPUES_CAJAS, borderColor=COLOR_CONSEJO_BORDE, borderWidth=ANCHO_BORDE_CAJAS, borderRadius=8, borderPadding=4, backColor=COLOR_CONSEJO_FONDO))
+    estilos.add(ParagraphStyle(name="CajaNpc", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_NPC_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=ESPACIO_ANTES_CAJAS, spaceAfter=ESPACIO_DESPUES_CAJAS, borderColor=COLOR_NPC_BORDE, borderWidth=ANCHO_BORDE_CAJAS, borderRadius=8, borderPadding=4, backColor=COLOR_NPC_FONDO))
+    estilos.add(ParagraphStyle(name="CajaEnemigo", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_ENEMIGO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=ESPACIO_ANTES_CAJAS, spaceAfter=ESPACIO_DESPUES_CAJAS, borderColor=COLOR_ENEMIGO_BORDE, borderWidth=ANCHO_BORDE_CAJAS, borderRadius=8, borderPadding=4, backColor=COLOR_ENEMIGO_FONDO))
+    estilos.add(ParagraphStyle(name="CajaAliado", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_ALIADO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=ESPACIO_ANTES_CAJAS, spaceAfter=ESPACIO_DESPUES_CAJAS, borderColor=COLOR_ALIADO_BORDE, borderWidth=ANCHO_BORDE_CAJAS, borderRadius=8, borderPadding=4, backColor=COLOR_ALIADO_FONDO))
+    estilos.add(ParagraphStyle(name="CajaTesoro", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_TESORO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=ESPACIO_ANTES_CAJAS, spaceAfter=ESPACIO_DESPUES_CAJAS, borderColor=COLOR_TESORO_BORDE, borderWidth=ANCHO_BORDE_CAJAS, borderRadius=8, borderPadding=4, backColor=COLOR_TESORO_FONDO))
+    estilos.add(ParagraphStyle(name="CajaPuzzle", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_PUZZLE_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=ESPACIO_ANTES_CAJAS, spaceAfter=ESPACIO_DESPUES_CAJAS, borderColor=COLOR_PUZZLE_BORDE, borderWidth=ANCHO_BORDE_CAJAS, borderRadius=8, borderPadding=4, backColor=COLOR_PUZZLE_FONDO))
+    estilos.add(ParagraphStyle(name="CajaObjeto", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_OBJETO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=ESPACIO_ANTES_CAJAS, spaceAfter=ESPACIO_DESPUES_CAJAS, borderColor=COLOR_OBJETO_BORDE, borderWidth=ANCHO_BORDE_CAJAS, borderRadius=8, borderPadding=4, backColor=COLOR_OBJETO_FONDO))
     estilos.add(ParagraphStyle(name="TituloIndice", fontName=FUENTE_TITULO, fontSize=22, leading=26, textColor=COLOR_PRIMARIO, alignment=TA_CENTER, spaceAfter=20))
     return estilos

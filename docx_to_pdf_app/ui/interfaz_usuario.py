@@ -126,6 +126,9 @@ class DialogoConfiguracionInteractiva:
         self.fuente_titulo_var = None
         self.fuente_texto_var = None
         self.margen_var = None
+        self.ancho_borde_cajas_var = None
+        self.espacio_antes_cajas_var = None
+        self.espacio_despues_cajas_var = None
         self.combo_margen = None
         self.etiqueta_rango_margen = None
         self.ancho_pagina_var = None
@@ -642,6 +645,9 @@ class DialogoConfiguracionInteractiva:
         self.fuente_titulo_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("fuente_titulo", cfg.FUENTE_TITULO))
         self.fuente_texto_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("fuente_texto", cfg.FUENTE_TEXTO))
         self.margen_var = self.tk.StringVar(value=self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=adornos_iniciales)))
+        self.ancho_borde_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_borde_cajas", 2.0)))
+        self.espacio_antes_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_antes_cajas", 6.0)))
+        self.espacio_despues_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_despues_cajas", 8.0)))
         self.ancho_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
         self.alto_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
         documento_frame.columnconfigure(1, weight=1)
@@ -666,17 +672,27 @@ class DialogoConfiguracionInteractiva:
         self.combo_margen.grid(row=6, column=1, sticky="w", padx=(8, 10), pady=3)
         self.etiqueta_rango_margen = self.tk.Label(documento_frame, text="")
         self.etiqueta_rango_margen.grid(row=6, column=2, columnspan=2, sticky="w", padx=(8, 0), pady=3)
+        self.tk.Label(documento_frame, text="Cajas", fg=self.color_texto_suave).grid(row=7, column=0, sticky="w", pady=(10, 2))
+        self.tk.Label(documento_frame, text="Borde (pt)").grid(row=8, column=0, sticky="w", pady=3)
+        self.tk.Entry(documento_frame, textvariable=self.ancho_borde_cajas_var, width=10).grid(row=8, column=1, sticky="w", padx=(8, 10), pady=3)
+        self.tk.Label(documento_frame, text="Espacio antes (pt)").grid(row=8, column=2, sticky="w", padx=(16, 0), pady=3)
+        self.tk.Entry(documento_frame, textvariable=self.espacio_antes_cajas_var, width=10).grid(row=8, column=3, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Label(documento_frame, text="Espacio después (pt)").grid(row=9, column=2, sticky="w", padx=(16, 0), pady=3)
+        self.tk.Entry(documento_frame, textvariable=self.espacio_despues_cajas_var, width=10).grid(row=9, column=3, sticky="ew", padx=(8, 0), pady=3)
         self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_ayuda_tamano.grid(row=7, column=0, columnspan=4, sticky="ew", pady=(6, 0))
+        self.etiqueta_ayuda_tamano.grid(row=10, column=0, columnspan=4, sticky="ew", pady=(6, 0))
         self.etiqueta_validacion_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_validacion_tamano.grid(row=8, column=0, columnspan=4, sticky="ew", pady=(4, 0))
+        self.etiqueta_validacion_tamano.grid(row=11, column=0, columnspan=4, sticky="ew", pady=(4, 0))
         self.etiqueta_validacion_margen = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_validacion_margen.grid(row=9, column=0, columnspan=4, sticky="ew", pady=(4, 0))
+        self.etiqueta_validacion_margen.grid(row=12, column=0, columnspan=4, sticky="ew", pady=(4, 0))
         self.margen_var.trace_add("write", self._registrar_margen_seleccionado)
         self.tamano_pagina_var.trace_add("write", self.actualizar_estado_tamano_personalizado)
         self.tamano_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.fuente_titulo_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.fuente_texto_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.ancho_borde_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.espacio_antes_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.espacio_despues_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.ancho_pagina_var.trace_add("write", lambda *_args: self._actualizar_validacion_tamano())
         self.ancho_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.alto_pagina_var.trace_add("write", lambda *_args: self._actualizar_validacion_tamano())
@@ -732,6 +748,8 @@ class DialogoConfiguracionInteractiva:
                     f"Fuente títulos: {fuente_titulo}",
                     f"Fuente texto: {fuente_texto}",
                     f"Margen actual: {margen} cm",
+                    f"Borde cajas: {self.ancho_borde_cajas_var.get().strip() if self.ancho_borde_cajas_var is not None else '2.0'} pt",
+                    f"Espacios cajas: {self.espacio_antes_cajas_var.get().strip() if self.espacio_antes_cajas_var is not None else '6.0'} / {self.espacio_despues_cajas_var.get().strip() if self.espacio_despues_cajas_var is not None else '8.0'} pt",
                 ]
             )
         )
@@ -1614,6 +1632,9 @@ class DialogoConfiguracionInteractiva:
         self.fuente_titulo_var.set(self.configuracion_documento_inicial.get("fuente_titulo", cfg.FUENTE_TITULO))
         self.fuente_texto_var.set(self.configuracion_documento_inicial.get("fuente_texto", cfg.FUENTE_TEXTO))
         self.margen_var.set(self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False)))))
+        self.ancho_borde_cajas_var.set(str(self.configuracion_documento_inicial.get("ancho_borde_cajas", 2.0)))
+        self.espacio_antes_cajas_var.set(str(self.configuracion_documento_inicial.get("espacio_antes_cajas", 6.0)))
+        self.espacio_despues_cajas_var.set(str(self.configuracion_documento_inicial.get("espacio_despues_cajas", 8.0)))
         self.margen_sin_adornos_guardado = None
         self.margen_con_adornos_guardado = None
         self.adornos_activos_previos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
@@ -1730,6 +1751,23 @@ class DialogoConfiguracionInteractiva:
             if not (5.0 <= ancho_pagina_cm <= 100.0 and 5.0 <= alto_pagina_cm <= 100.0):
                 self.messagebox.showerror("Tamaño inválido", "El ancho y alto personalizados deben estar entre 5 y 100 cm.")
                 return
+        try:
+            ancho_borde_cajas = float(str(self.ancho_borde_cajas_var.get()).replace(",", ".").strip())
+        except (TypeError, ValueError):
+            self.messagebox.showerror("Borde inválido", "El ancho del borde de las cajas debe ser un número.")
+            return
+        try:
+            espacio_antes_cajas = float(str(self.espacio_antes_cajas_var.get()).replace(",", ".").strip())
+            espacio_despues_cajas = float(str(self.espacio_despues_cajas_var.get()).replace(",", ".").strip())
+        except (TypeError, ValueError):
+            self.messagebox.showerror("Espaciado inválido", "Los espacios antes y después de las cajas deben ser números.")
+            return
+        if not (0.0 <= ancho_borde_cajas <= 10.0):
+            self.messagebox.showerror("Borde inválido", "El ancho del borde de las cajas debe estar entre 0 y 10 pt.")
+            return
+        if not (0.0 <= espacio_antes_cajas <= 40.0 and 0.0 <= espacio_despues_cajas <= 40.0):
+            self.messagebox.showerror("Espaciado inválido", "Los espacios antes y después de las cajas deben estar entre 0 y 40 pt.")
+            return
         estilo_adorno_margen = self._codigo_estilo_adorno_seleccionado()
         imagen_adorno_margen = self.imagen_adorno_var.get().strip()
         decoracion_cajas_activa = bool(self.decoracion_cajas_habilitada_var.get()) if self.decoracion_cajas_habilitada_var is not None else False
@@ -1746,6 +1784,9 @@ class DialogoConfiguracionInteractiva:
             "fuente_titulo": self.fuente_titulo_var.get().strip(),
             "fuente_texto": self.fuente_texto_var.get().strip(),
             "margen_cm": margen_cm,
+            "ancho_borde_cajas": ancho_borde_cajas,
+            "espacio_antes_cajas": espacio_antes_cajas,
+            "espacio_despues_cajas": espacio_despues_cajas,
             "ancho_pagina_cm": ancho_pagina_cm,
             "alto_pagina_cm": alto_pagina_cm,
             "adornos_margen_activos": adornos_margen_activos,
