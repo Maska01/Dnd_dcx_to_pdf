@@ -66,6 +66,7 @@ from ..pdf.renderizado_cajas import (
 NOMBRES_CONFIG_MUTABLES = [
     "COLOR_PRIMARIO",
     "COLOR_SECUNDARIO",
+    "COLOR_TEXTO_GENERAL",
     "COLOR_FONDO_PAGINA",
     "COLOR_CONSEJO_TEXTO",
     "COLOR_CONSEJO_BORDE",

@@ -825,7 +825,7 @@ class DialogoConfiguracionInteractiva:
 
     def _construir_pestanas_colores(self, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes):
         grupos_colores = [
-            ("General", [("color_primario", "Títulos"), ("color_secundario", "Texto general"), ("color_fondo_pagina", "Fondo de página")]),
+            ("General", [("color_primario", "Títulos"), ("color_secundario", "Subtítulos y H3"), ("color_texto_general", "Texto general"), ("color_fondo_pagina", "Fondo de página")]),
             ("Caja Consejo para el DM", [("COLOR_CONSEJO_TEXTO", "Texto"), ("COLOR_CONSEJO_BORDE", "Borde"), ("COLOR_CONSEJO_FONDO", "Fondo")]),
             ("Caja Cita", [("COLOR_CITA_TEXTO", "Texto"), ("COLOR_CITA_BORDE", "Borde"), ("COLOR_CITA_FONDO", "Fondo")]),
             ("Caja Información adicional", [("color_info_texto", "Texto"), ("color_info_borde", "Borde"), ("color_info_fondo", "Fondo")]),

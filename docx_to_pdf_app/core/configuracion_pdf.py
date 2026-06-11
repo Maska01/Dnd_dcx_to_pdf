@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from reportlab.lib.colors import HexColor, black
+from reportlab.lib.colors import HexColor
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib.pagesizes import A3, A4, A5, A6, B5, ELEVENSEVENTEEN, LEGAL, LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -11,6 +11,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 COLOR_PRIMARIO = HexColor("#C69900")
 COLOR_SECUNDARIO = HexColor("#FFFFFF")
+COLOR_TEXTO_GENERAL = HexColor("#FFFFFF")
 COLOR_FONDO_PAGINA = HexColor("#000035")
 
 COLOR_CONSEJO_TEXTO = HexColor("#F1EFE8")
@@ -327,6 +328,7 @@ def obtener_configuracion_visual_predeterminada():
     return {
         "color_primario": _color_a_hex(COLOR_PRIMARIO),
         "color_secundario": _color_a_hex(COLOR_SECUNDARIO),
+        "color_texto_general": _color_a_hex(COLOR_TEXTO_GENERAL),
         "color_fondo_pagina": _color_a_hex(COLOR_FONDO_PAGINA),
         "COLOR_CONSEJO_TEXTO": _color_a_hex(COLOR_CONSEJO_TEXTO),
         "COLOR_CONSEJO_BORDE": _color_a_hex(COLOR_CONSEJO_BORDE),
@@ -424,7 +426,7 @@ def aplicar_configuracion_documento(configuracion_documento):
 
 
 def aplicar_configuracion_visual(configuracion_visual):
-    global COLOR_PRIMARIO, COLOR_SECUNDARIO, COLOR_FONDO_PAGINA
+    global COLOR_PRIMARIO, COLOR_SECUNDARIO, COLOR_TEXTO_GENERAL, COLOR_FONDO_PAGINA
     global COLOR_CONSEJO_TEXTO, COLOR_CONSEJO_BORDE, COLOR_CONSEJO_FONDO
     global COLOR_CITA_TEXTO, COLOR_CITA_BORDE, COLOR_CITA_FONDO
     global COLOR_INFO_TEXTO, COLOR_INFO_BORDE, COLOR_INFO_FONDO
@@ -440,6 +442,7 @@ def aplicar_configuracion_visual(configuracion_visual):
 
     COLOR_PRIMARIO = HexColor(_normalizar_color_hex(valores["color_primario"], _color_a_hex(COLOR_PRIMARIO)))
     COLOR_SECUNDARIO = HexColor(_normalizar_color_hex(valores["color_secundario"], _color_a_hex(COLOR_SECUNDARIO)))
+    COLOR_TEXTO_GENERAL = HexColor(_normalizar_color_hex(valores["color_texto_general"], _color_a_hex(COLOR_TEXTO_GENERAL)))
     COLOR_FONDO_PAGINA = HexColor(_normalizar_color_hex(valores["color_fondo_pagina"], _color_a_hex(COLOR_FONDO_PAGINA)))
     COLOR_CONSEJO_TEXTO = HexColor(_normalizar_color_hex(valores["COLOR_CONSEJO_TEXTO"], _color_a_hex(COLOR_CONSEJO_TEXTO)))
     COLOR_CONSEJO_BORDE = HexColor(_normalizar_color_hex(valores["COLOR_CONSEJO_BORDE"], _color_a_hex(COLOR_CONSEJO_BORDE)))
@@ -478,7 +481,7 @@ def construir_estilos():
     estilos.add(ParagraphStyle(name="H1", fontName=FUENTE_TITULO, fontSize=22, leading=26, textColor=COLOR_PRIMARIO, spaceBefore=18, spaceAfter=12))
     estilos.add(ParagraphStyle(name="H2", fontName=FUENTE_TITULO, fontSize=16, leading=20, textColor=COLOR_PRIMARIO, spaceBefore=14, spaceAfter=8))
     estilos.add(ParagraphStyle(name="H3", fontName=FUENTE_TITULO, fontSize=13, leading=16, textColor=COLOR_SECUNDARIO, spaceBefore=10, spaceAfter=6))
-    estilos.add(ParagraphStyle(name="Cuerpo", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=black, alignment=TA_JUSTIFY, spaceAfter=8))
+    estilos.add(ParagraphStyle(name="Cuerpo", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_TEXTO_GENERAL, alignment=TA_JUSTIFY, spaceAfter=8))
     estilos.add(ParagraphStyle(name="CajaCita", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_CITA_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_CITA_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_CITA_FONDO))
     estilos.add(ParagraphStyle(name="CajaInfoAdicional", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_INFO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=3, spaceAfter=8, borderColor=COLOR_INFO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_INFO_FONDO))
     estilos.add(ParagraphStyle(name="CajaConsejoDm", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_CONSEJO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_CONSEJO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_CONSEJO_FONDO))
