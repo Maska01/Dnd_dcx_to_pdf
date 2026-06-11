@@ -144,6 +144,7 @@ class DocumentoConIndice(BaseDocTemplate):
         self.portada_pagina_completa_ruta = ""
         self.addPageTemplates([PageTemplate(id="Todo", frames=frame, onPage=self._dibujar_fondo_pagina)])
         self._contador_marcadores = 0
+        self._ultimo_nivel_outline = 0
 
     def configurar_portada_pagina_completa(self, imagen_portada=None, activa=False):
         self.portada_pagina_completa_activa = bool(activa and imagen_portada and os.path.exists(imagen_portada))
@@ -152,6 +153,7 @@ class DocumentoConIndice(BaseDocTemplate):
     def beforeDocument(self):
         super().beforeDocument()
         self._contador_marcadores = 0
+        self._ultimo_nivel_outline = 0
 
     def _dibujar_fondo_pagina(self, canvas, doc):
         canvas.saveState()
@@ -446,20 +448,25 @@ class DocumentoConIndice(BaseDocTemplate):
                 marcador = "indice"
                 self.canv.bookmarkPage(marcador)
                 self.canv.addOutlineEntry(texto or "Índice", marcador, level=0, closed=False)
+                self._ultimo_nivel_outline = 0
             elif estilo == "H1":
                 marcador = self._crear_marcador(texto)
                 self.canv.bookmarkPage(marcador)
                 self.canv.addOutlineEntry(texto, marcador, level=0, closed=False)
+                self._ultimo_nivel_outline = 0
                 self.notify("TOCEntry", (0, texto, self.page, marcador))
             elif estilo == "H2":
                 marcador = self._crear_marcador(texto)
                 self.canv.bookmarkPage(marcador)
                 self.canv.addOutlineEntry(texto, marcador, level=1, closed=False)
+                self._ultimo_nivel_outline = 1
                 self.notify("TOCEntry", (1, texto, self.page, marcador))
             elif estilo == "H3":
                 marcador = self._crear_marcador(texto)
                 self.canv.bookmarkPage(marcador)
-                self.canv.addOutlineEntry(texto, marcador, level=2, closed=False)
+                nivel_outline = 2 if self._ultimo_nivel_outline >= 1 else 1
+                self.canv.addOutlineEntry(texto, marcador, level=nivel_outline, closed=False)
+                self._ultimo_nivel_outline = nivel_outline
 
 
 @dataclass
