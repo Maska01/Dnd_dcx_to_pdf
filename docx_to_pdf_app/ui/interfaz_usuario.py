@@ -914,7 +914,7 @@ class DialogoConfiguracionInteractiva:
         valor = cfg._normalizar_color_hex(self.variables_color[clave].get(), self.configuracion_inicial[clave])
         self.variables_color[clave].set(valor)
         self.vistas_previas[clave].configure(bg=valor)
-        if clave in {"color_fondo_pagina", "color_info_texto", "color_info_borde", "color_info_fondo"}:
+        if clave in {"color_primario", "color_secundario", "color_fondo_pagina", "color_info_texto", "color_info_borde", "color_info_fondo"}:
             self._actualizar_preview_adornos()
 
     def elegir_color(self, clave):
@@ -1257,9 +1257,7 @@ class DialogoConfiguracionInteractiva:
             return
         canvas = self.canvas_preview_adorno
         canvas.delete("all")
-        color_fondo = self.variables_color.get("color_fondo_pagina")
-        fondo = color_fondo.get() if color_fondo is not None else "#F7F1E3"
-        fondo = cfg._normalizar_color_hex(fondo, "#F7F1E3")
+        fondo = self._color_preview("color_fondo_pagina", "#F7F1E3")
         page_box = self._obtener_geometria_preview_margen(canvas)
         x1, y1, x2, y2 = page_box
         canvas.create_rectangle(x1, y1, x2, y2, fill=fondo, outline="#D4C5AF")
@@ -1427,25 +1425,32 @@ class DialogoConfiguracionInteractiva:
             canvas.create_text((x1 + x2) / 2, (y1 + y2) / 2, text="No se pudo cargar\nel PNG", fill="#7A1C1C", justify="center", font=("Segoe UI", 9))
             self.preview_adorno_imagen = None
 
-    @staticmethod
-    def _dibujar_preview_adorno_clasico(canvas, page_box):
+    def _color_preview(self, clave, valor_predeterminado):
+        variable = self.variables_color.get(clave) if self.variables_color is not None else None
+        if variable is None:
+            return cfg._normalizar_color_hex(valor_predeterminado, valor_predeterminado)
+        return cfg._normalizar_color_hex(variable.get(), valor_predeterminado)
+
+    def _dibujar_preview_adorno_clasico(self, canvas, page_box):
         x1, y1, x2, y2 = page_box
         margen_ext = 8
         margen_int = 16
-        canvas.create_rectangle(x1 + margen_ext, y1 + margen_ext, x2 - margen_ext, y2 - margen_ext, outline="#8B0000", width=2)
-        canvas.create_rectangle(x1 + margen_int, y1 + margen_int, x2 - margen_int, y2 - margen_int, outline="#333333")
+        color_primario = self._color_preview("color_primario", "#8B0000")
+        color_secundario = self._color_preview("color_secundario", "#333333")
+        canvas.create_rectangle(x1 + margen_ext, y1 + margen_ext, x2 - margen_ext, y2 - margen_ext, outline=color_primario, width=2)
+        canvas.create_rectangle(x1 + margen_int, y1 + margen_int, x2 - margen_int, y2 - margen_int, outline=color_secundario)
         centro_x = (x1 + x2) / 2
         centro_y = (y1 + y2) / 2
         for px, py in [(centro_x, y1 + margen_ext), (centro_x, y2 - margen_ext), (x1 + margen_ext, centro_y), (x2 - margen_ext, centro_y)]:
-            canvas.create_oval(px - 3, py - 3, px + 3, py + 3, outline="#333333")
+            canvas.create_oval(px - 3, py - 3, px + 3, py + 3, outline=color_secundario)
         for esquina_x, esquina_y, direccion_x, direccion_y in [
             (x1 + margen_int, y1 + margen_int, 1, 1),
             (x2 - margen_int, y1 + margen_int, -1, 1),
             (x1 + margen_int, y2 - margen_int, 1, -1),
             (x2 - margen_int, y2 - margen_int, -1, -1),
         ]:
-            canvas.create_line(esquina_x, esquina_y, esquina_x + (10 * direccion_x), esquina_y, fill="#333333")
-            canvas.create_line(esquina_x, esquina_y, esquina_x, esquina_y + (10 * direccion_y), fill="#333333")
+            canvas.create_line(esquina_x, esquina_y, esquina_x + (10 * direccion_x), esquina_y, fill=color_secundario)
+            canvas.create_line(esquina_x, esquina_y, esquina_x, esquina_y + (10 * direccion_y), fill=color_secundario)
             canvas.create_line(
                 esquina_x + (2 * direccion_x),
                 esquina_y + (8 * direccion_y),
@@ -1456,21 +1461,22 @@ class DialogoConfiguracionInteractiva:
                 esquina_x + (8 * direccion_x),
                 esquina_y + (2 * direccion_y),
                 smooth=True,
-                fill="#333333",
+                fill=color_secundario,
             )
             canvas.create_oval(
                 esquina_x + (4 * direccion_x) - 1.5,
                 esquina_y + (4 * direccion_y) - 1.5,
                 esquina_x + (4 * direccion_x) + 1.5,
                 esquina_y + (4 * direccion_y) + 1.5,
-                outline="#333333",
+                outline=color_secundario,
             )
 
-    @staticmethod
-    def _dibujar_preview_adorno_geometrico(canvas, page_box):
+    def _dibujar_preview_adorno_geometrico(self, canvas, page_box):
         x1, y1, x2, y2 = page_box
         margen = 8
-        canvas.create_rectangle(x1 + margen, y1 + margen, x2 - margen, y2 - margen, outline="#333333", width=2, dash=(5, 3))
+        color_primario = self._color_preview("color_primario", "#8B0000")
+        color_secundario = self._color_preview("color_secundario", "#333333")
+        canvas.create_rectangle(x1 + margen, y1 + margen, x2 - margen, y2 - margen, outline=color_secundario, width=2, dash=(5, 3))
         for x1, y1, x2, y2 in [
             (page_box[0] + margen, page_box[1] + margen, page_box[0] + margen + 18, page_box[1] + margen),
             (page_box[0] + margen, page_box[1] + margen, page_box[0] + margen, page_box[1] + margen + 18),
@@ -1481,36 +1487,37 @@ class DialogoConfiguracionInteractiva:
             (page_box[2] - margen, page_box[3] - margen, page_box[2] - margen - 18, page_box[3] - margen),
             (page_box[2] - margen, page_box[3] - margen, page_box[2] - margen, page_box[3] - margen - 18),
         ]:
-            canvas.create_line(x1, y1, x2, y2, fill="#8B0000", width=2)
+            canvas.create_line(x1, y1, x2, y2, fill=color_primario, width=2)
         for centro_x, centro_y in [
             (page_box[0] + 20, page_box[1] + 20),
             (page_box[2] - 20, page_box[1] + 20),
             (page_box[0] + 20, page_box[3] - 20),
             (page_box[2] - 20, page_box[3] - 20),
         ]:
-            canvas.create_line(centro_x, centro_y - 5, centro_x + 5, centro_y, fill="#8B0000")
-            canvas.create_line(centro_x + 5, centro_y, centro_x, centro_y + 5, fill="#8B0000")
-            canvas.create_line(centro_x, centro_y + 5, centro_x - 5, centro_y, fill="#8B0000")
-            canvas.create_line(centro_x - 5, centro_y, centro_x, centro_y - 5, fill="#8B0000")
-            canvas.create_line(centro_x - 2, centro_y, centro_x + 2, centro_y, fill="#8B0000")
-            canvas.create_line(centro_x, centro_y - 2, centro_x, centro_y + 2, fill="#8B0000")
-            canvas.create_oval(centro_x - 1, centro_y - 1, centro_x + 1, centro_y + 1, outline="#8B0000")
+            canvas.create_line(centro_x, centro_y - 5, centro_x + 5, centro_y, fill=color_primario)
+            canvas.create_line(centro_x + 5, centro_y, centro_x, centro_y + 5, fill=color_primario)
+            canvas.create_line(centro_x, centro_y + 5, centro_x - 5, centro_y, fill=color_primario)
+            canvas.create_line(centro_x - 5, centro_y, centro_x, centro_y - 5, fill=color_primario)
+            canvas.create_line(centro_x - 2, centro_y, centro_x + 2, centro_y, fill=color_primario)
+            canvas.create_line(centro_x, centro_y - 2, centro_x, centro_y + 2, fill=color_primario)
+            canvas.create_oval(centro_x - 1, centro_y - 1, centro_x + 1, centro_y + 1, outline=color_primario)
         centro_x = (page_box[0] + page_box[2]) / 2
         centro_y = (page_box[1] + page_box[3]) / 2
         for centro_x, centro_y in [(page_box[0] + margen, centro_y), (page_box[2] - margen, centro_y), (centro_x, page_box[1] + margen), (centro_x, page_box[3] - margen)]:
-            canvas.create_line(centro_x - 7, centro_y, centro_x, centro_y - 7, fill="#8B0000")
-            canvas.create_line(centro_x, centro_y - 7, centro_x + 7, centro_y, fill="#8B0000")
-            canvas.create_line(centro_x + 7, centro_y, centro_x, centro_y + 7, fill="#8B0000")
-            canvas.create_line(centro_x, centro_y + 7, centro_x - 7, centro_y, fill="#8B0000")
-            canvas.create_oval(centro_x - 1.2, centro_y - 1.2, centro_x + 1.2, centro_y + 1.2, outline="#8B0000")
+            canvas.create_line(centro_x - 7, centro_y, centro_x, centro_y - 7, fill=color_primario)
+            canvas.create_line(centro_x, centro_y - 7, centro_x + 7, centro_y, fill=color_primario)
+            canvas.create_line(centro_x + 7, centro_y, centro_x, centro_y + 7, fill=color_primario)
+            canvas.create_line(centro_x, centro_y + 7, centro_x - 7, centro_y, fill=color_primario)
+            canvas.create_oval(centro_x - 1.2, centro_y - 1.2, centro_x + 1.2, centro_y + 1.2, outline=color_primario)
 
-    @staticmethod
-    def _dibujar_preview_adorno_floral(canvas, page_box):
+    def _dibujar_preview_adorno_floral(self, canvas, page_box):
         x1, y1, x2, y2 = page_box
         borde_ext = 10
         borde_int = 17
-        canvas.create_rectangle(x1 + borde_ext, y1 + borde_ext, x2 - borde_ext, y2 - borde_ext, outline="#8B0000", width=1)
-        canvas.create_rectangle(x1 + borde_int, y1 + borde_int, x2 - borde_int, y2 - borde_int, outline="#333333")
+        color_primario = self._color_preview("color_primario", "#8B0000")
+        color_secundario = self._color_preview("color_secundario", "#333333")
+        canvas.create_rectangle(x1 + borde_ext, y1 + borde_ext, x2 - borde_ext, y2 - borde_ext, outline=color_primario, width=1)
+        canvas.create_rectangle(x1 + borde_int, y1 + borde_int, x2 - borde_int, y2 - borde_int, outline=color_secundario)
 
         arriba = y1 + borde_int + 5
         abajo = y2 - borde_int - 5
@@ -1527,33 +1534,33 @@ class DialogoConfiguracionInteractiva:
             (derecha, arriba, derecha - 4, arriba, derecha - 9, arriba + 5, derecha - 14, arriba + 10),
             (derecha, arriba, derecha, arriba + 4, derecha - 5, arriba + 9, derecha - 14, arriba + 10),
         ]:
-            canvas.create_line(*puntos, smooth=True, fill="#333333")
+            canvas.create_line(*puntos, smooth=True, fill=color_secundario)
 
-        canvas.create_line(izquierda + 2, arriba + 2, izquierda + 10, arriba + 10, fill="#333333")
-        canvas.create_line(derecha - 2, arriba + 2, derecha - 10, arriba + 10, fill="#333333")
-        canvas.create_line(izquierda + 2, abajo - 2, izquierda + 10, abajo - 10, fill="#333333")
-        canvas.create_line(derecha - 2, abajo - 2, derecha - 10, abajo - 10, fill="#333333")
+        canvas.create_line(izquierda + 2, arriba + 2, izquierda + 10, arriba + 10, fill=color_secundario)
+        canvas.create_line(derecha - 2, arriba + 2, derecha - 10, arriba + 10, fill=color_secundario)
+        canvas.create_line(izquierda + 2, abajo - 2, izquierda + 10, abajo - 10, fill=color_secundario)
+        canvas.create_line(derecha - 2, abajo - 2, derecha - 10, abajo - 10, fill=color_secundario)
         for x, y in [(izquierda + 7, arriba + 7), (derecha - 7, arriba + 7), (izquierda + 7, abajo - 7), (derecha - 7, abajo - 7)]:
-            canvas.create_oval(x - 1.5, y - 1.5, x + 1.5, y + 1.5, outline="#333333")
+            canvas.create_oval(x - 1.5, y - 1.5, x + 1.5, y + 1.5, outline=color_secundario)
 
         centro_x = (x1 + x2) / 2
-        canvas.create_line(centro_x - 18, y1 + borde_ext, centro_x - 12, y1 + borde_ext, centro_x - 6, y1 + 3, centro_x, y1 + 7, smooth=True, fill="#333333")
-        canvas.create_line(centro_x + 18, y1 + borde_ext, centro_x + 12, y1 + borde_ext, centro_x + 6, y1 + 3, centro_x, y1 + 7, smooth=True, fill="#333333")
-        canvas.create_line(centro_x - 11, y1 + borde_ext + 4, centro_x - 6, y1 + 2, centro_x - 2, y1 + 1, centro_x, y1 + 7, smooth=True, fill="#333333")
-        canvas.create_line(centro_x + 11, y1 + borde_ext + 4, centro_x + 6, y1 + 2, centro_x + 2, y1 + 1, centro_x, y1 + 7, smooth=True, fill="#333333")
-        canvas.create_oval(centro_x - 1.5, y1 + 5.5, centro_x + 1.5, y1 + 8.5, outline="#333333")
+        canvas.create_line(centro_x - 18, y1 + borde_ext, centro_x - 12, y1 + borde_ext, centro_x - 6, y1 + 3, centro_x, y1 + 7, smooth=True, fill=color_secundario)
+        canvas.create_line(centro_x + 18, y1 + borde_ext, centro_x + 12, y1 + borde_ext, centro_x + 6, y1 + 3, centro_x, y1 + 7, smooth=True, fill=color_secundario)
+        canvas.create_line(centro_x - 11, y1 + borde_ext + 4, centro_x - 6, y1 + 2, centro_x - 2, y1 + 1, centro_x, y1 + 7, smooth=True, fill=color_secundario)
+        canvas.create_line(centro_x + 11, y1 + borde_ext + 4, centro_x + 6, y1 + 2, centro_x + 2, y1 + 1, centro_x, y1 + 7, smooth=True, fill=color_secundario)
+        canvas.create_oval(centro_x - 1.5, y1 + 5.5, centro_x + 1.5, y1 + 8.5, outline=color_secundario)
 
-        canvas.create_line(centro_x - 18, y2 - borde_ext, centro_x - 12, y2 - borde_ext, centro_x - 6, y2 - 3, centro_x, y2 - 7, smooth=True, fill="#333333")
-        canvas.create_line(centro_x + 18, y2 - borde_ext, centro_x + 12, y2 - borde_ext, centro_x + 6, y2 - 3, centro_x, y2 - 7, smooth=True, fill="#333333")
-        canvas.create_line(centro_x - 11, y2 - borde_ext - 4, centro_x - 6, y2 - 2, centro_x - 2, y2 - 1, centro_x, y2 - 7, smooth=True, fill="#333333")
-        canvas.create_line(centro_x + 11, y2 - borde_ext - 4, centro_x + 6, y2 - 2, centro_x + 2, y2 - 1, centro_x, y2 - 7, smooth=True, fill="#333333")
-        canvas.create_oval(centro_x - 1.5, y2 - 8.5, centro_x + 1.5, y2 - 5.5, outline="#333333")
+        canvas.create_line(centro_x - 18, y2 - borde_ext, centro_x - 12, y2 - borde_ext, centro_x - 6, y2 - 3, centro_x, y2 - 7, smooth=True, fill=color_secundario)
+        canvas.create_line(centro_x + 18, y2 - borde_ext, centro_x + 12, y2 - borde_ext, centro_x + 6, y2 - 3, centro_x, y2 - 7, smooth=True, fill=color_secundario)
+        canvas.create_line(centro_x - 11, y2 - borde_ext - 4, centro_x - 6, y2 - 2, centro_x - 2, y2 - 1, centro_x, y2 - 7, smooth=True, fill=color_secundario)
+        canvas.create_line(centro_x + 11, y2 - borde_ext - 4, centro_x + 6, y2 - 2, centro_x + 2, y2 - 1, centro_x, y2 - 7, smooth=True, fill=color_secundario)
+        canvas.create_oval(centro_x - 1.5, y2 - 8.5, centro_x + 1.5, y2 - 5.5, outline=color_secundario)
 
         centro_y = (y1 + y2) / 2
-        canvas.create_line(x1 + borde_ext, centro_y, x1 + borde_ext + 8, centro_y, fill="#333333")
-        canvas.create_line(x2 - borde_ext, centro_y, x2 - borde_ext - 8, centro_y, fill="#333333")
-        canvas.create_oval(x1 + borde_ext + 3, centro_y - 1.5, x1 + borde_ext + 6, centro_y + 1.5, outline="#333333")
-        canvas.create_oval(x2 - borde_ext - 6, centro_y - 1.5, x2 - borde_ext - 3, centro_y + 1.5, outline="#333333")
+        canvas.create_line(x1 + borde_ext, centro_y, x1 + borde_ext + 8, centro_y, fill=color_secundario)
+        canvas.create_line(x2 - borde_ext, centro_y, x2 - borde_ext - 8, centro_y, fill=color_secundario)
+        canvas.create_oval(x1 + borde_ext + 3, centro_y - 1.5, x1 + borde_ext + 6, centro_y + 1.5, outline=color_secundario)
+        canvas.create_oval(x2 - borde_ext - 6, centro_y - 1.5, x2 - borde_ext - 3, centro_y + 1.5, outline=color_secundario)
 
     def actualizar_estado_rutas(self, *_args):
         entrada_texto = self.entrada_var.get().strip()
