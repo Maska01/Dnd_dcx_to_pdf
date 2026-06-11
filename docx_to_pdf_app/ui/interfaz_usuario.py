@@ -855,8 +855,8 @@ class DialogoConfiguracionInteractiva:
             ("Caja Objeto", [("color_objeto_texto", "Texto"), ("color_objeto_borde", "Borde"), ("color_objeto_fondo", "Fondo")]),
         ]
         distribucion_pestanas = {
-            "Colores base": ["General", "Caja Consejo para el DM", "Caja Cita"],
-            "Cajas útiles": ["Caja Información adicional", "Caja Tesoro/Premio", "Caja Puzzle/Acertijo/Rompecabezas", "Caja Objeto"],
+            "Colores base": ["General"],
+            "Cajas útiles": ["Caja Consejo para el DM", "Caja Cita", "Caja Información adicional", "Caja Tesoro/Premio", "Caja Puzzle/Acertijo/Rompecabezas", "Caja Objeto"],
             "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"],
         }
         contenedores = {"Colores base": pestana_colores_base, "Cajas útiles": pestana_colores_cajas, "NPC y combate": pestana_colores_personajes}
@@ -883,8 +883,8 @@ class DialogoConfiguracionInteractiva:
                 frame.columnconfigure(3, minsize=66)
                 for indice, (clave, etiqueta) in enumerate(campos):
                     self.crear_selector_color(frame, indice, clave, etiqueta)
-        self.tk.Label(pestana_colores_base, text="Aquí están los colores base del documento y de las cajas más frecuentes.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
-        self.tk.Label(pestana_colores_cajas, text="Aquí puedes ajustar información adicional, tesoro/premio, puzzle/acertijo/rompecabezas y objeto sin mezclarlo con NPC o combate.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
+        self.tk.Label(pestana_colores_base, text="Aquí están los colores base del documento.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
+        self.tk.Label(pestana_colores_cajas, text="Aquí puedes ajustar consejo para el DM, cita, información adicional, tesoro/premio, puzzle/acertijo/rompecabezas y objeto sin mezclarlo con NPC o combate.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
         self.tk.Label(pestana_colores_personajes, text="Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
 
     def _construir_botones(self, contenedor):
