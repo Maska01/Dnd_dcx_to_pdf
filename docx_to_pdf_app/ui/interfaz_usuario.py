@@ -826,18 +826,19 @@ class DialogoConfiguracionInteractiva:
     def _construir_pestanas_colores(self, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes):
         grupos_colores = [
             ("General", [("color_primario", "Títulos"), ("color_secundario", "Texto general"), ("color_fondo_pagina", "Fondo de página")]),
-            ("Caja Consejo para el DM", [("color_azul_texto", "Texto"), ("color_azul_borde", "Borde"), ("color_azul_fondo", "Fondo")]),
-            ("Caja Cita", [("color_ama_texto", "Texto"), ("color_ama_borde", "Borde"), ("color_ama_fondo", "Fondo")]),
+            ("Caja Consejo para el DM", [("COLOR_CONSEJO_TEXTO", "Texto"), ("COLOR_CONSEJO_BORDE", "Borde"), ("COLOR_CONSEJO_FONDO", "Fondo")]),
+            ("Caja Cita", [("COLOR_CITA_TEXTO", "Texto"), ("COLOR_CITA_BORDE", "Borde"), ("COLOR_CITA_FONDO", "Fondo")]),
             ("Caja Información adicional", [("color_info_texto", "Texto"), ("color_info_borde", "Borde"), ("color_info_fondo", "Fondo")]),
             ("Caja NPC", [("color_npc_texto", "Texto"), ("color_npc_borde", "Borde"), ("color_npc_fondo", "Fondo")]),
             ("Caja Enemigo", [("color_enemigo_texto", "Texto"), ("color_enemigo_borde", "Borde"), ("color_enemigo_fondo", "Fondo")]),
             ("Caja Aliado", [("color_aliado_texto", "Texto"), ("color_aliado_borde", "Borde"), ("color_aliado_fondo", "Fondo")]),
             ("Caja Tesoro/Premio", [("color_tesoro_texto", "Texto"), ("color_tesoro_borde", "Borde"), ("color_tesoro_fondo", "Fondo")]),
+            ("Caja Puzzle/Acertijo/Rompecabezas", [("color_puzzle_texto", "Texto"), ("color_puzzle_borde", "Borde"), ("color_puzzle_fondo", "Fondo")]),
             ("Caja Objeto", [("color_objeto_texto", "Texto"), ("color_objeto_borde", "Borde"), ("color_objeto_fondo", "Fondo")]),
         ]
         distribucion_pestanas = {
             "Colores base": ["General", "Caja Consejo para el DM", "Caja Cita"],
-            "Cajas útiles": ["Caja Información adicional", "Caja Tesoro/Premio", "Caja Objeto"],
+            "Cajas útiles": ["Caja Información adicional", "Caja Tesoro/Premio", "Caja Puzzle/Acertijo/Rompecabezas", "Caja Objeto"],
             "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"],
         }
         contenedores = {"Colores base": pestana_colores_base, "Cajas útiles": pestana_colores_cajas, "NPC y combate": pestana_colores_personajes}
@@ -865,7 +866,7 @@ class DialogoConfiguracionInteractiva:
                 for indice, (clave, etiqueta) in enumerate(campos):
                     self.crear_selector_color(frame, indice, clave, etiqueta)
         self.tk.Label(pestana_colores_base, text="Aquí están los colores base del documento y de las cajas más frecuentes.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
-        self.tk.Label(pestana_colores_cajas, text="Aquí puedes ajustar información adicional, tesoro/premio y objeto sin mezclarlo con NPC o combate.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
+        self.tk.Label(pestana_colores_cajas, text="Aquí puedes ajustar información adicional, tesoro/premio, puzzle/acertijo/rompecabezas y objeto sin mezclarlo con NPC o combate.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
         self.tk.Label(pestana_colores_personajes, text="Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
 
     def _construir_botones(self, contenedor):

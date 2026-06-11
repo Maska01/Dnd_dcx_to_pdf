@@ -9,17 +9,17 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.fonts import addMapping
 from reportlab.pdfbase.ttfonts import TTFont
 
-COLOR_PRIMARIO = HexColor("#8B0000")
-COLOR_SECUNDARIO = HexColor("#1a1a1a")
-COLOR_FONDO_PAGINA = HexColor("#F7F1E3")
+COLOR_PRIMARIO = HexColor("#C69900")
+COLOR_SECUNDARIO = HexColor("#FFFFFF")
+COLOR_FONDO_PAGINA = HexColor("#000035")
 
-COLOR_AZUL_TEXTO = HexColor("#1F3A93")
-COLOR_AZUL_BORDE = HexColor("#5B8DEF")
-COLOR_AZUL_FONDO = HexColor("#EAF1FB")
+COLOR_CONSEJO_TEXTO = HexColor("#F1EFE8")
+COLOR_CONSEJO_BORDE = HexColor("#FFCE1B")
+COLOR_CONSEJO_FONDO = HexColor("#4B0082")
 
-COLOR_AMA_TEXTO = HexColor("#000000")
-COLOR_AMA_BORDE = HexColor("#D9B96A")
-COLOR_AMA_FONDO = HexColor("#FBF3DC")
+COLOR_CITA_TEXTO = HexColor("#000080")
+COLOR_CITA_BORDE = HexColor("#C69900")
+COLOR_CITA_FONDO = HexColor("#F5ECE2")
 
 COLOR_INFO_TEXTO = HexColor("#0F4C5C")
 COLOR_INFO_BORDE = HexColor("#2A9D8F")
@@ -37,9 +37,13 @@ COLOR_ALIADO_TEXTO = HexColor("#1E5631")
 COLOR_ALIADO_BORDE = HexColor("#4CAF50")
 COLOR_ALIADO_FONDO = HexColor("#EAF7EE")
 
-COLOR_TESORO_TEXTO = HexColor("#5B2C83")
-COLOR_TESORO_BORDE = HexColor("#8E44AD")
-COLOR_TESORO_FONDO = HexColor("#F3E8FF")
+COLOR_TESORO_TEXTO = HexColor("#D0A933")
+COLOR_TESORO_BORDE = HexColor("#CD7F32")
+COLOR_TESORO_FONDO = HexColor("#6A3535")
+
+COLOR_PUZZLE_TEXTO = HexColor("#D2D2D2")
+COLOR_PUZZLE_BORDE = HexColor("#A417E8")
+COLOR_PUZZLE_FONDO = HexColor("#272C56")
 
 COLOR_OBJETO_TEXTO = HexColor("#2F2F2F")
 COLOR_OBJETO_BORDE = HexColor("#BFC5CC")
@@ -324,12 +328,12 @@ def obtener_configuracion_visual_predeterminada():
         "color_primario": _color_a_hex(COLOR_PRIMARIO),
         "color_secundario": _color_a_hex(COLOR_SECUNDARIO),
         "color_fondo_pagina": _color_a_hex(COLOR_FONDO_PAGINA),
-        "color_azul_texto": _color_a_hex(COLOR_AZUL_TEXTO),
-        "color_azul_borde": _color_a_hex(COLOR_AZUL_BORDE),
-        "color_azul_fondo": _color_a_hex(COLOR_AZUL_FONDO),
-        "color_ama_texto": _color_a_hex(COLOR_AMA_TEXTO),
-        "color_ama_borde": _color_a_hex(COLOR_AMA_BORDE),
-        "color_ama_fondo": _color_a_hex(COLOR_AMA_FONDO),
+        "COLOR_CONSEJO_TEXTO": _color_a_hex(COLOR_CONSEJO_TEXTO),
+        "COLOR_CONSEJO_BORDE": _color_a_hex(COLOR_CONSEJO_BORDE),
+        "COLOR_CONSEJO_FONDO": _color_a_hex(COLOR_CONSEJO_FONDO),
+        "COLOR_CITA_TEXTO": _color_a_hex(COLOR_CITA_TEXTO),
+        "COLOR_CITA_BORDE": _color_a_hex(COLOR_CITA_BORDE),
+        "COLOR_CITA_FONDO": _color_a_hex(COLOR_CITA_FONDO),
         "color_info_texto": _color_a_hex(COLOR_INFO_TEXTO),
         "color_info_borde": _color_a_hex(COLOR_INFO_BORDE),
         "color_info_fondo": _color_a_hex(COLOR_INFO_FONDO),
@@ -345,6 +349,9 @@ def obtener_configuracion_visual_predeterminada():
         "color_tesoro_texto": _color_a_hex(COLOR_TESORO_TEXTO),
         "color_tesoro_borde": _color_a_hex(COLOR_TESORO_BORDE),
         "color_tesoro_fondo": _color_a_hex(COLOR_TESORO_FONDO),
+        "color_puzzle_texto": _color_a_hex(COLOR_PUZZLE_TEXTO),
+        "color_puzzle_borde": _color_a_hex(COLOR_PUZZLE_BORDE),
+        "color_puzzle_fondo": _color_a_hex(COLOR_PUZZLE_FONDO),
         "color_objeto_texto": _color_a_hex(COLOR_OBJETO_TEXTO),
         "color_objeto_borde": _color_a_hex(COLOR_OBJETO_BORDE),
         "color_objeto_fondo": _color_a_hex(COLOR_OBJETO_FONDO),
@@ -418,13 +425,14 @@ def aplicar_configuracion_documento(configuracion_documento):
 
 def aplicar_configuracion_visual(configuracion_visual):
     global COLOR_PRIMARIO, COLOR_SECUNDARIO, COLOR_FONDO_PAGINA
-    global COLOR_AZUL_TEXTO, COLOR_AZUL_BORDE, COLOR_AZUL_FONDO
-    global COLOR_AMA_TEXTO, COLOR_AMA_BORDE, COLOR_AMA_FONDO
+    global COLOR_CONSEJO_TEXTO, COLOR_CONSEJO_BORDE, COLOR_CONSEJO_FONDO
+    global COLOR_CITA_TEXTO, COLOR_CITA_BORDE, COLOR_CITA_FONDO
     global COLOR_INFO_TEXTO, COLOR_INFO_BORDE, COLOR_INFO_FONDO
     global COLOR_ENEMIGO_TEXTO, COLOR_ENEMIGO_BORDE, COLOR_ENEMIGO_FONDO
     global COLOR_NPC_TEXTO, COLOR_NPC_BORDE, COLOR_NPC_FONDO
     global COLOR_ALIADO_TEXTO, COLOR_ALIADO_BORDE, COLOR_ALIADO_FONDO
     global COLOR_TESORO_TEXTO, COLOR_TESORO_BORDE, COLOR_TESORO_FONDO
+    global COLOR_PUZZLE_TEXTO, COLOR_PUZZLE_BORDE, COLOR_PUZZLE_FONDO
     global COLOR_OBJETO_TEXTO, COLOR_OBJETO_BORDE, COLOR_OBJETO_FONDO
 
     valores = obtener_configuracion_visual_predeterminada()
@@ -433,12 +441,12 @@ def aplicar_configuracion_visual(configuracion_visual):
     COLOR_PRIMARIO = HexColor(_normalizar_color_hex(valores["color_primario"], _color_a_hex(COLOR_PRIMARIO)))
     COLOR_SECUNDARIO = HexColor(_normalizar_color_hex(valores["color_secundario"], _color_a_hex(COLOR_SECUNDARIO)))
     COLOR_FONDO_PAGINA = HexColor(_normalizar_color_hex(valores["color_fondo_pagina"], _color_a_hex(COLOR_FONDO_PAGINA)))
-    COLOR_AZUL_TEXTO = HexColor(_normalizar_color_hex(valores["color_azul_texto"], _color_a_hex(COLOR_AZUL_TEXTO)))
-    COLOR_AZUL_BORDE = HexColor(_normalizar_color_hex(valores["color_azul_borde"], _color_a_hex(COLOR_AZUL_BORDE)))
-    COLOR_AZUL_FONDO = HexColor(_normalizar_color_hex(valores["color_azul_fondo"], _color_a_hex(COLOR_AZUL_FONDO)))
-    COLOR_AMA_TEXTO = HexColor(_normalizar_color_hex(valores["color_ama_texto"], _color_a_hex(COLOR_AMA_TEXTO)))
-    COLOR_AMA_BORDE = HexColor(_normalizar_color_hex(valores["color_ama_borde"], _color_a_hex(COLOR_AMA_BORDE)))
-    COLOR_AMA_FONDO = HexColor(_normalizar_color_hex(valores["color_ama_fondo"], _color_a_hex(COLOR_AMA_FONDO)))
+    COLOR_CONSEJO_TEXTO = HexColor(_normalizar_color_hex(valores["COLOR_CONSEJO_TEXTO"], _color_a_hex(COLOR_CONSEJO_TEXTO)))
+    COLOR_CONSEJO_BORDE = HexColor(_normalizar_color_hex(valores["COLOR_CONSEJO_BORDE"], _color_a_hex(COLOR_CONSEJO_BORDE)))
+    COLOR_CONSEJO_FONDO = HexColor(_normalizar_color_hex(valores["COLOR_CONSEJO_FONDO"], _color_a_hex(COLOR_CONSEJO_FONDO)))
+    COLOR_CITA_TEXTO = HexColor(_normalizar_color_hex(valores["COLOR_CITA_TEXTO"], _color_a_hex(COLOR_CITA_TEXTO)))
+    COLOR_CITA_BORDE = HexColor(_normalizar_color_hex(valores["COLOR_CITA_BORDE"], _color_a_hex(COLOR_CITA_BORDE)))
+    COLOR_CITA_FONDO = HexColor(_normalizar_color_hex(valores["COLOR_CITA_FONDO"], _color_a_hex(COLOR_CITA_FONDO)))
     COLOR_INFO_TEXTO = HexColor(_normalizar_color_hex(valores["color_info_texto"], _color_a_hex(COLOR_INFO_TEXTO)))
     COLOR_INFO_BORDE = HexColor(_normalizar_color_hex(valores["color_info_borde"], _color_a_hex(COLOR_INFO_BORDE)))
     COLOR_INFO_FONDO = HexColor(_normalizar_color_hex(valores["color_info_fondo"], _color_a_hex(COLOR_INFO_FONDO)))
@@ -454,6 +462,9 @@ def aplicar_configuracion_visual(configuracion_visual):
     COLOR_TESORO_TEXTO = HexColor(_normalizar_color_hex(valores["color_tesoro_texto"], _color_a_hex(COLOR_TESORO_TEXTO)))
     COLOR_TESORO_BORDE = HexColor(_normalizar_color_hex(valores["color_tesoro_borde"], _color_a_hex(COLOR_TESORO_BORDE)))
     COLOR_TESORO_FONDO = HexColor(_normalizar_color_hex(valores["color_tesoro_fondo"], _color_a_hex(COLOR_TESORO_FONDO)))
+    COLOR_PUZZLE_TEXTO = HexColor(_normalizar_color_hex(valores["color_puzzle_texto"], _color_a_hex(COLOR_PUZZLE_TEXTO)))
+    COLOR_PUZZLE_BORDE = HexColor(_normalizar_color_hex(valores["color_puzzle_borde"], _color_a_hex(COLOR_PUZZLE_BORDE)))
+    COLOR_PUZZLE_FONDO = HexColor(_normalizar_color_hex(valores["color_puzzle_fondo"], _color_a_hex(COLOR_PUZZLE_FONDO)))
     COLOR_OBJETO_TEXTO = HexColor(_normalizar_color_hex(valores["color_objeto_texto"], _color_a_hex(COLOR_OBJETO_TEXTO)))
     COLOR_OBJETO_BORDE = HexColor(_normalizar_color_hex(valores["color_objeto_borde"], _color_a_hex(COLOR_OBJETO_BORDE)))
     COLOR_OBJETO_FONDO = HexColor(_normalizar_color_hex(valores["color_objeto_fondo"], _color_a_hex(COLOR_OBJETO_FONDO)))
@@ -468,13 +479,14 @@ def construir_estilos():
     estilos.add(ParagraphStyle(name="H2", fontName=FUENTE_TITULO, fontSize=16, leading=20, textColor=COLOR_PRIMARIO, spaceBefore=14, spaceAfter=8))
     estilos.add(ParagraphStyle(name="H3", fontName=FUENTE_TITULO, fontSize=13, leading=16, textColor=COLOR_SECUNDARIO, spaceBefore=10, spaceAfter=6))
     estilos.add(ParagraphStyle(name="Cuerpo", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=black, alignment=TA_JUSTIFY, spaceAfter=8))
-    estilos.add(ParagraphStyle(name="CajaCita", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_AMA_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_AMA_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_AMA_FONDO))
+    estilos.add(ParagraphStyle(name="CajaCita", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_CITA_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_CITA_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_CITA_FONDO))
     estilos.add(ParagraphStyle(name="CajaInfoAdicional", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_INFO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=3, spaceAfter=8, borderColor=COLOR_INFO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_INFO_FONDO))
-    estilos.add(ParagraphStyle(name="CajaConsejoDm", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_AZUL_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_AZUL_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_AZUL_FONDO))
+    estilos.add(ParagraphStyle(name="CajaConsejoDm", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_CONSEJO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_CONSEJO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_CONSEJO_FONDO))
     estilos.add(ParagraphStyle(name="CajaNpc", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_NPC_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_NPC_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_NPC_FONDO))
     estilos.add(ParagraphStyle(name="CajaEnemigo", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_ENEMIGO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_ENEMIGO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_ENEMIGO_FONDO))
     estilos.add(ParagraphStyle(name="CajaAliado", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_ALIADO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_ALIADO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_ALIADO_FONDO))
     estilos.add(ParagraphStyle(name="CajaTesoro", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_TESORO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_TESORO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_TESORO_FONDO))
+    estilos.add(ParagraphStyle(name="CajaPuzzle", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_PUZZLE_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_PUZZLE_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_PUZZLE_FONDO))
     estilos.add(ParagraphStyle(name="CajaObjeto", fontName=FUENTE_TEXTO, fontSize=11, leading=15, textColor=COLOR_OBJETO_TEXTO, alignment=TA_JUSTIFY, leftIndent=10, rightIndent=10, spaceBefore=6, spaceAfter=8, borderColor=COLOR_OBJETO_BORDE, borderWidth=1, borderRadius=8, borderPadding=4, backColor=COLOR_OBJETO_FONDO))
     estilos.add(ParagraphStyle(name="TituloIndice", fontName=FUENTE_TITULO, fontSize=22, leading=26, textColor=COLOR_PRIMARIO, alignment=TA_CENTER, spaceAfter=20))
     return estilos

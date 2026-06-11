@@ -24,6 +24,7 @@ from ..core.procesamiento_word import (
     es_inicio_bloque_info,
     es_inicio_bloque_npc,
     es_inicio_bloque_objeto,
+    es_inicio_bloque_puzzle,
     es_inicio_bloque_tesoro,
     estilo_para_parrafo,
     extraer_imagenes_de_parrafo,
@@ -38,11 +39,14 @@ from ..core.procesamiento_word import (
 )
 from .renderizado_cajas import (
     crear_flujos_imagenes,
+    decorar_acertijo_en_html,
     decorar_aliado_en_html,
     decorar_enemigo_en_html,
     decorar_npc_en_html,
     decorar_objeto_en_html,
     decorar_premio_en_html,
+    decorar_puzzle_en_html,
+    decorar_rompecabezas_en_html,
     decorar_tesoro_en_html,
     renderizar_caja,
     tabla_docx_a_flujo,
@@ -499,6 +503,9 @@ class EstadoConstruccionPdf:
     bloque_tesoro_manual: list = field(default_factory=list)
     dentro_tesoro_manual: bool = False
     titulo_tesoro_manual: str = "Tesoro"
+    bloque_puzzle_manual: list = field(default_factory=list)
+    dentro_puzzle_manual: bool = False
+    titulo_puzzle_manual: str = "Puzzle"
     bloque_objeto_manual: list = field(default_factory=list)
     dentro_objeto_manual: bool = False
     bloque_info_manual: list = field(default_factory=list)
@@ -518,6 +525,7 @@ class EstadoConstruccionPdf:
             (self.dentro_enemigo_manual, self.bloque_enemigo_manual),
             (self.dentro_aliado_manual, self.bloque_aliado_manual),
             (self.dentro_tesoro_manual, self.bloque_tesoro_manual),
+            (self.dentro_puzzle_manual, self.bloque_puzzle_manual),
             (self.dentro_objeto_manual, self.bloque_objeto_manual),
         ]
         for activo, bloque in destinos:
@@ -537,6 +545,7 @@ class EstadoConstruccionPdf:
             (self.dentro_enemigo_manual, self.bloque_enemigo_manual),
             (self.dentro_aliado_manual, self.bloque_aliado_manual),
             (self.dentro_tesoro_manual, self.bloque_tesoro_manual),
+            (self.dentro_puzzle_manual, self.bloque_puzzle_manual),
             (self.dentro_objeto_manual, self.bloque_objeto_manual),
             (self.dentro_info, self.bloque_info_manual),
         ]:
@@ -608,6 +617,19 @@ class EstadoConstruccionPdf:
         self.dentro_tesoro_manual = False
         self.titulo_tesoro_manual = "Tesoro"
 
+    def emitir_puzzle_manual(self):
+        if self.bloque_puzzle_manual:
+            if self.titulo_puzzle_manual == "Acertijo":
+                decorador = decorar_acertijo_en_html
+            elif self.titulo_puzzle_manual == "Rompecabezas":
+                decorador = decorar_rompecabezas_en_html
+            else:
+                decorador = decorar_puzzle_en_html
+            self.agregar_caja_a_historia(self.bloque_puzzle_manual, "CajaPuzzle", decorador)
+            self.bloque_puzzle_manual.clear()
+        self.dentro_puzzle_manual = False
+        self.titulo_puzzle_manual = "Puzzle"
+
     def emitir_objeto_manual(self):
         if self.bloque_objeto_manual:
             self.agregar_caja_a_historia(self.bloque_objeto_manual, "CajaObjeto", decorar_objeto_en_html)
@@ -630,6 +652,7 @@ class EstadoConstruccionPdf:
         self.emitir_enemigo_manual()
         self.emitir_aliado_manual()
         self.emitir_tesoro_manual()
+        self.emitir_puzzle_manual()
         self.emitir_objeto_manual()
         self.vaciar_citas()
         self.vaciar_lista()
@@ -646,6 +669,7 @@ class EstadoConstruccionPdf:
         self.emitir_enemigo_manual()
         self.emitir_aliado_manual()
         self.emitir_tesoro_manual()
+        self.emitir_puzzle_manual()
         self.emitir_objeto_manual()
         self.vaciar_citas()
         self.vaciar_lista()
@@ -657,6 +681,7 @@ class EstadoConstruccionPdf:
         self.emitir_enemigo_manual()
         self.emitir_aliado_manual()
         self.emitir_tesoro_manual()
+        self.emitir_puzzle_manual()
         self.emitir_objeto_manual()
         self.emitir_info_adicional()
         self.vaciar_consejos()
@@ -686,6 +711,9 @@ class EstadoConstruccionPdf:
         if es_fin_bloque_manual(texto_plano) and self.dentro_tesoro_manual:
             self.emitir_tesoro_manual()
             return True
+        if es_fin_bloque_manual(texto_plano) and self.dentro_puzzle_manual:
+            self.emitir_puzzle_manual()
+            return True
         if es_fin_bloque_manual(texto_plano) and self.dentro_objeto_manual:
             self.emitir_objeto_manual()
             return True
@@ -693,21 +721,23 @@ class EstadoConstruccionPdf:
 
     def procesar_apertura_bloque_manual(self, texto_plano):
         if es_inicio_bloque_info(texto_plano):
-            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_info = True; self.bloque_info_manual.clear(); return True
+            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.emitir_puzzle_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_info = True; self.bloque_info_manual.clear(); return True
         if es_inicio_bloque_consejo(texto_plano):
-            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_consejo_manual = True; self.bloque_consejo_manual.clear(); return True
+            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.emitir_puzzle_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_consejo_manual = True; self.bloque_consejo_manual.clear(); return True
         if es_inicio_bloque_cita(texto_plano):
-            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_cita_manual = True; self.bloque_cita_manual.clear(); return True
+            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.emitir_puzzle_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_cita_manual = True; self.bloque_cita_manual.clear(); return True
         if es_inicio_bloque_npc(texto_plano):
-            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_npc_manual = True; self.bloque_npc_manual.clear(); return True
+            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.emitir_puzzle_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_npc_manual = True; self.bloque_npc_manual.clear(); return True
         if es_inicio_bloque_enemigo(texto_plano):
-            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_aliado_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_enemigo_manual = True; self.bloque_enemigo_manual.clear(); return True
+            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_aliado_manual(); self.emitir_puzzle_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_enemigo_manual = True; self.bloque_enemigo_manual.clear(); return True
         if es_inicio_bloque_aliado(texto_plano):
-            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_aliado_manual = True; self.bloque_aliado_manual.clear(); return True
+            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_puzzle_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_aliado_manual = True; self.bloque_aliado_manual.clear(); return True
         if es_inicio_bloque_tesoro(texto_plano):
-            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.emitir_objeto_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_tesoro_manual = True; self.titulo_tesoro_manual = "Premio" if "premio" in (texto_plano or "").lower() else "Tesoro"; self.bloque_tesoro_manual.clear(); return True
+            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.emitir_puzzle_manual(); self.emitir_objeto_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_tesoro_manual = True; self.titulo_tesoro_manual = "Premio" if "premio" in (texto_plano or "").lower() else "Tesoro"; self.bloque_tesoro_manual.clear(); return True
+        if es_inicio_bloque_puzzle(texto_plano):
+            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.emitir_tesoro_manual(); self.emitir_objeto_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_puzzle_manual = True; self.titulo_puzzle_manual = "Acertijo" if "acertijo" in (texto_plano or "").lower() else "Rompecabezas" if "rompecabezas" in (texto_plano or "").lower() else "Puzzle"; self.bloque_puzzle_manual.clear(); return True
         if es_inicio_bloque_objeto(texto_plano):
-            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.emitir_tesoro_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_objeto_manual = True; self.bloque_objeto_manual.clear(); return True
+            self.vaciar_consejos(); self.vaciar_infos(); self.emitir_info_adicional(); self.emitir_consejo_manual(); self.emitir_cita_manual(); self.emitir_npc_manual(); self.emitir_enemigo_manual(); self.emitir_aliado_manual(); self.emitir_tesoro_manual(); self.emitir_puzzle_manual(); self.vaciar_citas(); self.vaciar_lista(); self.dentro_objeto_manual = True; self.bloque_objeto_manual.clear(); return True
         return False
 
 
@@ -773,7 +803,7 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None, subtitulo=None, 
                 if estado.vacios_desde_ultima_info > estado.max_vacios_fusion_info:
                     estado.vaciar_infos()
             estado.vaciar_lista()
-            if not any([estado.dentro_info, estado.dentro_consejo_manual, estado.dentro_cita_manual, estado.dentro_npc_manual, estado.dentro_enemigo_manual, estado.dentro_aliado_manual, estado.dentro_tesoro_manual, estado.dentro_objeto_manual]):
+            if not any([estado.dentro_info, estado.dentro_consejo_manual, estado.dentro_cita_manual, estado.dentro_npc_manual, estado.dentro_enemigo_manual, estado.dentro_aliado_manual, estado.dentro_tesoro_manual, estado.dentro_puzzle_manual, estado.dentro_objeto_manual]):
                 estado.historia.append(Spacer(1, 0))
             continue
         clave = estilo_para_parrafo(parrafo)

@@ -157,6 +157,18 @@ def decorar_premio_en_html(texto_html):
     return crear_titulo_decorado("Premio", cfg.COLOR_TESORO_TEXTO) + texto_html
 
 
+def decorar_puzzle_en_html(texto_html):
+    return crear_titulo_decorado("Puzzle", cfg.COLOR_PUZZLE_TEXTO) + texto_html
+
+
+def decorar_acertijo_en_html(texto_html):
+    return crear_titulo_decorado("Acertijo", cfg.COLOR_PUZZLE_TEXTO) + texto_html
+
+
+def decorar_rompecabezas_en_html(texto_html):
+    return crear_titulo_decorado("Rompecabezas", cfg.COLOR_PUZZLE_TEXTO) + texto_html
+
+
 def decorar_objeto_en_html(texto_html):
     return crear_titulo_decorado("Objeto", cfg.COLOR_OBJETO_TEXTO) + texto_html
 

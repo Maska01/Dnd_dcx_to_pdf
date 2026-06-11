@@ -360,7 +360,7 @@ def decorar_consejo_dm_html(texto_html):
         if detalle:
             titulo = f"{titulo} {detalle}"
         cuerpo = _quitar_prefijo_visible_en_html(texto_html, len(match.group(0)))
-    etiqueta = f'<font color="#{cfg.COLOR_AZUL_TEXTO.hexval()[2:]}"><b>{titulo}</b></font><br/>'
+    etiqueta = f'<font color="#{cfg.COLOR_CONSEJO_TEXTO.hexval()[2:]}"><b>{titulo}</b></font><br/>'
     return etiqueta + cuerpo
 
 
@@ -416,6 +416,24 @@ def es_inicio_bloque_aliado(texto_plano):
 def es_inicio_bloque_tesoro(texto_plano):
     limpio = " ".join((texto_plano or "").strip().lower().split())
     return limpio in (":::tesoro", "::: tesoro", ":::premio", "::: premio", ":::tesoro :::", "::: tesoro :::", ":::premio :::", "::: premio :::")
+
+
+def es_inicio_bloque_puzzle(texto_plano):
+    limpio = " ".join((texto_plano or "").strip().lower().split())
+    return limpio in (
+        ":::puzzle",
+        "::: puzzle",
+        ":::puzzle :::",
+        "::: puzzle :::",
+        ":::acertijo",
+        "::: acertijo",
+        ":::acertijo :::",
+        "::: acertijo :::",
+        ":::rompecabezas",
+        "::: rompecabezas",
+        ":::rompecabezas :::",
+        "::: rompecabezas :::",
+    )
 
 
 def es_inicio_bloque_objeto(texto_plano):

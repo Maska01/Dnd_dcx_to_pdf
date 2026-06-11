@@ -67,12 +67,12 @@ NOMBRES_CONFIG_MUTABLES = [
     "COLOR_PRIMARIO",
     "COLOR_SECUNDARIO",
     "COLOR_FONDO_PAGINA",
-    "COLOR_AZUL_TEXTO",
-    "COLOR_AZUL_BORDE",
-    "COLOR_AZUL_FONDO",
-    "COLOR_AMA_TEXTO",
-    "COLOR_AMA_BORDE",
-    "COLOR_AMA_FONDO",
+    "COLOR_CONSEJO_TEXTO",
+    "COLOR_CONSEJO_BORDE",
+    "COLOR_CONSEJO_FONDO",
+    "COLOR_CITA_TEXTO",
+    "COLOR_CITA_BORDE",
+    "COLOR_CITA_FONDO",
     "COLOR_INFO_TEXTO",
     "COLOR_INFO_BORDE",
     "COLOR_INFO_FONDO",
@@ -88,6 +88,9 @@ NOMBRES_CONFIG_MUTABLES = [
     "COLOR_TESORO_TEXTO",
     "COLOR_TESORO_BORDE",
     "COLOR_TESORO_FONDO",
+    "COLOR_PUZZLE_TEXTO",
+    "COLOR_PUZZLE_BORDE",
+    "COLOR_PUZZLE_FONDO",
     "COLOR_OBJETO_TEXTO",
     "COLOR_OBJETO_BORDE",
     "COLOR_OBJETO_FONDO",
@@ -200,8 +203,7 @@ def _generar_pdf_desde_configuracion_interactiva(configuracion):
         subtitulo=configuracion["subtitulo"] or None,
         imagen_portada=configuracion["imagen_portada"],
     )
-    if configuracion.get("abrir_pdf_al_generar"):
-        _abrir_y_notificar_pdf_generado(salida)
+    _abrir_y_notificar_pdf_generado(salida)
 
 
 
