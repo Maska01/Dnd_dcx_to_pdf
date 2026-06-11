@@ -451,7 +451,7 @@ class DialogoConfiguracionInteractiva:
         self._construir_bloque_archivos(tarjeta_archivos)
 
     def _construir_pagina_personalizacion(self, interior):
-        notebook, pestana_portada_metadatos, pestana_documento, pestana_margenes, pestana_cajas, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes = self._crear_notebook(interior)
+        notebook, pestana_portada_metadatos, pestana_documento, pestana_margenes, pestana_cajas, pestana_colores_cajas, pestana_colores_personajes = self._crear_notebook(interior)
         self.notebook = notebook
         self._construir_pestana_portada_metadatos(pestana_portada_metadatos)
         self._construir_pestana_documento(pestana_documento)
@@ -459,7 +459,7 @@ class DialogoConfiguracionInteractiva:
         self._construir_pestana_margenes(pestana_margenes)
         self._construir_pestana_cajas(pestana_cajas)
         self._finalizar_estado_decoracion()
-        self._construir_pestanas_colores(pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes)
+        self._construir_pestanas_colores(pestana_colores_cajas, pestana_colores_personajes)
 
     def _crear_notebook(self, interior):
         notebook = self.ttk.Notebook(interior, style="MenuNotebook.TNotebook")
@@ -468,17 +468,15 @@ class DialogoConfiguracionInteractiva:
         pestana_documento = self.tk.Frame(notebook, padx=8, pady=8)
         pestana_margenes = self.tk.Frame(notebook, padx=8, pady=8)
         pestana_cajas = self.tk.Frame(notebook, padx=8, pady=8)
-        pestana_colores_base = self.tk.Frame(notebook, padx=8, pady=8)
         pestana_colores_cajas = self.tk.Frame(notebook, padx=8, pady=8)
         pestana_colores_personajes = self.tk.Frame(notebook, padx=8, pady=8)
-        notebook.add(pestana_portada_metadatos, text="Portada y metadatos")
-        notebook.add(pestana_documento, text="Página, fuentes y márgenes")
-        notebook.add(pestana_margenes, text="Decoración de márgenes")
-        notebook.add(pestana_cajas, text="Decoración de cajas")
-        notebook.add(pestana_colores_base, text="Colores base")
+        notebook.add(pestana_documento, text="Páginas y fuentes")
+        notebook.add(pestana_margenes, text="Configuración de márgenes")
+        notebook.add(pestana_cajas, text="Configuración de Cajas")
         notebook.add(pestana_colores_cajas, text="Cajas útiles")
         notebook.add(pestana_colores_personajes, text="NPC y combate")
-        return notebook, pestana_portada_metadatos, pestana_documento, pestana_margenes, pestana_cajas, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes
+        notebook.add(pestana_portada_metadatos, text="Portada y metadatos")
+        return notebook, pestana_portada_metadatos, pestana_documento, pestana_margenes, pestana_cajas, pestana_colores_cajas, pestana_colores_personajes
 
     def _construir_pestana_portada_metadatos(self, pestana_portada_metadatos):
         panel_superior = self.tk.Frame(pestana_portada_metadatos)
@@ -499,7 +497,10 @@ class DialogoConfiguracionInteractiva:
         self._construir_panel_ayuda_portada(fila_inferior)
 
     def _construir_pestana_documento(self, pestana_documento):
-        panel_superior = self.tk.Frame(pestana_documento)
+        contenedor = self.tk.Frame(pestana_documento)
+        contenedor.pack(fill="both", expand=True)
+
+        panel_superior = self.tk.Frame(contenedor)
         panel_superior.pack(fill="both", expand=True, anchor="n")
         panel_superior.columnconfigure(0, weight=3)
         panel_superior.columnconfigure(1, weight=2)
@@ -517,6 +518,8 @@ class DialogoConfiguracionInteractiva:
         contenedor.pack(fill="both", expand=True)
         contenedor.columnconfigure(0, weight=1)
 
+        self._construir_bloque_configuracion_margenes(contenedor, fila=0)
+
         descripcion = self.tk.Label(
             contenedor,
             text="Configura el borde decorativo de cada página con presets o con un PNG transparente.",
@@ -524,13 +527,15 @@ class DialogoConfiguracionInteractiva:
             justify="left",
             wraplength=self.ancho_contenido_compacto,
         )
-        descripcion.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        self._construir_bloque_adornos_margenes(contenedor, fila=1)
+        descripcion.grid(row=1, column=0, sticky="ew", pady=(0, 6))
+        self._construir_bloque_adornos_margenes(contenedor, fila=2)
 
     def _construir_pestana_cajas(self, pestana_cajas):
         contenedor = self.tk.Frame(pestana_cajas)
         contenedor.pack(fill="both", expand=True)
         contenedor.columnconfigure(0, weight=1)
+
+        self._construir_bloque_configuracion_cajas(contenedor, fila=0)
 
         descripcion = self.tk.Label(
             contenedor,
@@ -539,8 +544,8 @@ class DialogoConfiguracionInteractiva:
             justify="left",
             wraplength=self.ancho_contenido_compacto,
         )
-        descripcion.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        self._construir_bloque_adornos_cajas(contenedor, fila=1)
+        descripcion.grid(row=1, column=0, sticky="ew", pady=(0, 6))
+        self._construir_bloque_adornos_cajas(contenedor, fila=2)
 
     def _construir_bloque_portada(self, panel_superior):
         titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", padx=8, pady=8)
@@ -607,7 +612,7 @@ class DialogoConfiguracionInteractiva:
 
     def _construir_panel_ayuda_portada(self, parent):
         ayuda_frame = self.tk.LabelFrame(parent, text="Sugerencias", padx=10, pady=10)
-        ayuda_frame.pack(fill="both", expand=True)
+        ayuda_frame.pack(fill="both", expand=False)
         mensajes = [
             "Usa título y subtítulo solo si deben aparecer en la portada.",
             "Activa página completa si la imagen debe cubrir toda la hoja.",
@@ -637,14 +642,13 @@ class DialogoConfiguracionInteractiva:
         self.resumen_portada_var.set("\n\n".join(lineas))
 
     def _construir_bloque_documento(self, panel_superior):
-        documento_frame = self.tk.LabelFrame(panel_superior, text="Página, fuentes y márgenes", padx=8, pady=8)
+        documento_frame = self.tk.LabelFrame(panel_superior, text="Páginas y fuentes", padx=8, pady=8)
         documento_frame.grid(row=1, column=0, sticky="new", pady=(0, 6))
         fuentes_disponibles = cfg.obtener_fuentes_disponibles()
-        adornos_iniciales = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
         self.tamano_pagina_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("tamano_pagina", "A4"))
         self.fuente_titulo_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("fuente_titulo", cfg.FUENTE_TITULO))
         self.fuente_texto_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("fuente_texto", cfg.FUENTE_TEXTO))
-        self.margen_var = self.tk.StringVar(value=self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=adornos_iniciales)))
+        self.margen_var = self.tk.StringVar(value=self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False)))))
         self.ancho_borde_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_borde_cajas", 2.0)))
         self.espacio_antes_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_antes_cajas", 6.0)))
         self.espacio_despues_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_despues_cajas", 8.0)))
@@ -666,25 +670,18 @@ class DialogoConfiguracionInteractiva:
         self.ttk.Combobox(documento_frame, textvariable=self.fuente_titulo_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=4, column=1, sticky="ew", padx=(8, 10), pady=3)
         self.tk.Label(documento_frame, text="Fuente de texto").grid(row=4, column=2, sticky="w", padx=(16, 0), pady=3)
         self.ttk.Combobox(documento_frame, textvariable=self.fuente_texto_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=4, column=3, sticky="ew", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Márgenes", fg=self.color_texto_suave).grid(row=5, column=0, sticky="w", pady=(10, 2))
-        self.tk.Label(documento_frame, text="Margen (cm)").grid(row=6, column=0, sticky="w", pady=3)
-        self.combo_margen = self.ttk.Combobox(documento_frame, textvariable=self.margen_var, values=self._opciones_margen_disponibles(adornos_iniciales), state="readonly", width=10)
-        self.combo_margen.grid(row=6, column=1, sticky="w", padx=(8, 10), pady=3)
-        self.etiqueta_rango_margen = self.tk.Label(documento_frame, text="")
-        self.etiqueta_rango_margen.grid(row=6, column=2, columnspan=2, sticky="w", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Cajas", fg=self.color_texto_suave).grid(row=7, column=0, sticky="w", pady=(10, 2))
-        self.tk.Label(documento_frame, text="Borde (pt)").grid(row=8, column=0, sticky="w", pady=3)
-        self.tk.Entry(documento_frame, textvariable=self.ancho_borde_cajas_var, width=10).grid(row=8, column=1, sticky="w", padx=(8, 10), pady=3)
-        self.tk.Label(documento_frame, text="Espacio antes (pt)").grid(row=8, column=2, sticky="w", padx=(16, 0), pady=3)
-        self.tk.Entry(documento_frame, textvariable=self.espacio_antes_cajas_var, width=10).grid(row=8, column=3, sticky="ew", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Espacio después (pt)").grid(row=9, column=2, sticky="w", padx=(16, 0), pady=3)
-        self.tk.Entry(documento_frame, textvariable=self.espacio_despues_cajas_var, width=10).grid(row=9, column=3, sticky="ew", padx=(8, 0), pady=3)
         self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_ayuda_tamano.grid(row=10, column=0, columnspan=4, sticky="ew", pady=(6, 0))
+        self.etiqueta_ayuda_tamano.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(10, 0))
         self.etiqueta_validacion_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_validacion_tamano.grid(row=11, column=0, columnspan=4, sticky="ew", pady=(4, 0))
-        self.etiqueta_validacion_margen = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_validacion_margen.grid(row=12, column=0, columnspan=4, sticky="ew", pady=(4, 0))
+        self.etiqueta_validacion_tamano.grid(row=6, column=0, columnspan=4, sticky="ew", pady=(4, 0))
+        self.tk.Label(
+            documento_frame,
+            text="Los márgenes se ajustan en la pestaña 'Configuración de márgenes' y las cajas en 'Configuración de Cajas'.",
+            anchor="w",
+            justify="left",
+            wraplength=760,
+            fg="#5F5F5F",
+        ).grid(row=7, column=0, columnspan=4, sticky="ew", pady=(10, 0))
         self.margen_var.trace_add("write", self._registrar_margen_seleccionado)
         self.tamano_pagina_var.trace_add("write", self.actualizar_estado_tamano_personalizado)
         self.tamano_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
@@ -697,10 +694,8 @@ class DialogoConfiguracionInteractiva:
         self.ancho_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.alto_pagina_var.trace_add("write", lambda *_args: self._actualizar_validacion_tamano())
         self.alto_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
-        self.margen_var.trace_add("write", lambda *_args: self._actualizar_validacion_margen())
         self.margen_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.actualizar_estado_tamano_personalizado()
-        self._actualizar_etiqueta_rango_margen()
         self._actualizar_resumen_documento()
 
     def _construir_panel_resumen_documento(self, parent):
@@ -802,7 +797,7 @@ class DialogoConfiguracionInteractiva:
         self.canvas_preview_adorno.pack(pady=(6, 0))
 
     def _construir_bloque_adornos_cajas(self, parent, fila=0):
-        cajas_frame = self.tk.LabelFrame(parent, text="Decoración de cajas", padx=10, pady=10)
+        cajas_frame = self.tk.LabelFrame(parent, text="Configuración de Cajas", padx=10, pady=10)
         cajas_frame.grid(row=fila, column=0, sticky="new")
         cajas_frame.columnconfigure(1, weight=1)
 
@@ -841,9 +836,8 @@ class DialogoConfiguracionInteractiva:
         self._actualizar_opciones_margen()
         self.actualizar_estado_adornos()
 
-    def _construir_pestanas_colores(self, pestana_colores_base, pestana_colores_cajas, pestana_colores_personajes):
+    def _construir_pestanas_colores(self, pestana_colores_cajas, pestana_colores_personajes):
         grupos_colores = [
-            ("General", [("color_primario", "Títulos"), ("color_secundario", "Subtítulos y H3"), ("color_texto_general", "Texto general"), ("color_fondo_pagina", "Fondo de página")]),
             ("Caja Consejo para el DM", [("COLOR_CONSEJO_TEXTO", "Texto"), ("COLOR_CONSEJO_BORDE", "Borde"), ("COLOR_CONSEJO_FONDO", "Fondo")]),
             ("Caja Cita", [("COLOR_CITA_TEXTO", "Texto"), ("COLOR_CITA_BORDE", "Borde"), ("COLOR_CITA_FONDO", "Fondo")]),
             ("Caja Información adicional", [("color_info_texto", "Texto"), ("color_info_borde", "Borde"), ("color_info_fondo", "Fondo")]),
@@ -855,11 +849,10 @@ class DialogoConfiguracionInteractiva:
             ("Caja Objeto", [("color_objeto_texto", "Texto"), ("color_objeto_borde", "Borde"), ("color_objeto_fondo", "Fondo")]),
         ]
         distribucion_pestanas = {
-            "Colores base": ["General"],
             "Cajas útiles": ["Caja Consejo para el DM", "Caja Cita", "Caja Información adicional", "Caja Tesoro/Premio", "Caja Puzzle/Acertijo/Rompecabezas", "Caja Objeto"],
             "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"],
         }
-        contenedores = {"Colores base": pestana_colores_base, "Cajas útiles": pestana_colores_cajas, "NPC y combate": pestana_colores_personajes}
+        contenedores = {"Cajas útiles": pestana_colores_cajas, "NPC y combate": pestana_colores_personajes}
         contenedores_tarjetas = {}
         for nombre_pestana, pestana in contenedores.items():
             contenedor_tarjetas = self.tk.Frame(pestana)
@@ -883,9 +876,51 @@ class DialogoConfiguracionInteractiva:
                 frame.columnconfigure(3, minsize=66)
                 for indice, (clave, etiqueta) in enumerate(campos):
                     self.crear_selector_color(frame, indice, clave, etiqueta)
-        self.tk.Label(pestana_colores_base, text="Aquí están los colores base del documento.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
         self.tk.Label(pestana_colores_cajas, text="Aquí puedes ajustar consejo para el DM, cita, información adicional, tesoro/premio, puzzle/acertijo/rompecabezas y objeto sin mezclarlo con NPC o combate.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
         self.tk.Label(pestana_colores_personajes, text="Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.", anchor="w", justify="left", wraplength=760).pack(fill="x", pady=(8, 0))
+
+    def _construir_bloque_configuracion_cajas(self, parent, fila=0):
+        configuracion_frame = self.tk.LabelFrame(parent, text="Ajustes globales", padx=10, pady=10)
+        configuracion_frame.grid(row=fila, column=0, sticky="ew", pady=(0, 6))
+        configuracion_frame.columnconfigure(1, weight=1)
+        configuracion_frame.columnconfigure(3, weight=1)
+
+        self.tk.Label(
+            configuracion_frame,
+            text="Ajusta aquí el borde y el espaciado global que usarán todas las cajas.",
+            anchor="w",
+            justify="left",
+            wraplength=self.ancho_contenido_compacto,
+        ).grid(row=0, column=0, columnspan=4, sticky="ew", pady=(0, 8))
+        self.tk.Label(configuracion_frame, text="Borde (pt)").grid(row=1, column=0, sticky="w", pady=3)
+        self.tk.Entry(configuracion_frame, textvariable=self.ancho_borde_cajas_var, width=10).grid(row=1, column=1, sticky="w", padx=(8, 10), pady=3)
+        self.tk.Label(configuracion_frame, text="Espacio antes (pt)").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=3)
+        self.tk.Entry(configuracion_frame, textvariable=self.espacio_antes_cajas_var, width=10).grid(row=1, column=3, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Label(configuracion_frame, text="Espacio después (pt)").grid(row=2, column=2, sticky="w", padx=(16, 0), pady=3)
+        self.tk.Entry(configuracion_frame, textvariable=self.espacio_despues_cajas_var, width=10).grid(row=2, column=3, sticky="ew", padx=(8, 0), pady=3)
+
+    def _construir_bloque_configuracion_margenes(self, parent, fila=0):
+        margenes_frame = self.tk.LabelFrame(parent, text="Configuración de márgenes", padx=10, pady=10)
+        margenes_frame.grid(row=fila, column=0, sticky="ew", pady=(0, 6))
+        margenes_frame.columnconfigure(1, weight=1)
+
+        self.tk.Label(
+            margenes_frame,
+            text="Ajusta aquí el margen disponible para el contenido del documento.",
+            anchor="w",
+            justify="left",
+            wraplength=self.ancho_contenido_compacto,
+        ).grid(row=0, column=0, columnspan=4, sticky="ew", pady=(0, 8))
+        self.tk.Label(margenes_frame, text="Margen (cm)").grid(row=1, column=0, sticky="w", pady=3)
+        self.combo_margen = self.ttk.Combobox(margenes_frame, textvariable=self.margen_var, values=self._opciones_margen_disponibles(bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())), state="readonly", width=10)
+        self.combo_margen.grid(row=1, column=1, sticky="w", padx=(8, 10), pady=3)
+        self.etiqueta_rango_margen = self.tk.Label(margenes_frame, text="")
+        self.etiqueta_rango_margen.grid(row=1, column=2, columnspan=2, sticky="w", padx=(8, 0), pady=3)
+        self.etiqueta_validacion_margen = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_validacion_margen.grid(row=2, column=0, columnspan=4, sticky="ew", pady=(4, 0))
+        self.margen_var.trace_add("write", lambda *_args: self._actualizar_validacion_margen())
+        self._actualizar_opciones_margen()
+        self._actualizar_etiqueta_rango_margen()
 
     def _construir_botones(self, contenedor):
         botones = self.tk.Frame(contenedor, padx=6, pady=8, bg=self.color_superficie)
