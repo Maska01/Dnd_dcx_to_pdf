@@ -308,84 +308,35 @@ class DialogoConfiguracionInteractiva:
             else:
                 self.descripcion_pasos_var.set("Paso 2 de 2 · Ajusta el estilo antes de generar.")
 
-    def _configurar_etiqueta_estado(self, etiqueta, texto, color="#5F5F5F"):
-        if etiqueta is None:
-            return
-        etiqueta.configure(text=texto, fg=color)
+    def _construir_panel_dos_columnas(self, parent, construir_columna_izquierda, construir_columna_derecha, con_fila_inferior=False, construir_fila_inferior=None):
+        panel_superior = self.tk.Frame(parent)
+        panel_superior.pack(fill="both", expand=True, anchor="n")
+        panel_superior.columnconfigure(0, weight=3)
+        panel_superior.columnconfigure(1, weight=2)
+        if con_fila_inferior:
+            panel_superior.rowconfigure(1, weight=1)
 
-    def _configurar_estado_rutas(self, texto, color="#5F5F5F"):
-        if self.estado_rutas_var is not None:
-            self.estado_rutas_var.set(texto)
-        if self.estado_rutas_label is not None:
-            self.estado_rutas_label.configure(fg=color)
+        columna_izquierda = self.tk.Frame(panel_superior)
+        columna_izquierda.grid(row=0, column=0, sticky="new", padx=(0, 8))
+        columna_derecha = self.tk.Frame(panel_superior)
+        columna_derecha.grid(row=0, column=1, sticky="nsew")
 
-    def _actualizar_validacion_portada(self):
-        if self.etiqueta_validacion_portada is None or self.portada_habilitada_var is None:
-            return
-        ruta = self.portada_var.get().strip() if self.portada_var is not None else ""
-        ruta_existente = bool(ruta and Path(ruta).exists() and Path(ruta).is_file())
-        texto, color = self._estado_portada(
-            bool(self.portada_habilitada_var.get()),
-            bool(self.portada_pagina_completa_var is not None and self.portada_pagina_completa_var.get()),
-            ruta,
-            ruta_existente,
-        )
-        self._configurar_etiqueta_estado(self.etiqueta_validacion_portada, texto, color=color)
+        construir_columna_izquierda(columna_izquierda)
+        construir_columna_derecha(columna_derecha)
 
-    def _actualizar_validacion_tamano(self):
-        if self.etiqueta_validacion_tamano is None or self.tamano_pagina_var is None:
-            return
-        texto, color = self._estado_tamano_personalizado(
-            self.tamano_pagina_var.get().strip(),
-            self.ancho_pagina_var.get() if self.ancho_pagina_var is not None else "",
-            self.alto_pagina_var.get() if self.alto_pagina_var is not None else "",
-        )
-        self._configurar_etiqueta_estado(self.etiqueta_validacion_tamano, texto, color=color)
+        if con_fila_inferior and construir_fila_inferior is not None:
+            fila_inferior = self.tk.Frame(panel_superior)
+            fila_inferior.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(2, 0))
+            construir_fila_inferior(fila_inferior)
 
-    def _actualizar_validacion_margen(self):
-        if self.etiqueta_validacion_margen is None:
-            return
-        margen_cm = self._obtener_margen_actual_cm()
-        adornos_activos = bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())
-        minimo_cm = cfg.obtener_margen_minimo_cm(adornos_activos)
-        if margen_cm is None:
-            self._configurar_etiqueta_estado(self.etiqueta_validacion_margen, "No se pudo interpretar el margen actual.", color="#7A1C1C")
-            return
-        if margen_cm < minimo_cm or margen_cm > cfg.MARGEN_MAXIMO_CM:
-            self._configurar_etiqueta_estado(self.etiqueta_validacion_margen, f"El margen debe estar entre {self._formatear_margen_cm(minimo_cm)} y {self._formatear_margen_cm(cfg.MARGEN_MAXIMO_CM)} cm.", color="#7A1C1C")
-            return
-        texto = f"Margen listo: {self._formatear_margen_cm(margen_cm)} cm"
-        if adornos_activos:
-            texto += " con decoración de márgenes activa."
-        else:
-            texto += "."
-        self._configurar_etiqueta_estado(self.etiqueta_validacion_margen, texto, color="#1E5631")
-
-    def _actualizar_validacion_adorno(self):
-        if self.etiqueta_validacion_adorno is None:
-            return
-        adornos_activos = bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())
-        if not adornos_activos:
-            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "Decoración de márgenes desactivada. El PDF mantendrá solo el margen normal.")
-            return
-        if self._codigo_estilo_adorno_seleccionado() != "PERSONALIZADO":
-            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, f"Preset {self.estilo_adorno_var.get()} listo para aplicarse en todas las páginas.", color="#1E5631")
-            return
-        ruta = self.imagen_adorno_var.get().strip() if self.imagen_adorno_var is not None else ""
-        if not ruta:
-            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "Falta seleccionar un PNG transparente para el borde personalizado.", color="#7A1C1C")
-            return
-        ruta_png = Path(ruta)
-        if not ruta_png.exists() or not ruta_png.is_file() or ruta_png.suffix.lower() != ".png":
-            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "El adorno personalizado debe ser un archivo `.png` existente.", color="#7A1C1C")
-            return
-        self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "PNG personalizado listo. Intenta dejar el centro transparente para no tapar el contenido.", color="#1E5631")
-
-    def _actualizar_validaciones_inline(self):
-        self._actualizar_validacion_portada()
-        self._actualizar_validacion_tamano()
-        self._actualizar_validacion_margen()
-        self._actualizar_validacion_adorno()
+    def _agregar_descripcion_seccion(self, parent, texto, fila, columnspan, wraplength):
+        return self.tk.Label(
+            parent,
+            text=texto,
+            anchor="w",
+            justify="left",
+            wraplength=wraplength,
+        ).grid(row=fila, column=0, columnspan=columnspan, sticky="ew", pady=(0, 8))
 
     def _construir_bloque_archivos(self, interior):
         archivos_frame = self.tk.LabelFrame(interior, text="Archivos", padx=10, pady=10)
@@ -520,36 +471,6 @@ class DialogoConfiguracionInteractiva:
         )
         self._construir_bloque_adornos_cajas(contenedor, fila=2)
 
-    def _construir_panel_dos_columnas(self, parent, construir_columna_izquierda, construir_columna_derecha, con_fila_inferior=False, construir_fila_inferior=None):
-        panel_superior = self.tk.Frame(parent)
-        panel_superior.pack(fill="both", expand=True, anchor="n")
-        panel_superior.columnconfigure(0, weight=3)
-        panel_superior.columnconfigure(1, weight=2)
-        if con_fila_inferior:
-            panel_superior.rowconfigure(1, weight=1)
-
-        columna_izquierda = self.tk.Frame(panel_superior)
-        columna_izquierda.grid(row=0, column=0, sticky="new", padx=(0, 8))
-        columna_derecha = self.tk.Frame(panel_superior)
-        columna_derecha.grid(row=0, column=1, sticky="nsew")
-
-        construir_columna_izquierda(columna_izquierda)
-        construir_columna_derecha(columna_derecha)
-
-        if con_fila_inferior and construir_fila_inferior is not None:
-            fila_inferior = self.tk.Frame(panel_superior)
-            fila_inferior.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(2, 0))
-            construir_fila_inferior(fila_inferior)
-
-    def _agregar_descripcion_seccion(self, parent, texto, fila, columnspan, wraplength):
-        return self.tk.Label(
-            parent,
-            text=texto,
-            anchor="w",
-            justify="left",
-            wraplength=wraplength,
-        ).grid(row=fila, column=0, columnspan=columnspan, sticky="ew", pady=(0, 8))
-
     def _construir_bloque_portada(self, panel_superior):
         titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", padx=8, pady=8)
         titulo_frame.grid(row=0, column=0, sticky="new", pady=(0, 6))
@@ -640,6 +561,7 @@ class DialogoConfiguracionInteractiva:
         self._establecer_resumen(self.resumen_portada_var, lineas)
 
     def _construir_bloque_documento(self, panel_superior):
+        
         titulo_frame = tkFont.Font(family="Arial", size=14)
 
         documento_frame = self.tk.LabelFrame(panel_superior, text="Páginas y fuentes", font=titulo_frame, padx=8, pady=8)
@@ -869,38 +791,6 @@ class DialogoConfiguracionInteractiva:
         self._actualizar_opciones_margen()
         self.actualizar_estado_adornos()
 
-    def _construir_pestanas_colores(self, pestana_colores_cajas, pestana_colores_personajes):
-        grupos_colores = self._grupos_colores_disponibles()
-        distribucion_pestanas = {
-            "Cajas útiles": ["Caja Consejo para el DM", "Caja Cita", "Caja Información adicional", "Caja Tesoro/Premio", "Caja Puzzle/Acertijo/Rompecabezas", "Caja Objeto"],
-            "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"],
-        }
-        contenedores = {"Cajas útiles": pestana_colores_cajas, "NPC y combate": pestana_colores_personajes}
-        for nombre_pestana, pestana in contenedores.items():
-            pestana.columnconfigure(0, weight=1)
-            pestana.rowconfigure(0, weight=1)
-            pestana.rowconfigure(1, weight=0)
-            contenedor_tarjetas = self._crear_contenedor_tarjetas_colores(pestana)
-            for indice_grupo, nombre_grupo in enumerate(distribucion_pestanas[nombre_pestana]):
-                _, campos = next(grupo for grupo in grupos_colores if grupo[0] == nombre_grupo)
-                self._construir_tarjeta_colores_grupo(contenedor_tarjetas, nombre_grupo, campos, indice_grupo)
-            if nombre_pestana == "Cajas útiles":
-                self._agregar_descripcion_seccion(
-                    pestana,
-                    "Aquí puedes ajustar consejo para el DM, cita, información adicional, tesoro/premio, puzzle/acertijo/rompecabezas y objeto sin mezclarlo con NPC o combate.",
-                    fila=1,
-                    columnspan=1,
-                    wraplength=760,
-                )
-            else:
-                self._agregar_descripcion_seccion(
-                    pestana,
-                    "Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.",
-                    fila=1,
-                    columnspan=1,
-                    wraplength=760,
-                )
-
     def _grupos_colores_disponibles(self):
         return [
             ("Caja Consejo para el DM", [("COLOR_CONSEJO_TEXTO", "Texto"), ("COLOR_CONSEJO_BORDE", "Borde"), ("COLOR_CONSEJO_FONDO", "Fondo")]),
@@ -934,6 +824,38 @@ class DialogoConfiguracionInteractiva:
         frame.columnconfigure(3, minsize=66)
         for indice, (clave, etiqueta) in enumerate(campos):
             self.crear_selector_color(frame, indice, clave, etiqueta)
+
+    def _construir_pestanas_colores(self, pestana_colores_cajas, pestana_colores_personajes):
+        grupos_colores = self._grupos_colores_disponibles()
+        distribucion_pestanas = {
+            "Cajas útiles": ["Caja Consejo para el DM", "Caja Cita", "Caja Información adicional", "Caja Tesoro/Premio", "Caja Puzzle/Acertijo/Rompecabezas", "Caja Objeto"],
+            "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"],
+        }
+        contenedores = {"Cajas útiles": pestana_colores_cajas, "NPC y combate": pestana_colores_personajes}
+        for nombre_pestana, pestana in contenedores.items():
+            pestana.columnconfigure(0, weight=1)
+            pestana.rowconfigure(0, weight=1)
+            pestana.rowconfigure(1, weight=0)
+            contenedor_tarjetas = self._crear_contenedor_tarjetas_colores(pestana)
+            for indice_grupo, nombre_grupo in enumerate(distribucion_pestanas[nombre_pestana]):
+                _, campos = next(grupo for grupo in grupos_colores if grupo[0] == nombre_grupo)
+                self._construir_tarjeta_colores_grupo(contenedor_tarjetas, nombre_grupo, campos, indice_grupo)
+            if nombre_pestana == "Cajas útiles":
+                self._agregar_descripcion_seccion(
+                    pestana,
+                    "Aquí puedes ajustar consejo para el DM, cita, información adicional, tesoro/premio, puzzle/acertijo/rompecabezas y objeto sin mezclarlo con NPC o combate.",
+                    fila=1,
+                    columnspan=1,
+                    wraplength=760,
+                )
+            else:
+                self._agregar_descripcion_seccion(
+                    pestana,
+                    "Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.",
+                    fila=1,
+                    columnspan=1,
+                    wraplength=760,
+                )
 
     def _construir_bloque_configuracion_cajas(self, parent, fila=0):
         configuracion_frame = self.tk.LabelFrame(parent, text="Ajustes globales", padx=10, pady=10)
@@ -1661,6 +1583,85 @@ class DialogoConfiguracionInteractiva:
         canvas.create_line(x2 - borde_ext, centro_y, x2 - borde_ext - 8, centro_y, fill=color_secundario)
         canvas.create_oval(x1 + borde_ext + 3, centro_y - 1.5, x1 + borde_ext + 6, centro_y + 1.5, outline=color_secundario)
         canvas.create_oval(x2 - borde_ext - 6, centro_y - 1.5, x2 - borde_ext - 3, centro_y + 1.5, outline=color_secundario)
+
+    def _configurar_etiqueta_estado(self, etiqueta, texto, color="#5F5F5F"):
+        if etiqueta is None:
+            return
+        etiqueta.configure(text=texto, fg=color)
+
+    def _configurar_estado_rutas(self, texto, color="#5F5F5F"):
+        if self.estado_rutas_var is not None:
+            self.estado_rutas_var.set(texto)
+        if self.estado_rutas_label is not None:
+            self.estado_rutas_label.configure(fg=color)
+
+    def _actualizar_validacion_portada(self):
+        if self.etiqueta_validacion_portada is None or self.portada_habilitada_var is None:
+            return
+        ruta = self.portada_var.get().strip() if self.portada_var is not None else ""
+        ruta_existente = bool(ruta and Path(ruta).exists() and Path(ruta).is_file())
+        texto, color = self._estado_portada(
+            bool(self.portada_habilitada_var.get()),
+            bool(self.portada_pagina_completa_var is not None and self.portada_pagina_completa_var.get()),
+            ruta,
+            ruta_existente,
+        )
+        self._configurar_etiqueta_estado(self.etiqueta_validacion_portada, texto, color=color)
+
+    def _actualizar_validacion_tamano(self):
+        if self.etiqueta_validacion_tamano is None or self.tamano_pagina_var is None:
+            return
+        texto, color = self._estado_tamano_personalizado(
+            self.tamano_pagina_var.get().strip(),
+            self.ancho_pagina_var.get() if self.ancho_pagina_var is not None else "",
+            self.alto_pagina_var.get() if self.alto_pagina_var is not None else "",
+        )
+        self._configurar_etiqueta_estado(self.etiqueta_validacion_tamano, texto, color=color)
+
+    def _actualizar_validacion_margen(self):
+        if self.etiqueta_validacion_margen is None:
+            return
+        margen_cm = self._obtener_margen_actual_cm()
+        adornos_activos = bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())
+        minimo_cm = cfg.obtener_margen_minimo_cm(adornos_activos)
+        if margen_cm is None:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_margen, "No se pudo interpretar el margen actual.", color="#7A1C1C")
+            return
+        if margen_cm < minimo_cm or margen_cm > cfg.MARGEN_MAXIMO_CM:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_margen, f"El margen debe estar entre {self._formatear_margen_cm(minimo_cm)} y {self._formatear_margen_cm(cfg.MARGEN_MAXIMO_CM)} cm.", color="#7A1C1C")
+            return
+        texto = f"Margen listo: {self._formatear_margen_cm(margen_cm)} cm"
+        if adornos_activos:
+            texto += " con decoración de márgenes activa."
+        else:
+            texto += "."
+        self._configurar_etiqueta_estado(self.etiqueta_validacion_margen, texto, color="#1E5631")
+
+    def _actualizar_validacion_adorno(self):
+        if self.etiqueta_validacion_adorno is None:
+            return
+        adornos_activos = bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())
+        if not adornos_activos:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "Decoración de márgenes desactivada. El PDF mantendrá solo el margen normal.")
+            return
+        if self._codigo_estilo_adorno_seleccionado() != "PERSONALIZADO":
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, f"Preset {self.estilo_adorno_var.get()} listo para aplicarse en todas las páginas.", color="#1E5631")
+            return
+        ruta = self.imagen_adorno_var.get().strip() if self.imagen_adorno_var is not None else ""
+        if not ruta:
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "Falta seleccionar un PNG transparente para el borde personalizado.", color="#7A1C1C")
+            return
+        ruta_png = Path(ruta)
+        if not ruta_png.exists() or not ruta_png.is_file() or ruta_png.suffix.lower() != ".png":
+            self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "El adorno personalizado debe ser un archivo `.png` existente.", color="#7A1C1C")
+            return
+        self._configurar_etiqueta_estado(self.etiqueta_validacion_adorno, "PNG personalizado listo. Intenta dejar el centro transparente para no tapar el contenido.", color="#1E5631")
+
+    def _actualizar_validaciones_inline(self):
+        self._actualizar_validacion_portada()
+        self._actualizar_validacion_tamano()
+        self._actualizar_validacion_margen()
+        self._actualizar_validacion_adorno()
 
     def actualizar_estado_rutas(self, *_args):
         entrada_texto = self.entrada_var.get().strip()
