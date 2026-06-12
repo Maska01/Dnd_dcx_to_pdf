@@ -66,6 +66,13 @@ def abrir_y_notificar_pdf_generado(ruta_pdf, abridor=None, notificador=None):
 
 
 class DialogoConfiguracionInteractiva:
+    ANCHO_VENTANA_OBJETIVO_BASE = 720
+    ALTO_VENTANA_OBJETIVO_BASE = 640
+    ANCHO_VENTANA_MINIMO_BASE = 620
+    ALTO_VENTANA_MINIMO_BASE = 580
+    ANCHO_CONTENIDO_COMPACTO_BASE = 640
+    ANCHO_TARJETA_ARCHIVOS_BASE = 700
+
     def __init__(self, configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial="", entrada_inicial="", salida_inicial="", accion_aceptar=None):
         self.configuracion_inicial = dict(configuracion_inicial)
         self.configuracion_documento_inicial = dict(configuracion_documento_inicial)
@@ -162,12 +169,12 @@ class DialogoConfiguracionInteractiva:
         self.margen_sin_adornos_guardado = None
         self.margen_con_adornos_guardado = None
         self.adornos_activos_previos = bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False))
-        self.ancho_ventana_objetivo = 950
-        self.alto_ventana_objetivo = 740
-        self.ancho_ventana_minimo = 860
-        self.alto_ventana_minimo = 680
-        self.ancho_contenido_compacto = 820
-        self.ancho_tarjeta_archivos = 840
+        self.ancho_ventana_objetivo = self.ANCHO_VENTANA_OBJETIVO_BASE
+        self.alto_ventana_objetivo = self.ALTO_VENTANA_OBJETIVO_BASE
+        self.ancho_ventana_minimo = self.ANCHO_VENTANA_MINIMO_BASE
+        self.alto_ventana_minimo = self.ALTO_VENTANA_MINIMO_BASE
+        self.ancho_contenido_compacto = self.ANCHO_CONTENIDO_COMPACTO_BASE
+        self.ancho_tarjeta_archivos = self.ANCHO_TARJETA_ARCHIVOS_BASE
         self.color_superficie = "#F6F2EA"
         self.color_panel = "#FFFDFC"
         self.color_borde_suave = "#D7CEC0"
@@ -218,17 +225,24 @@ class DialogoConfiguracionInteractiva:
         self.raiz = self.tk.Tk()
         self.raiz.title("Configuración del PDF")
         self.raiz.configure(bg=self.color_superficie)
+        self._configurar_fuentes_base()
         self._configurar_dimensiones_ventana()
         self.raiz.geometry(f"{self.ancho_ventana_objetivo}x{self.alto_ventana_objetivo}")
         self.raiz.minsize(self.ancho_ventana_minimo, self.alto_ventana_minimo)
 
+    def _configurar_fuentes_base(self):
+        self.tituloLabel_font_cnf = tkFont.Font(root=self.raiz, family="Segoe UI", size=13, weight="bold")
+        self.subtituloLabel_font_cnf = tkFont.Font(root=self.raiz, family="Segoe UI", size=11, weight="bold")
+        self.normalLabel_font_cnf = tkFont.Font(root=self.raiz, family="Segoe UI", size=10)
+        self.helperLabel_font_cnf = tkFont.Font(root=self.raiz, family="Segoe UI", size=9)
+
     def _configurar_dimensiones_ventana(self):
         ancho_pantalla = max(800, int(self.raiz.winfo_screenwidth()))
         alto_pantalla = max(600, int(self.raiz.winfo_screenheight()))
-        ancho_objetivo = min(950, max(800, ancho_pantalla - 90))
-        alto_objetivo = min(740, max(660, alto_pantalla - 110))
-        ancho_minimo = min(ancho_objetivo, max(780, ancho_pantalla - 170))
-        alto_minimo = min(alto_objetivo, max(620, alto_pantalla - 180))
+        ancho_objetivo = min(self.ANCHO_VENTANA_OBJETIVO_BASE, max(self.ANCHO_VENTANA_OBJETIVO_BASE - 40, ancho_pantalla - 150))
+        alto_objetivo = min(self.ALTO_VENTANA_OBJETIVO_BASE + 100, max(self.ALTO_VENTANA_OBJETIVO_BASE, alto_pantalla - 110))
+        ancho_minimo = min(ancho_objetivo, max(self.ANCHO_VENTANA_MINIMO_BASE, ancho_pantalla - 220))
+        alto_minimo = min(alto_objetivo, max(self.ALTO_VENTANA_MINIMO_BASE + 40, alto_pantalla - 180))
         self.ancho_ventana_objetivo = ancho_objetivo
         self.alto_ventana_objetivo = alto_objetivo
         self.ancho_ventana_minimo = ancho_minimo
@@ -311,22 +325,24 @@ class DialogoConfiguracionInteractiva:
     def _construir_panel_dos_columnas(self, parent, construir_columna_izquierda, construir_columna_derecha, con_fila_inferior=False, construir_fila_inferior=None):
         panel_superior = self.tk.Frame(parent)
         panel_superior.pack(fill="both", expand=True, anchor="n")
-        panel_superior.columnconfigure(0, weight=3)
-        panel_superior.columnconfigure(1, weight=2)
+        panel_superior.columnconfigure(0, weight=2)
+        panel_superior.columnconfigure(1, weight=1)
         if con_fila_inferior:
             panel_superior.rowconfigure(1, weight=1)
 
         columna_izquierda = self.tk.Frame(panel_superior)
-        columna_izquierda.grid(row=0, column=0, sticky="new", padx=(0, 8))
+        columna_izquierda.grid(row=0, column=0, sticky="new", padx=(0, 4))
+        columna_izquierda.columnconfigure(0, weight=1)
         columna_derecha = self.tk.Frame(panel_superior)
         columna_derecha.grid(row=0, column=1, sticky="nsew")
+        columna_derecha.columnconfigure(0, weight=1)
 
         construir_columna_izquierda(columna_izquierda)
         construir_columna_derecha(columna_derecha)
 
         if con_fila_inferior and construir_fila_inferior is not None:
             fila_inferior = self.tk.Frame(panel_superior)
-            fila_inferior.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(2, 0))
+            fila_inferior.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=(4, 0), pady=(2, 0))
             construir_fila_inferior(fila_inferior)
 
     def _agregar_descripcion_seccion(self, parent, texto, fila, columnspan, wraplength):
@@ -339,7 +355,7 @@ class DialogoConfiguracionInteractiva:
         ).grid(row=fila, column=0, columnspan=columnspan, sticky="ew", pady=(0, 8))
 
     def _construir_bloque_archivos(self, interior):
-        archivos_frame = self.tk.LabelFrame(interior, text="Archivos", padx=10, pady=10)
+        archivos_frame = self.tk.LabelFrame(interior, text="Archivos", font=self.tituloLabel_font_cnf, padx=10, pady=10)
         archivos_frame.pack(fill="x")
         self.entrada_var = self.tk.StringVar(value=self.entrada_inicial)
         salida_inicial = self._salida_inicial_normalizada()
@@ -350,22 +366,23 @@ class DialogoConfiguracionInteractiva:
         self.tk.Label(
             archivos_frame,
             text="Elige el Word de entrada y dónde guardar el PDF.",
+            font=self.subtituloLabel_font_cnf,
             justify="left",
             anchor="w",
             wraplength=760,
         ).grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 8))
 
-        self.tk.Label(archivos_frame, text="Entrada (.docx)").grid(row=1, column=0, sticky="w", pady=3)
+        self.tk.Label(archivos_frame, text="Entrada (.docx)", font=self.normalLabel_font_cnf).grid(row=1, column=0, sticky="w", pady=3)
         self.entrada_archivo = self.tk.Entry(archivos_frame, textvariable=self.entrada_var, width=54)
         self.entrada_archivo.grid(row=1, column=1, sticky="ew", padx=(8, 8), pady=3)
         self.tk.Button(archivos_frame, text="Elegir archivo...", command=self.elegir_archivo_entrada).grid(row=1, column=2, sticky="w", pady=3)
 
-        self.tk.Label(archivos_frame, text="Salida (.pdf)").grid(row=2, column=0, sticky="w", pady=3)
+        self.tk.Label(archivos_frame, text="Salida (.pdf)", font=self.normalLabel_font_cnf).grid(row=2, column=0, sticky="w", pady=3)
         self.salida_archivo = self.tk.Entry(archivos_frame, textvariable=self.salida_var, width=54)
         self.salida_archivo.grid(row=2, column=1, sticky="ew", padx=(8, 8), pady=3)
         self.tk.Button(archivos_frame, text="Elegir destino...", command=self.elegir_archivo_salida).grid(row=2, column=2, sticky="w", pady=3)
 
-        self.estado_rutas_label = self.tk.Label(archivos_frame, textvariable=self.estado_rutas_var, anchor="w", justify="left")
+        self.estado_rutas_label = self.tk.Label(archivos_frame, textvariable=self.estado_rutas_var, font=self.helperLabel_font_cnf, anchor="w", justify="left")
         self.estado_rutas_label.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
         archivos_frame.columnconfigure(0, minsize=160)
         archivos_frame.columnconfigure(1, weight=1)
@@ -387,7 +404,6 @@ class DialogoConfiguracionInteractiva:
 
         tarjeta_archivos = self.tk.Frame(
             contenedor_centrado,
-            bg=self.color_panel,
             highlightthickness=1,
             highlightbackground=self.color_borde_suave,
             highlightcolor=self.color_borde_suave,
@@ -409,8 +425,12 @@ class DialogoConfiguracionInteractiva:
         self._construir_pestanas_colores(pestana_colores_cajas, pestana_colores_personajes)
 
     def _crear_notebook(self, interior):
-        notebook = self.ttk.Notebook(interior, style="MenuNotebook.TNotebook")
-        notebook.pack(fill="both", expand=True)
+
+        notebook = self.ttk.Notebook(interior, style="MenuNotebook.TNotebook") 
+        style = self.ttk.Style()
+        style.configure('TNotebook.Tab', font=('default', 10, 'bold'))
+
+        notebook.pack(fill="both", expand=False)
         pestana_portada_metadatos = self.tk.Frame(notebook, padx=8, pady=8)
         pestana_documento = self.tk.Frame(notebook, padx=8, pady=8)
         pestana_margenes = self.tk.Frame(notebook, padx=8, pady=8)
@@ -423,7 +443,9 @@ class DialogoConfiguracionInteractiva:
         notebook.add(pestana_colores_cajas, text="Cajas útiles")
         notebook.add(pestana_colores_personajes, text="NPC y combate")
         notebook.add(pestana_portada_metadatos, text="Portada y metadatos")
+        
         return notebook, pestana_portada_metadatos, pestana_documento, pestana_margenes, pestana_cajas, pestana_colores_cajas, pestana_colores_personajes
+        
 
     def _construir_pestana_portada_metadatos(self, pestana_portada_metadatos):
         self._construir_panel_dos_columnas(
@@ -472,8 +494,8 @@ class DialogoConfiguracionInteractiva:
         self._construir_bloque_adornos_cajas(contenedor, fila=2)
 
     def _construir_bloque_portada(self, panel_superior):
-        titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", padx=8, pady=8)
-        titulo_frame.grid(row=0, column=0, sticky="new", pady=(0, 6))
+        titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", font=self.tituloLabel_font_cnf, padx=8, pady=10)
+        titulo_frame.grid(row=0, column=0, sticky="new")
         self.titulo_var = self.tk.StringVar(value=self.titulo_inicial)
         self.subtitulo_var = self.tk.StringVar(value=self.subtitulo_inicial)
         self.autor_var = self.tk.StringVar(value=self.autor_inicial)
@@ -482,26 +504,34 @@ class DialogoConfiguracionInteractiva:
         self.portada_var = self.tk.StringVar(value=self.portada_inicial if portada_explicita else "")
         self.portada_pagina_completa_var = self.tk.BooleanVar(value=bool(self.configuracion_documento_inicial.get("portada_pagina_completa", False)))
         self.portada_modo_ajuste_var = self.tk.StringVar(value=cfg.obtener_etiqueta_modo_ajuste_portada(self.configuracion_documento_inicial.get("portada_modo_ajuste", "CUBRIR")))
-        self.tk.Label(titulo_frame, text="Título (opcional)").grid(row=0, column=0, sticky="w")
-        self.tk.Entry(titulo_frame, textvariable=self.titulo_var, width=36).grid(row=0, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
-        self.tk.Label(titulo_frame, text="Subtítulo (opcional)").grid(row=1, column=0, sticky="w")
-        self.tk.Entry(titulo_frame, textvariable=self.subtitulo_var, width=36).grid(row=1, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
-        self.tk.Label(titulo_frame, text="Autor (opcional)").grid(row=2, column=0, sticky="w")
-        self.tk.Entry(titulo_frame, textvariable=self.autor_var, width=36).grid(row=2, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=3)
-        self.tk.Label(titulo_frame, text="Portada", fg=self.color_texto_suave).grid(row=3, column=0, sticky="w", pady=(10, 2))
-        self.tk.Checkbutton(titulo_frame, text="Usar portada", variable=self.portada_habilitada_var, command=self.actualizar_estado_portada).grid(row=4, column=0, sticky="w", pady=(2, 4))
-        self.entrada_portada = self.tk.Entry(titulo_frame, textvariable=self.portada_var, width=42, state="readonly")
+
+        self.tk.Label(titulo_frame, text="Título (opcional)", font=self.normalLabel_font_cnf).grid(row=0, column=0, sticky="w")
+        self.tk.Entry(titulo_frame, textvariable=self.titulo_var, font=self.normalLabel_font_cnf, width=36).grid(row=0, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=8)
+
+        self.tk.Label(titulo_frame, text="Subtítulo (opcional)", font=self.normalLabel_font_cnf).grid(row=1, column=0, sticky="w")
+        self.tk.Entry(titulo_frame, textvariable=self.subtitulo_var, font=self.normalLabel_font_cnf, width=36).grid(row=1, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=8)
+
+        self.tk.Label(titulo_frame, text="Autor (opcional)", font=self.normalLabel_font_cnf).grid(row=2, column=0, sticky="w")
+        self.tk.Entry(titulo_frame, textvariable=self.autor_var, font=self.normalLabel_font_cnf, width=36).grid(row=2, column=1, columnspan=2, sticky="ew", padx=(8, 0), pady=8)
+
+        self.tk.Label(titulo_frame, text="Portada", font=self.tituloLabel_font_cnf).grid(row=3, column=0, sticky="w", pady=(10, 4))
+
+        self.tk.Checkbutton(titulo_frame, text="Usar portada", variable=self.portada_habilitada_var, command=self.actualizar_estado_portada, font=self.normalLabel_font_cnf).grid(row=4, column=0, sticky="w", pady=(2, 4))
+        self.entrada_portada = self.tk.Entry(titulo_frame, textvariable=self.portada_var, font=self.normalLabel_font_cnf, width=42, state="readonly")
         self.entrada_portada.grid(row=4, column=1, sticky="ew", padx=(8, 8), pady=(2, 4))
-        self.boton_portada = self.tk.Button(titulo_frame, text="Elegir imagen...", command=self.elegir_portada)
+
+        self.boton_portada = self.tk.Button(titulo_frame, text="Elegir imagen...", command=self.elegir_portada, font=self.normalLabel_font_cnf)
         self.boton_portada.grid(row=4, column=2, sticky="w", pady=(2, 4))
         self.check_portada_pagina_completa = self.tk.Checkbutton(
             titulo_frame,
             text="Ajustar a página completa",
             variable=self.portada_pagina_completa_var,
+            font=self.normalLabel_font_cnf,
             command=self.actualizar_estado_portada,
         )
-        self.check_portada_pagina_completa.grid(row=5, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(0, 4))
-        self.tk.Label(titulo_frame, text="Modo").grid(row=6, column=0, sticky="w", pady=(0, 4))
+        self.check_portada_pagina_completa.grid(row=5, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(0, 8))
+
+        self.tk.Label(titulo_frame, text="Modo", font=self.normalLabel_font_cnf).grid(row=6, column=0, sticky="w", pady=(4, 8))
         self.combo_portada_modo_ajuste = self.ttk.Combobox(
             titulo_frame,
             textvariable=self.portada_modo_ajuste_var,
@@ -509,11 +539,12 @@ class DialogoConfiguracionInteractiva:
             state="readonly",
             width=28,
         )
-        self.combo_portada_modo_ajuste.grid(row=6, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(0, 4))
-        self.etiqueta_ayuda_portada = self.tk.Label(titulo_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_ayuda_portada.grid(row=7, column=0, columnspan=3, sticky="ew", pady=(4, 0))
-        self.etiqueta_validacion_portada = self.tk.Label(titulo_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_validacion_portada.grid(row=8, column=0, columnspan=3, sticky="ew", pady=(4, 0))
+        self.combo_portada_modo_ajuste.grid(row=6, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(4, 8))
+
+        self.etiqueta_ayuda_portada = self.tk.Label(titulo_frame, text="",font=self.helperLabel_font_cnf, anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_ayuda_portada.grid(row=7, column=0, columnspan=3, sticky="ew", pady=(4, 4))
+        self.etiqueta_validacion_portada = self.tk.Label(titulo_frame, text="",font=self.helperLabel_font_cnf, anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_validacion_portada.grid(row=8, column=0, columnspan=3, sticky="ew", pady=(4, 4))
         titulo_frame.columnconfigure(1, weight=1)
         self.titulo_var.trace_add("write", lambda *_args: self._actualizar_resumen_portada())
         self.subtitulo_var.trace_add("write", lambda *_args: self._actualizar_resumen_portada())
@@ -521,14 +552,14 @@ class DialogoConfiguracionInteractiva:
         self.actualizar_estado_portada()
 
     def _construir_panel_resumen_portada(self, parent):
-        resumen_frame = self.tk.LabelFrame(parent, text="Resumen rápido", padx=10, pady=10)
+        resumen_frame = self.tk.LabelFrame(parent, text="Resumen rápido", font=self.tituloLabel_font_cnf, padx=10, pady=10)
         resumen_frame.pack(fill="both", expand=True)
         self.resumen_portada_var = self.tk.StringVar(value="")
         self._agregar_texto_resumen(resumen_frame, self.resumen_portada_var, wraplength=260)
         self._actualizar_resumen_portada()
 
     def _construir_panel_ayuda_portada(self, parent):
-        ayuda_frame = self.tk.LabelFrame(parent, text="Sugerencias", padx=10, pady=10)
+        ayuda_frame = self.tk.LabelFrame(parent, text="Sugerencias", font=self.tituloLabel_font_cnf, padx=10, pady=10)
         ayuda_frame.pack(fill="both", expand=False)
         self._agregar_lista_sugerencias(
             ayuda_frame,
@@ -561,11 +592,9 @@ class DialogoConfiguracionInteractiva:
         self._establecer_resumen(self.resumen_portada_var, lineas)
 
     def _construir_bloque_documento(self, panel_superior):
-        
-        titulo_frame = tkFont.Font(family="Arial", size=14)
 
-        documento_frame = self.tk.LabelFrame(panel_superior, text="Páginas y fuentes", font=titulo_frame, padx=8, pady=8)
-        documento_frame.grid(row=1, column=0, sticky="new", pady=(0, 6))
+        documento_frame = self.tk.LabelFrame(panel_superior, text="Páginas y fuentes", font=self.tituloLabel_font_cnf, padx=8, pady=10)
+        documento_frame.grid(row=1, column=0, sticky="nsew")
         fuentes_disponibles = cfg.obtener_fuentes_disponibles()
 
         self.tamano_pagina_var = self.tk.StringVar(value=self.configuracion_documento_inicial.get("tamano_pagina", "A4"))
@@ -575,37 +604,33 @@ class DialogoConfiguracionInteractiva:
         self.ancho_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_pagina_cm", 21.0)))
         self.alto_pagina_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("alto_pagina_cm", 29.7)))
 
+        documento_frame.columnconfigure(0, weight=1)
         documento_frame.columnconfigure(1, weight=1)
-        documento_frame.columnconfigure(3, weight=1)
 
-        self.tk.Label(documento_frame, text="Formato", font=titulo_frame).grid(row=0, column=0, sticky="w", pady=(0, 2))
-        self.tk.Label(documento_frame, text="Tamaño").grid(row=1, column=0, sticky="w", pady=3)
-        self.ttk.Combobox(documento_frame, textvariable=self.tamano_pagina_var, values=[*cfg.TAMANOS_PAGINA_DISPONIBLES.keys(), cfg.OPCION_TAMANO_PERSONALIZADO], state="readonly", width=16).grid(row=1, column=1, sticky="ew", padx=(8, 10), pady=3)
-        self.tk.Label(documento_frame, text="Ancho (cm)").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=3)
-        self.entrada_ancho = self.tk.Entry(documento_frame, textvariable=self.ancho_pagina_var, width=10)
-        self.entrada_ancho.grid(row=1, column=3, sticky="ew", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Alto (cm)").grid(row=2, column=2, sticky="w", padx=(16, 0), pady=3)
-        self.entrada_alto = self.tk.Entry(documento_frame, textvariable=self.alto_pagina_var, width=10)
-        self.entrada_alto.grid(row=2, column=3, sticky="ew", padx=(8, 0), pady=3)
-        self.tk.Label(documento_frame, text="Tipografía", fg=self.color_texto_suave).grid(row=3, column=0, sticky="w", pady=(10, 2))
-        self.tk.Label(documento_frame, text="Fuente de títulos").grid(row=4, column=0, sticky="w", pady=3)
-        self.ttk.Combobox(documento_frame, textvariable=self.fuente_titulo_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=4, column=1, sticky="ew", padx=(8, 10), pady=3)
-        self.tk.Label(documento_frame, text="Fuente de texto").grid(row=4, column=2, sticky="w", padx=(16, 0), pady=3)
-        self.ttk.Combobox(documento_frame, textvariable=self.fuente_texto_var, values=fuentes_disponibles, state="readonly", width=24).grid(row=4, column=3, sticky="ew", padx=(8, 0), pady=3)
+        self.tk.Label(documento_frame, text="Formato", font=self.subtituloLabel_font_cnf).grid(row=0, column=0, sticky="w", pady=(10, 5))
+        self.tk.Label(documento_frame, text="Tamaño", font=self.normalLabel_font_cnf).grid(row=1, column=0, sticky="w", padx=(10, 0), pady=5)
+        self.ttk.Combobox(documento_frame, textvariable=self.tamano_pagina_var, font=self.normalLabel_font_cnf, values=[*cfg.TAMANOS_PAGINA_DISPONIBLES.keys(), cfg.OPCION_TAMANO_PERSONALIZADO], state="readonly", width=16).grid(row=1, column=1, sticky="ew", padx=(8,0), pady=5)
+
+        self.tk.Label(documento_frame, text="Ancho (cm)", font=self.normalLabel_font_cnf).grid(row=2, column=0, sticky="w", padx=(10, 0), pady=5)
+        self.entrada_ancho = self.tk.Entry(documento_frame, textvariable=self.ancho_pagina_var, font=self.normalLabel_font_cnf, width=10)
+        self.entrada_ancho.grid(row=2, column=1, sticky="ew", padx=(8, 0), pady=5)
+
+        self.tk.Label(documento_frame, text="Alto (cm)", font=self.normalLabel_font_cnf).grid(row=3, column=0, sticky="w", padx=(10, 0), pady=5)
+        self.entrada_alto = self.tk.Entry(documento_frame, textvariable=self.alto_pagina_var, font=self.normalLabel_font_cnf, width=10)
+        self.entrada_alto.grid(row=3, column=1, sticky="ew", padx=(8, 0), pady=5)
+
+        self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", font=self.helperLabel_font_cnf, anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_ayuda_tamano.grid(row=4, column=0, columnspan=4, sticky="ew", pady=(10, 0))
+        self.etiqueta_validacion_tamano = self.tk.Label(documento_frame, text="", font=self.helperLabel_font_cnf, anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_validacion_tamano.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(10, 0))
+
+        self.tk.Label(documento_frame, text="Tipografía", font=self.subtituloLabel_font_cnf).grid(row=6, column=0, sticky="w", pady=(20, 5))
+        self.tk.Label(documento_frame, text="Fuente títulos", font=self.normalLabel_font_cnf).grid(row=7, column=0, sticky="w", padx=(10, 0), pady=5)
+        self.ttk.Combobox(documento_frame, textvariable=self.fuente_titulo_var, font=self.normalLabel_font_cnf, values=fuentes_disponibles, state="readonly", width=24).grid(row=7, column=1, sticky="ew", padx=(8, 0), pady=5)
+
+        self.tk.Label(documento_frame, text="Fuente de texto", font=self.normalLabel_font_cnf).grid(row=8, column=0, sticky="w", padx=(10, 0), pady=(5,20))
+        self.ttk.Combobox(documento_frame, textvariable=self.fuente_texto_var, font=self.normalLabel_font_cnf, values=fuentes_disponibles, state="readonly", width=24).grid(row=8, column=1, sticky="ew", padx=(8, 0), pady=(5,20))
         
-        self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_ayuda_tamano.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(10, 0))
-        self.etiqueta_validacion_tamano = self.tk.Label(documento_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_validacion_tamano.grid(row=6, column=0, columnspan=4, sticky="ew", pady=(4, 0))
-        self.tk.Label(
-            documento_frame,
-            text="Los márgenes se ajustan en la pestaña 'Configuración de márgenes' y las cajas en 'Configuración de Cajas'.",
-            anchor="w",
-            justify="left",
-            wraplength=760,
-            fg="#5F5F5F",
-        ).grid(row=7, column=0, columnspan=4, sticky="ew", pady=(10, 0))
-
         self.tamano_pagina_var.trace_add("write", self.actualizar_estado_tamano_personalizado)
         self.tamano_pagina_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.fuente_titulo_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
@@ -619,18 +644,17 @@ class DialogoConfiguracionInteractiva:
         self._actualizar_resumen_documento()
 
     def _construir_panel_resumen_documento(self, parent):
-        resumen_frame = self.tk.LabelFrame(parent, text="Vista rápida", padx=10, pady=10)
+        resumen_frame = self.tk.LabelFrame(parent, text="Vista rápida", font=self.tituloLabel_font_cnf, padx=10, pady=10)
         resumen_frame.pack(fill="x", expand=False)
         self.resumen_documento_var = self.tk.StringVar(value="")
         self._agregar_texto_resumen(resumen_frame, self.resumen_documento_var, wraplength=260)
 
-        ayuda_frame = self.tk.LabelFrame(parent, text="Consejos", padx=10, pady=10)
-        ayuda_frame.pack(fill="both", expand=True, pady=(8, 0))
+        ayuda_frame = self.tk.LabelFrame(parent, text="Consejos", font=self.tituloLabel_font_cnf, padx=10, pady=10)
+        ayuda_frame.pack(fill="both", expand=True, pady=(6, 0))
         self._agregar_lista_sugerencias(
             ayuda_frame,
             [
-            "Usa tamaño estándar si no necesitas medidas exactas.",
-            "Con decoración activa, el margen mínimo aumenta.",
+            "Usa tamaño de pagina estándar si no necesitas medidas exactas.",
             "Elige fuentes legibles para bloques largos de texto.",
             ],
             wraplength=260,
@@ -646,6 +670,7 @@ class DialogoConfiguracionInteractiva:
             justify="left",
             wraplength=wraplength,
             fg=self.color_texto_suave,
+            font=self.normalLabel_font_cnf,
         ).pack(fill="both", expand=True)
 
     def _agregar_lista_sugerencias(self, parent, mensajes, wraplength):
@@ -657,6 +682,7 @@ class DialogoConfiguracionInteractiva:
                 justify="left",
                 wraplength=wraplength,
                 fg=self.color_texto_suave,
+                font=self.normalLabel_font_cnf,
             ).pack(fill="x", pady=2)
 
     @staticmethod
@@ -1726,9 +1752,9 @@ class DialogoConfiguracionInteractiva:
         self.entrada_alto.configure(state=estado)
         if self.etiqueta_ayuda_tamano is not None:
             if es_personalizado:
-                texto = "Introduce ancho y alto entre 5 y 100 cm. Estos campos solo se aplican cuando el tamaño de página es PERSONALIZADO."
+                texto = "Introduce ancho y alto entre 5 y 100 cm."
             else:
-                texto = "Usa un tamaño estándar para una configuración rápida, o cambia a PERSONALIZADO si necesitas medidas exactas."
+                texto = "Para medidas exactas, usa la opción Personalizado."
             self.etiqueta_ayuda_tamano.configure(text=texto)
         self._actualizar_validacion_tamano()
 
