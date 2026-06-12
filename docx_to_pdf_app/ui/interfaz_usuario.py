@@ -322,12 +322,12 @@ class DialogoConfiguracionInteractiva:
             else:
                 self.descripcion_pasos_var.set("Paso 2 de 2 · Ajusta el estilo antes de generar.")
 
-    def _construir_panel_dos_columnas(self, parent, construir_columna_izquierda, construir_columna_derecha, con_fila_inferior=False, construir_fila_inferior=None):
+    def _construir_panel_dos_columnas(self, parent, construir_columna_izquierda, construir_columna_derecha, con_row_inferior=False, construir_row_inferior=None):
         panel_superior = self.tk.Frame(parent)
         panel_superior.pack(fill="both", expand=True, anchor="n")
         panel_superior.columnconfigure(0, weight=2)
         panel_superior.columnconfigure(1, weight=1)
-        if con_fila_inferior:
+        if con_row_inferior:
             panel_superior.rowconfigure(1, weight=1)
 
         columna_izquierda = self.tk.Frame(panel_superior)
@@ -340,19 +340,20 @@ class DialogoConfiguracionInteractiva:
         construir_columna_izquierda(columna_izquierda)
         construir_columna_derecha(columna_derecha)
 
-        if con_fila_inferior and construir_fila_inferior is not None:
-            fila_inferior = self.tk.Frame(panel_superior)
-            fila_inferior.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=(4, 0), pady=(2, 0))
-            construir_fila_inferior(fila_inferior)
+        if con_row_inferior and construir_row_inferior is not None:
+            row_inferior = self.tk.Frame(panel_superior)
+            row_inferior.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=(4, 0), pady=(2, 0))
+            construir_row_inferior(row_inferior)
 
-    def _agregar_descripcion_seccion(self, parent, texto, fila, columnspan, wraplength):
+    def _agregar_descripcion_seccion(self, parent, texto, row, columnspan, wraplength):
         return self.tk.Label(
             parent,
             text=texto,
+            font=self.normalLabel_font_cnf,
             anchor="w",
             justify="left",
             wraplength=wraplength,
-        ).grid(row=fila, column=0, columnspan=columnspan, sticky="ew", pady=(0, 8))
+        ).grid(row=row, column=0, columnspan=columnspan, sticky="ew", pady=(0, 8))
 
     def _construir_bloque_archivos(self, interior):
         archivos_frame = self.tk.LabelFrame(interior, text="Archivos", font=self.tituloLabel_font_cnf, padx=10, pady=10)
@@ -452,8 +453,8 @@ class DialogoConfiguracionInteractiva:
             pestana_portada_metadatos,
             self._construir_bloque_portada,
             self._construir_panel_resumen_portada,
-            con_fila_inferior=True,
-            construir_fila_inferior=self._construir_panel_ayuda_portada,
+            con_row_inferior=True,
+            construir_row_inferior=self._construir_panel_ayuda_portada,
         )
 
     def _construir_pestana_documento(self, pestana_documento):
@@ -468,30 +469,18 @@ class DialogoConfiguracionInteractiva:
         contenedor.pack(fill="both", expand=True)
         contenedor.columnconfigure(0, weight=1)
 
-        self._construir_bloque_configuracion_margenes(contenedor, fila=0)
-        self._agregar_descripcion_seccion(
-            contenedor,
-            "Configura el borde decorativo de cada página con presets o con un PNG transparente.",
-            fila=1,
-            columnspan=1,
-            wraplength=self.ancho_contenido_compacto,
-        )
-        self._construir_bloque_adornos_margenes(contenedor, fila=2)
+        self._construir_bloque_configuracion_margenes(contenedor)
+
+        self._construir_bloque_adornos_margenes(contenedor, row=2)
 
     def _construir_pestana_cajas(self, pestana_cajas):
         contenedor = self.tk.Frame(pestana_cajas)
         contenedor.pack(fill="both", expand=True)
         contenedor.columnconfigure(0, weight=1)
 
-        self._construir_bloque_configuracion_cajas(contenedor, fila=0)
-        self._agregar_descripcion_seccion(
-            contenedor,
-            "Elige el estilo global de las cajas temáticas sin tocar los márgenes de página.",
-            fila=1,
-            columnspan=1,
-            wraplength=self.ancho_contenido_compacto,
-        )
-        self._construir_bloque_adornos_cajas(contenedor, fila=2)
+        self._construir_bloque_configuracion_cajas(contenedor, row=0)
+
+        self._construir_bloque_adornos_cajas(contenedor, row=2)
 
     def _construir_bloque_portada(self, panel_superior):
         titulo_frame = self.tk.LabelFrame(panel_superior, text="Portada y metadatos", font=self.tituloLabel_font_cnf, padx=8, pady=10)
@@ -535,6 +524,7 @@ class DialogoConfiguracionInteractiva:
         self.combo_portada_modo_ajuste = self.ttk.Combobox(
             titulo_frame,
             textvariable=self.portada_modo_ajuste_var,
+            font=self.normalLabel_font_cnf,
             values=list(cfg.MODOS_AJUSTE_PORTADA_DISPONIBLES.keys()),
             state="readonly",
             width=28,
@@ -619,9 +609,9 @@ class DialogoConfiguracionInteractiva:
         self.entrada_alto = self.tk.Entry(documento_frame, textvariable=self.alto_pagina_var, font=self.normalLabel_font_cnf, width=10)
         self.entrada_alto.grid(row=3, column=1, sticky="ew", padx=(8, 0), pady=5)
 
-        self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", font=self.helperLabel_font_cnf, anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_ayuda_tamano = self.tk.Label(documento_frame, text="", font=self.normalLabel_font_cnf, anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
         self.etiqueta_ayuda_tamano.grid(row=4, column=0, columnspan=4, sticky="ew", pady=(10, 0))
-        self.etiqueta_validacion_tamano = self.tk.Label(documento_frame, text="", font=self.helperLabel_font_cnf, anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_validacion_tamano = self.tk.Label(documento_frame, text="", font=self.normalLabel_font_cnf, anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
         self.etiqueta_validacion_tamano.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(10, 0))
 
         self.tk.Label(documento_frame, text="Tipografía", font=self.subtituloLabel_font_cnf).grid(row=6, column=0, sticky="w", pady=(20, 5))
@@ -754,59 +744,58 @@ class DialogoConfiguracionInteractiva:
         self.imagen_adorno_var = self.tk.StringVar(value=imagen_inicial)
         self.pack_decoracion_cajas_var = self.tk.StringVar(value=cfg.obtener_etiqueta_pack_decoracion_cajas(pack_inicial if pack_inicial != "NINGUNO" else "PERGAMINO_NOBLE"))
 
-    def _construir_bloque_adornos_margenes(self, parent, fila=0):
-        margenes_frame = self.tk.LabelFrame(parent, text="Decoración de márgenes", padx=10, pady=10)
-        margenes_frame.grid(row=fila, column=0, sticky="new")
-        margenes_frame.columnconfigure(1, weight=1)
+    def _construir_bloque_configuracion_cajas(self, parent, row=0):
+        configuracion_frame = self.tk.LabelFrame(parent, text="Ajustes globales", font=self.tituloLabel_font_cnf, padx=10, pady=10)
+        configuracion_frame.grid(row=row, column=0, sticky="ew", pady=(0, 6))
+        configuracion_frame.columnconfigure(1, weight=1)
+        configuracion_frame.columnconfigure(3, weight=1)
 
-        self._agregar_descripcion_seccion(margenes_frame, "Estas opciones afectan el borde de cada página.", fila=0, columnspan=3, wraplength=460)
-        self.tk.Checkbutton(margenes_frame, text="Activar decoración", variable=self.adornos_habilitados_var, command=self.actualizar_estado_adornos).grid(row=1, column=0, columnspan=2, sticky="w")
-        self.tk.Label(margenes_frame, text="Preset").grid(row=2, column=0, sticky="w", pady=(8, 3))
-        self.combo_estilo_adorno = self.ttk.Combobox(margenes_frame, textvariable=self.estilo_adorno_var, values=list(cfg.ESTILOS_ADORNO_MARGEN_DISPONIBLES.keys()), state="readonly", width=24)
-        self.combo_estilo_adorno.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
-        self.combo_estilo_adorno.bind("<<ComboboxSelected>>", lambda _evento: self.actualizar_estado_adornos())
+        self._agregar_descripcion_seccion(configuracion_frame, "Ajusta el borde y el espaciado que usarán todas las cajas.", row=0, columnspan=4, wraplength=self.ancho_contenido_compacto)
 
-        self.tk.Label(margenes_frame, text="PNG personalizado").grid(row=3, column=0, sticky="w", pady=3)
-        self.entrada_imagen_adorno = self.tk.Entry(margenes_frame, textvariable=self.imagen_adorno_var, width=42, state="readonly")
-        self.entrada_imagen_adorno.grid(row=3, column=1, sticky="ew", padx=(8, 8), pady=3)
-        self.boton_imagen_adorno = self.tk.Button(margenes_frame, text="Elegir PNG...", command=self.elegir_imagen_adorno)
-        self.boton_imagen_adorno.grid(row=3, column=2, sticky="w", pady=3)
+        self.ancho_borde_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_borde_cajas", 2.0)))
+        self.espacio_antes_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_antes_cajas", 6.0)))
+        self.espacio_despues_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_despues_cajas", 8.0)))
 
-        self.etiqueta_estado_margenes = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=460, fg="#5F5F5F")
-        self.etiqueta_estado_margenes.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(8, 0))
-        self.etiqueta_validacion_adorno = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=460, fg="#5F5F5F")
-        self.etiqueta_validacion_adorno.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(4, 0))
+        self.tk.Label(configuracion_frame, text="Borde (pt)", font=self.normalLabel_font_cnf).grid(row=1, column=0, sticky="w", padx=(16, 0), pady=3)
+        self.tk.Entry(configuracion_frame, textvariable=self.ancho_borde_cajas_var, width=10).grid(row=1, column=1, sticky="w", padx=(8, 10), pady=3)
 
-        preview_margenes_frame = self.tk.Frame(margenes_frame, padx=6)
-        preview_margenes_frame.grid(row=0, column=3, rowspan=6, sticky="ne", padx=(12, 0))
-        self.tk.Label(preview_margenes_frame, text="Vista previa de márgenes", anchor="w").pack(fill="x")
-        self.canvas_preview_adorno = self.tk.Canvas(preview_margenes_frame, width=160, height=220, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
-        self.canvas_preview_adorno.pack(pady=(6, 0))
+        self.tk.Label(configuracion_frame, text="Espacio antes (pt)", font=self.normalLabel_font_cnf).grid(row=2, column=0, sticky="w", padx=(16, 0), pady=3)
+        self.tk.Entry(configuracion_frame, textvariable=self.espacio_antes_cajas_var, width=10).grid(row=2, column=1, sticky="w", padx=(8, 0), pady=3)
+        
+        self.tk.Label(configuracion_frame, text="Espacio después (pt)", font=self.normalLabel_font_cnf).grid(row=3, column=0, sticky="w", padx=(16, 0), pady=3)
+        self.tk.Entry(configuracion_frame, textvariable=self.espacio_despues_cajas_var, width=10).grid(row=3, column=1, sticky="w", padx=(8, 0), pady=3)
 
-    def _construir_bloque_adornos_cajas(self, parent, fila=0):
-        cajas_frame = self.tk.LabelFrame(parent, text="Configuración de Cajas", padx=10, pady=10)
-        cajas_frame.grid(row=fila, column=0, sticky="new")
+        self.ancho_borde_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.espacio_antes_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+        self.espacio_despues_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
+    
+
+    def _construir_bloque_adornos_cajas(self, parent, row=0):
+        cajas_frame = self.tk.LabelFrame(parent, text="Configuración de Cajas", font=self.tituloLabel_font_cnf, padx=10, pady=10)
+        cajas_frame.grid(row=row, column=0, sticky="new")
         cajas_frame.columnconfigure(1, weight=1)
 
-        self._agregar_descripcion_seccion(cajas_frame, "Estas opciones solo cambian el estilo de las cajas; no afectan los márgenes.", fila=0, columnspan=3, wraplength=460)
-        self.tk.Checkbutton(cajas_frame, text="Activar decoración", variable=self.decoracion_cajas_habilitada_var, command=self.actualizar_estado_adornos).grid(row=1, column=0, columnspan=2, sticky="w")
-        self.tk.Label(cajas_frame, text="Pack").grid(row=2, column=0, sticky="w", pady=(8, 3))
+        self._agregar_descripcion_seccion(cajas_frame,"Elige el estilo global de las cajas temáticas.",row=0,columnspan=1,wraplength=self.ancho_contenido_compacto,)
+        self.tk.Checkbutton(cajas_frame, text="Activar decoración", font=self.normalLabel_font_cnf, variable=self.decoracion_cajas_habilitada_var, command=self.actualizar_estado_adornos).grid(row=2, column=0, columnspan=1, sticky="w")
+        self.tk.Label(cajas_frame, text="Estilo", font=self.normalLabel_font_cnf).grid(row=3, column=0, sticky="w", pady=(8, 3))
         self.combo_pack_decoracion_cajas = self.ttk.Combobox(
             cajas_frame,
             textvariable=self.pack_decoracion_cajas_var,
             values=[etiqueta for etiqueta, codigo in cfg.PACKS_DECORACION_CAJAS_DISPONIBLES.items() if codigo != "NINGUNO"],
+            font=self.normalLabel_font_cnf,
             state="readonly",
             width=24,
         )
-        self.combo_pack_decoracion_cajas.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
+        self.combo_pack_decoracion_cajas.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
         self.combo_pack_decoracion_cajas.bind("<<ComboboxSelected>>", self.actualizar_estado_adornos)
 
-        self.etiqueta_estado_cajas = self.tk.Label(cajas_frame, text="", anchor="w", justify="left", wraplength=460, fg="#5F5F5F")
-        self.etiqueta_estado_cajas.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+        self.etiqueta_estado_cajas = self.tk.Label(cajas_frame, text="", anchor="w", justify="left", wraplength=460, fg="#5F5F5F", font=self.normalLabel_font_cnf)
+        self.etiqueta_estado_cajas.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(8, 0))
 
         preview_cajas_frame = self.tk.Frame(cajas_frame, padx=6)
         preview_cajas_frame.grid(row=0, column=3, rowspan=4, sticky="ne", padx=(12, 0))
-        self.tk.Label(preview_cajas_frame, text="Vista previa de cajas", anchor="w").pack(fill="x")
+
+        self.tk.Label(preview_cajas_frame, text="Vista previa de cajas", font=self.normalLabel_font_cnf, anchor="w").pack(fill="x")
         self.canvas_preview_cajas = self.tk.Canvas(preview_cajas_frame, width=180, height=112, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
         self.canvas_preview_cajas.pack(pady=(6, 0))
 
@@ -841,10 +830,10 @@ class DialogoConfiguracionInteractiva:
 
     def _construir_tarjeta_colores_grupo(self, contenedor_tab, nombre_grupo, campos, indice_grupo):
         columna = (indice_grupo % 2) + 1
-        fila = indice_grupo // 2
+        row = indice_grupo // 2
         padding_x = (0, 8) if columna == 1 else (8, 0)
-        frame = self.tk.LabelFrame(contenedor_tab, text=nombre_grupo, padx=10, pady=10)
-        frame.grid(row=fila, column=columna, sticky="new", padx=padding_x, pady=(0, 10))
+        frame = self.tk.LabelFrame(contenedor_tab, text=nombre_grupo,font=self.tituloLabel_font_cnf, padx=10, pady=10)
+        frame.grid(row=row, column=columna, sticky="new", padx=padding_x, pady=(0, 10))
         frame.columnconfigure(0, minsize=88)
         frame.columnconfigure(1, minsize=84)
         frame.columnconfigure(3, minsize=66)
@@ -870,7 +859,7 @@ class DialogoConfiguracionInteractiva:
                 self._agregar_descripcion_seccion(
                     pestana,
                     "Aquí puedes ajustar consejo para el DM, cita, información adicional, tesoro/premio, puzzle/acertijo/rompecabezas y objeto sin mezclarlo con NPC o combate.",
-                    fila=1,
+                    row=1,
                     columnspan=1,
                     wraplength=760,
                 )
@@ -878,53 +867,66 @@ class DialogoConfiguracionInteractiva:
                 self._agregar_descripcion_seccion(
                     pestana,
                     "Los bloques de NPC, enemigo y aliado comparten esta pestaña para ajustes rápidos de escena.",
-                    fila=1,
+                    row=1,
                     columnspan=1,
                     wraplength=760,
                 )
 
-    def _construir_bloque_configuracion_cajas(self, parent, fila=0):
-        configuracion_frame = self.tk.LabelFrame(parent, text="Ajustes globales", padx=10, pady=10)
-        configuracion_frame.grid(row=fila, column=0, sticky="ew", pady=(0, 6))
-        configuracion_frame.columnconfigure(1, weight=1)
-        configuracion_frame.columnconfigure(3, weight=1)
-
-        self._agregar_descripcion_seccion(configuracion_frame, "Ajusta aquí el borde y el espaciado global que usarán todas las cajas.", fila=0, columnspan=4, wraplength=self.ancho_contenido_compacto)
-
-        self.ancho_borde_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("ancho_borde_cajas", 2.0)))
-        self.espacio_antes_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_antes_cajas", 6.0)))
-        self.espacio_despues_cajas_var = self.tk.StringVar(value=str(self.configuracion_documento_inicial.get("espacio_despues_cajas", 8.0)))
-
-        self.tk.Label(configuracion_frame, text="Borde (pt)").grid(row=1, column=0, sticky="w", pady=3)
-        self.tk.Entry(configuracion_frame, textvariable=self.ancho_borde_cajas_var, width=10).grid(row=1, column=1, sticky="w", padx=(8, 10), pady=3)
-        self.tk.Label(configuracion_frame, text="Espacio antes (pt)").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=3)
-        self.tk.Entry(configuracion_frame, textvariable=self.espacio_antes_cajas_var, width=10).grid(row=1, column=3, sticky="ew", padx=(8, 0), pady=3)
-        self.tk.Label(configuracion_frame, text="Espacio después (pt)").grid(row=2, column=2, sticky="w", padx=(16, 0), pady=3)
-        self.tk.Entry(configuracion_frame, textvariable=self.espacio_despues_cajas_var, width=10).grid(row=2, column=3, sticky="ew", padx=(8, 0), pady=3)
-
-        self.ancho_borde_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
-        self.espacio_antes_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
-        self.espacio_despues_cajas_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
-
-    def _construir_bloque_configuracion_margenes(self, parent, fila=0):
-        margenes_frame = self.tk.LabelFrame(parent, text="Configuración de márgenes", padx=10, pady=10)
-        margenes_frame.grid(row=fila, column=0, sticky="ew", pady=(0, 6))
+    def _construir_bloque_configuracion_margenes(self, parent):
+        margenes_frame = self.tk.LabelFrame(parent, text="Configuración de márgenes", font=self.tituloLabel_font_cnf, padx=10, pady=10)
+        margenes_frame.grid(row=0, column=0, sticky="ew", pady=(0, 6))
         margenes_frame.columnconfigure(1, weight=1)
 
-        self._agregar_descripcion_seccion(margenes_frame, "Ajusta aquí el margen disponible para el contenido del documento.", fila=0, columnspan=4, wraplength=self.ancho_contenido_compacto)
-        self.tk.Label(margenes_frame, text="Margen (cm)").grid(row=1, column=0, sticky="w", pady=3)
+        self._agregar_descripcion_seccion(margenes_frame, "Ajusta aquí el margen disponible para el contenido del documento.", row=0, columnspan=4, wraplength=self.ancho_contenido_compacto)
+        self.tk.Label(margenes_frame, text="Margen (cm)", font=self.normalLabel_font_cnf).grid(row=1, column=0, sticky="w", pady=3)
         self.margen_var = self.tk.StringVar(value=self._formatear_margen_cm(self._ajustar_margen_a_lista(self.configuracion_documento_inicial.get("margen_cm", 2.0), adornos_activos=bool(self.configuracion_documento_inicial.get("adornos_margen_activos", False)))))
-        self.combo_margen = self.ttk.Combobox(margenes_frame, textvariable=self.margen_var, values=self._opciones_margen_disponibles(bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())), state="readonly", width=10)
-        self.combo_margen.grid(row=1, column=1, sticky="w", padx=(8, 10), pady=3)
-        self.etiqueta_rango_margen = self.tk.Label(margenes_frame, text="")
-        self.etiqueta_rango_margen.grid(row=1, column=2, columnspan=2, sticky="w", padx=(8, 0), pady=3)
-        self.etiqueta_validacion_margen = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
-        self.etiqueta_validacion_margen.grid(row=2, column=0, columnspan=4, sticky="ew", pady=(4, 0))
+
+        self.combo_margen = self.ttk.Combobox(margenes_frame, textvariable=self.margen_var, font=self.normalLabel_font_cnf, values=self._opciones_margen_disponibles(bool(self.adornos_habilitados_var and self.adornos_habilitados_var.get())), state="readonly", width=10)
+        self.combo_margen.grid(row=1, column=1, sticky="w", pady=3)
+
+        self.etiqueta_rango_margen = self.tk.Label(margenes_frame, text="", font=self.normalLabel_font_cnf, fg=self.color_texto_suave)
+        self.etiqueta_rango_margen.grid(row=2, column=0, columnspan=2, sticky="w", pady=3)
+        
+        self.etiqueta_validacion_margen = self.tk.Label(margenes_frame, text="", font=self.normalLabel_font_cnf, anchor="w", justify="left", wraplength=760, fg="#5F5F5F")
+        self.etiqueta_validacion_margen.grid(row=3, column=0, columnspan=4, sticky="ew")
+
         self.margen_var.trace_add("write", self._registrar_margen_seleccionado)
         self._actualizar_opciones_margen()
         self._actualizar_etiqueta_rango_margen()
         self.margen_var.trace_add("write", lambda *_args: self._actualizar_resumen_documento())
         self.margen_var.trace_add("write", lambda *_args: self._actualizar_validacion_margen())
+
+    def _construir_bloque_adornos_margenes(self, parent, row=0):
+        margenes_frame = self.tk.LabelFrame(parent, text="Decoración de márgenes", font=self.tituloLabel_font_cnf, padx=10, pady=10)
+        margenes_frame.grid(row=row, column=0, sticky="new")
+        margenes_frame.columnconfigure(1, weight=1)
+
+        self._agregar_descripcion_seccion(margenes_frame, "Estas opciones afectan el borde de cada página.", row=0, columnspan=3, wraplength=260)
+        
+        self.tk.Checkbutton(margenes_frame, text="Activar decoración", font=self.normalLabel_font_cnf, variable=self.adornos_habilitados_var, command=self.actualizar_estado_adornos).grid(row=2, column=0, columnspan=2, sticky="w")
+        
+        self.tk.Label(margenes_frame, text="Estillo", font=self.normalLabel_font_cnf).grid(row=3, column=0, sticky="w", pady=(8, 3))
+        self.combo_estilo_adorno = self.ttk.Combobox(margenes_frame, textvariable=self.estilo_adorno_var,font=self.normalLabel_font_cnf, values=list(cfg.ESTILOS_ADORNO_MARGEN_DISPONIBLES.keys()), state="readonly", width=24)
+        self.combo_estilo_adorno.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=(8, 3))
+        self.combo_estilo_adorno.bind("<<ComboboxSelected>>", lambda _evento: self.actualizar_estado_adornos())
+
+        self.tk.Label(margenes_frame, text="PNG personalizado", font=self.normalLabel_font_cnf).grid(row=4, column=0, sticky="w", pady=3)
+        self.entrada_imagen_adorno = self.tk.Entry(margenes_frame, textvariable=self.imagen_adorno_var, width=42, state="readonly")
+        self.entrada_imagen_adorno.grid(row=4, column=1, sticky="ew", padx=(8, 8), pady=3)
+        self.boton_imagen_adorno = self.tk.Button(margenes_frame, text="Elegir PNG...", font=self.normalLabel_font_cnf, command=self.elegir_imagen_adorno)
+        self.boton_imagen_adorno.grid(row=4, column=2, sticky="w", pady=3)
+
+        self.etiqueta_estado_margenes = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=460, fg="#5F5F5F", font=self.normalLabel_font_cnf)
+        self.etiqueta_estado_margenes.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+        self.etiqueta_validacion_adorno = self.tk.Label(margenes_frame, text="", anchor="w", justify="left", wraplength=460, fg="#5F5F5F", font=self.normalLabel_font_cnf)
+        self.etiqueta_validacion_adorno.grid(row=6, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+
+        preview_margenes_frame = self.tk.Frame(margenes_frame, padx=6)
+        preview_margenes_frame.grid(row=0, column=3, rowspan=7, sticky="ne", padx=(12, 0))
+
+        self.tk.Label(preview_margenes_frame, text="Vista previa de márgenes", anchor="w", font=self.normalLabel_font_cnf).pack(fill="x")
+        self.canvas_preview_adorno = self.tk.Canvas(preview_margenes_frame, width=160, height=220, bg="#FFFFFF", highlightthickness=1, highlightbackground="#C8BBA8")
+        self.canvas_preview_adorno.pack(pady=(6, 0))
 
     def _construir_botones(self, contenedor):
         botones = self.tk.Frame(contenedor, padx=6, pady=8, bg=self.color_superficie)
@@ -955,7 +957,9 @@ class DialogoConfiguracionInteractiva:
     def actualizar_preview(self, clave):
         valor = cfg._normalizar_color_hex(self.variables_color[clave].get(), self.configuracion_inicial[clave])
         self.variables_color[clave].set(valor)
-        self.vistas_previas[clave].configure(bg=valor)
+        vista_previa = self.vistas_previas.get(clave)
+        if vista_previa is not None:
+            vista_previa.configure(bg=valor)
         if clave in {"color_primario", "color_secundario", "color_fondo_pagina", "color_info_texto", "color_info_borde", "color_info_fondo"}:
             self._actualizar_preview_adornos()
 
@@ -965,16 +969,16 @@ class DialogoConfiguracionInteractiva:
             self.variables_color[clave].set(color)
             self.actualizar_preview(clave)
 
-    def crear_selector_color(self, parent, fila, clave, etiqueta):
-        self.tk.Label(parent, text=etiqueta, anchor="w").grid(row=fila, column=0, sticky="w", padx=(0, 8), pady=4)
+    def crear_selector_color(self, parent, row, clave, etiqueta):
+        self.tk.Label(parent, text=etiqueta, anchor="w").grid(row=row, column=0, sticky="w", padx=(0, 8), pady=4)
         entrada_color = self.tk.Entry(parent, textvariable=self.variables_color[clave], width=10, justify="center")
-        entrada_color.grid(row=fila, column=1, sticky="w", pady=4)
+        entrada_color.grid(row=row, column=1, sticky="w", pady=4)
         entrada_color.bind("<FocusOut>", lambda _evento, clave_actual=clave: self._confirmar_color(clave_actual))
         entrada_color.bind("<Return>", lambda _evento, clave_actual=clave: self._confirmar_color(clave_actual))
         preview = self.tk.Label(parent, width=5, relief="groove", bg=self.variables_color[clave].get())
-        preview.grid(row=fila, column=2, padx=5, pady=4)
+        preview.grid(row=row, column=2, padx=5, pady=4)
         self.vistas_previas[clave] = preview
-        self.tk.Button(parent, text="Elegir...", command=lambda clave_actual=clave: self.elegir_color(clave_actual)).grid(row=fila, column=3, sticky="w", pady=4)
+        self.tk.Button(parent, text="Elegir...", command=lambda clave_actual=clave: self.elegir_color(clave_actual)).grid(row=row, column=3, sticky="w", pady=4)
 
     def _confirmar_color(self, clave):
         if clave not in self.variables_color:
