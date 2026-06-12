@@ -123,11 +123,9 @@ def _sincronizar_estado_global_desde_configuracion():
         globals()[nombre] = getattr(cfg, nombre)
 
 
-
 def _sincronizar_estado_global_hacia_configuracion():
     for nombre in NOMBRES_CONFIG_MUTABLES:
-        if nombre in globals():
-            setattr(cfg, nombre, globals()[nombre])
+        setattr(cfg, nombre, globals()[nombre])
 
 
 
@@ -169,29 +167,64 @@ def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None, subtitulo=None, 
 
 
 
-def _seleccionar_archivo_dialogo(*args, **kwargs):
-    return seleccionar_archivo_dialogo(*args, **kwargs)
-
-
-
-def _mostrar_aviso_generacion(*args, **kwargs):
-    return mostrar_aviso_generacion(*args, **kwargs)
-
-
-
-def _abrir_pdf_con_aplicacion_predeterminada(*args, **kwargs):
-    return abrir_pdf_con_aplicacion_predeterminada(*args, **kwargs)
-
-
-
-def _abrir_y_notificar_pdf_generado(*args, **kwargs):
-    return abrir_y_notificar_pdf_generado(*args, **kwargs)
+_seleccionar_archivo_dialogo = seleccionar_archivo_dialogo
+_mostrar_aviso_generacion = mostrar_aviso_generacion
+_abrir_pdf_con_aplicacion_predeterminada = abrir_pdf_con_aplicacion_predeterminada
+_abrir_y_notificar_pdf_generado = abrir_y_notificar_pdf_generado
 
 
 
 def _pedir_configuracion_interactiva(*args, **kwargs):
     _sincronizar_estado_global_hacia_configuracion()
     return pedir_configuracion_interactiva(*args, **kwargs)
+
+
+def _ruta_texto(ruta):
+    return str(ruta) if ruta else ""
+
+
+def _resolver_imagen_portada_predeterminada(ruta_portada):
+    ruta = _ruta_texto(ruta_portada).strip()
+    if ruta == IMAGEN_PORTADA_PREDETERMINADA and not os.path.exists(ruta):
+        return ""
+    return ruta
+
+
+def _resolver_ruta_entrada(entrada):
+    if entrada is not None:
+        return entrada
+    print("📂 Selecciona el archivo Word de entrada...")
+    ruta = _seleccionar_archivo_dialogo(
+        "Selecciona el archivo Word de entrada",
+        [("Documentos Word", "*.docx"), ("Todos los archivos", "*.*")],
+        modo="abrir",
+    )
+    if not ruta:
+        raise SystemExit("❌ No se seleccionó ningún archivo de entrada.")
+    return Path(ruta)
+
+
+def _resolver_ruta_salida(salida, entrada):
+    if salida is not None:
+        return salida
+    print("💾 Selecciona dónde guardar el PDF...")
+    ruta = _seleccionar_archivo_dialogo(
+        "Guardar PDF como...",
+        [("Archivo PDF", "*.pdf"), ("Todos los archivos", "*.*")],
+        modo="guardar",
+        archivo_inicial=entrada.with_suffix(".pdf").name,
+    )
+    if not ruta:
+        raise SystemExit("❌ No se seleccionó ruta de salida.")
+    return Path(ruta)
+
+
+def _resolver_salida_inicial(entrada, salida):
+    if salida is not None:
+        return _ruta_texto(salida)
+    if entrada is not None:
+        return _ruta_texto(entrada.with_suffix(".pdf"))
+    return ""
 
 
 def _generar_pdf_desde_configuracion_interactiva(configuracion):
@@ -209,6 +242,38 @@ def _generar_pdf_desde_configuracion_interactiva(configuracion):
     )
     _abrir_y_notificar_pdf_generado(salida)
 
+
+def _ejecutar_modo_interactivo(entrada, salida, titulo, subtitulo, autor, imagen_portada, configuracion_visual, configuracion_documento):
+    _pedir_configuracion_interactiva(
+        configuracion_visual,
+        configuracion_documento,
+        titulo_inicial=titulo,
+        subtitulo_inicial=subtitulo,
+        autor_inicial=autor,
+        portada_inicial=_resolver_imagen_portada_predeterminada(imagen_portada),
+        entrada_inicial=_ruta_texto(entrada),
+        salida_inicial=_resolver_salida_inicial(entrada, salida),
+        accion_aceptar=_generar_pdf_desde_configuracion_interactiva,
+    )
+
+
+def _ejecutar_modo_directo(entrada, salida, titulo, subtitulo, autor, imagen_portada, configuracion_visual, configuracion_documento):
+    entrada = _resolver_ruta_entrada(entrada)
+    salida = _resolver_ruta_salida(salida, entrada)
+    if not entrada.exists():
+        raise SystemExit(f"No se encontró el archivo: {entrada}")
+
+    aplicar_configuracion_visual(configuracion_visual)
+    aplicar_configuracion_documento(configuracion_documento)
+    construir_pdf(
+        entrada,
+        salida,
+        titulo=titulo or None,
+        autor=autor or None,
+        subtitulo=subtitulo or None,
+        imagen_portada=imagen_portada,
+    )
+    _abrir_y_notificar_pdf_generado(salida)
 
 
 _renderizar_caja = renderizar_caja
@@ -236,71 +301,35 @@ def principal():
 
     configuracion_visual = obtener_configuracion_visual_predeterminada()
     configuracion_documento = obtener_configuracion_documento_predeterminada()
-    titulo = args.titulo or ""
-    subtitulo = args.subtitulo or ""
-    autor = args.autor or ""
-    imagen_portada = args.portada or ""
+    titulo = (args.titulo or "").strip()
+    subtitulo = (args.subtitulo or "").strip()
+    autor = (args.autor or "").strip()
+    imagen_portada = _resolver_imagen_portada_predeterminada(args.portada)
 
-    if imagen_portada == IMAGEN_PORTADA_PREDETERMINADA and not os.path.exists(imagen_portada):
-        imagen_portada = ""
-
-    usar_menu_interactivo = False
-    if not args.sin_menu:
-        usar_menu_interactivo = args.menu_interactivo or not (args.entrada and args.salida)
-
+    usar_menu_interactivo = not args.sin_menu and (args.menu_interactivo or not (entrada and salida))
     if usar_menu_interactivo:
-        portada_inicial = imagen_portada
-        if portada_inicial == IMAGEN_PORTADA_PREDETERMINADA and not os.path.exists(portada_inicial):
-            portada_inicial = ""
-        _pedir_configuracion_interactiva(
+        _ejecutar_modo_interactivo(
+            entrada,
+            salida,
+            titulo,
+            subtitulo,
+            autor,
+            imagen_portada,
             configuracion_visual,
             configuracion_documento,
-            titulo_inicial=titulo,
-            subtitulo_inicial=subtitulo,
-            autor_inicial=autor,
-            portada_inicial=portada_inicial,
-            entrada_inicial=str(entrada or ""),
-            salida_inicial=str(salida or (entrada.with_suffix(".pdf") if entrada else "")),
-            accion_aceptar=_generar_pdf_desde_configuracion_interactiva,
         )
         return
-    else:
-        if entrada is None:
-            print("📂 Selecciona el archivo Word de entrada...")
-            ruta = _seleccionar_archivo_dialogo(
-                "Selecciona el archivo Word de entrada",
-                [("Documentos Word", "*.docx"), ("Todos los archivos", "*.*")],
-                modo="abrir",
-            )
-            if not ruta:
-                raise SystemExit("❌ No se seleccionó ningún archivo de entrada.")
-            entrada = Path(ruta)
-        if salida is None:
-            print("💾 Selecciona dónde guardar el PDF...")
-            ruta = _seleccionar_archivo_dialogo(
-                "Guardar PDF como...",
-                [("Archivo PDF", "*.pdf"), ("Todos los archivos", "*.*")],
-                modo="guardar",
-                archivo_inicial=entrada.with_suffix(".pdf").name,
-            )
-            if not ruta:
-                raise SystemExit("❌ No se seleccionó ruta de salida.")
-            salida = Path(ruta)
 
-    if entrada is None or not entrada.exists():
-        raise SystemExit(f"No se encontró el archivo: {entrada}")
-
-    aplicar_configuracion_visual(configuracion_visual)
-    aplicar_configuracion_documento(configuracion_documento)
-    construir_pdf(
+    _ejecutar_modo_directo(
         entrada,
         salida,
-        titulo=titulo or None,
-        autor=autor or None,
-        subtitulo=subtitulo or None,
-        imagen_portada=imagen_portada,
+        titulo,
+        subtitulo,
+        autor,
+        imagen_portada,
+        configuracion_visual,
+        configuracion_documento,
     )
-    _abrir_y_notificar_pdf_generado(salida)
 
 
 
