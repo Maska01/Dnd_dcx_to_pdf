@@ -7,7 +7,7 @@ def construir_pagina_personalizacion(dialog, interior):
     construir_pestana_margenes(dialog, pestana_margenes)
     construir_pestana_cajas(dialog, pestana_cajas)
     dialog._finalizar_estado_decoracion()
-    construir_pestanas_colores(dialog, pestana_colores_cajas, pestana_colores_personajes)
+    dialog._construir_pestanas_colores(pestana_colores_cajas, pestana_colores_personajes)
 
 
 def crear_notebook(dialog, interior):
@@ -65,20 +65,20 @@ def construir_pestana_cajas(dialog, pestana_cajas):
     dialog._construir_bloque_adornos_cajas(contenedor, row=2)
 
 
-def crear_contenedor_tarjetas_colores(dialog, pestana):
+def crear_contenedor_tarjetas_colores(dialog, pestana, numero_columnas=2):
     contenedor_tarjetas = dialog.tk.Frame(pestana)
     contenedor_tarjetas.grid(row=0, column=0, sticky="ew")
     contenedor_tarjetas.columnconfigure(0, weight=1)
-    contenedor_tarjetas.columnconfigure(1, weight=0, minsize=260, uniform="tarjetas_colores")
-    contenedor_tarjetas.columnconfigure(2, weight=0, minsize=260, uniform="tarjetas_colores")
-    contenedor_tarjetas.columnconfigure(3, weight=1)
+    for columna in range(1, numero_columnas + 1):
+        contenedor_tarjetas.columnconfigure(columna, weight=0, minsize=260, uniform="tarjetas_colores")
+    contenedor_tarjetas.columnconfigure(numero_columnas + 1, weight=1)
     return contenedor_tarjetas
 
 
-def construir_tarjeta_colores_grupo(dialog, contenedor_tab, nombre_grupo, campos, indice_grupo):
-    columna = (indice_grupo % 2) + 1
-    row = indice_grupo // 2
-    padding_x = (0, 8) if columna == 1 else (8, 0)
+def construir_tarjeta_colores_grupo(dialog, contenedor_tab, nombre_grupo, campos, indice_grupo, numero_columnas=2):
+    columna = (indice_grupo % numero_columnas) + 1
+    row = indice_grupo // numero_columnas
+    padding_x = (0, 8) if columna == 1 else (8, 0) if columna == numero_columnas else (8, 8)
     frame = dialog.tk.LabelFrame(contenedor_tab, text=nombre_grupo, font=dialog.tituloLabel_font_cnf, padx=10, pady=10)
     frame.grid(row=row, column=columna, sticky="new", padx=padding_x, pady=(0, 10))
     frame.columnconfigure(0, minsize=88)
@@ -88,21 +88,30 @@ def construir_tarjeta_colores_grupo(dialog, contenedor_tab, nombre_grupo, campos
         dialog.crear_selector_color(frame, indice, clave, etiqueta)
 
 
-def construir_pestanas_colores(dialog, pestana_colores_cajas, pestana_colores_personajes):
+def construir_pestanas_colores(dialog, pestana_colores_cajas, pestana_colores_personajes, columnas_por_pestana=None):
     grupos_colores = dialog._grupos_colores_disponibles()
     distribucion_pestanas = {
         "Cajas útiles": ["Caja Consejo para el DM", "Caja Cita", "Caja Información adicional", "Caja Tesoro/Premio", "Caja Puzzle/Acertijo/Rompecabezas", "Caja Objeto"],
         "NPC y combate": ["Caja NPC", "Caja Enemigo", "Caja Aliado"],
     }
+    columnas_por_pestana = columnas_por_pestana or {}
     contenedores = {"Cajas útiles": pestana_colores_cajas, "NPC y combate": pestana_colores_personajes}
     for nombre_pestana, pestana in contenedores.items():
+        numero_columnas = columnas_por_pestana.get(nombre_pestana, 2)
         pestana.columnconfigure(0, weight=1)
         pestana.rowconfigure(0, weight=1)
         pestana.rowconfigure(1, weight=0)
-        contenedor_tarjetas = crear_contenedor_tarjetas_colores(dialog, pestana)
+        contenedor_tarjetas = crear_contenedor_tarjetas_colores(dialog, pestana, numero_columnas=numero_columnas)
         for indice_grupo, nombre_grupo in enumerate(distribucion_pestanas[nombre_pestana]):
             _, campos = next(grupo for grupo in grupos_colores if grupo[0] == nombre_grupo)
-            construir_tarjeta_colores_grupo(dialog, contenedor_tarjetas, nombre_grupo, campos, indice_grupo)
+            construir_tarjeta_colores_grupo(
+                dialog,
+                contenedor_tarjetas,
+                nombre_grupo,
+                campos,
+                indice_grupo,
+                numero_columnas=numero_columnas,
+            )
         if nombre_pestana == "Cajas útiles":
             dialog._agregar_descripcion_seccion(
                 pestana,

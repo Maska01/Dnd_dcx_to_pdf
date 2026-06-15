@@ -84,6 +84,8 @@ class DialogoConfiguracionInteractiva:
     def __init__(self, configuracion_inicial, configuracion_documento_inicial, titulo_inicial="", subtitulo_inicial="", autor_inicial="", portada_inicial="", entrada_inicial="", salida_inicial="", accion_aceptar=None):
         self.configuracion_inicial = dict(configuracion_inicial)
         self.configuracion_documento_inicial = dict(configuracion_documento_inicial)
+        self.columnas_cajas = 3
+        self.columnas_npc_combate = 3
         self.titulo_inicial = titulo_inicial or ""
         self.subtitulo_inicial = subtitulo_inicial or ""
         self.autor_inicial = autor_inicial or ""
@@ -568,8 +570,19 @@ class DialogoConfiguracionInteractiva:
     def _construir_tarjeta_colores_grupo(self, contenedor_tab, nombre_grupo, campos, indice_grupo):
         tab_building.construir_tarjeta_colores_grupo(self, contenedor_tab, nombre_grupo, campos, indice_grupo)
 
+    def _columnas_pestanas_colores(self):
+        return {
+            "Cajas útiles": self.columnas_cajas,
+            "NPC y combate": self.columnas_npc_combate,
+        }
+
     def _construir_pestanas_colores(self, pestana_colores_cajas, pestana_colores_personajes):
-        tab_building.construir_pestanas_colores(self, pestana_colores_cajas, pestana_colores_personajes)
+        tab_building.construir_pestanas_colores(
+            self,
+            pestana_colores_cajas,
+            pestana_colores_personajes,
+            columnas_por_pestana=self._columnas_pestanas_colores(),
+        )
 
     def _construir_bloque_configuracion_margenes(self, parent):
         form_blocks.construir_bloque_configuracion_margenes(self, parent)
