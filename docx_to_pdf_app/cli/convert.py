@@ -230,6 +230,7 @@ def _resolver_salida_inicial(entrada, salida):
 def _generar_pdf_desde_configuracion_interactiva(configuracion):
     entrada = Path(configuracion["entrada"])
     salida = Path(configuracion["salida"])
+    abrir_pdf_al_generar = bool(configuracion.get("abrir_pdf_al_generar", False))
     aplicar_configuracion_visual(configuracion["configuracion_visual"])
     aplicar_configuracion_documento(configuracion["configuracion_documento"])
     construir_pdf(
@@ -240,7 +241,10 @@ def _generar_pdf_desde_configuracion_interactiva(configuracion):
         subtitulo=configuracion["subtitulo"] or None,
         imagen_portada=configuracion["imagen_portada"],
     )
-    _abrir_y_notificar_pdf_generado(salida)
+    if abrir_pdf_al_generar:
+        _abrir_y_notificar_pdf_generado(salida)
+        return
+    print(f"PDF generado correctamente: {salida}")
 
 
 def _ejecutar_modo_interactivo(entrada, salida, titulo, subtitulo, autor, imagen_portada, configuracion_visual, configuracion_documento):
