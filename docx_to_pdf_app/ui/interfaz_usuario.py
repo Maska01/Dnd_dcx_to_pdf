@@ -551,15 +551,15 @@ class DialogoConfiguracionInteractiva:
 
     def _grupos_colores_disponibles(self):
         return [
-            ("Caja Consejo para el DM", [("COLOR_CONSEJO_TEXTO", "Texto"), ("COLOR_CONSEJO_BORDE", "Borde"), ("COLOR_CONSEJO_FONDO", "Fondo")]),
-            ("Caja Cita", [("COLOR_CITA_TEXTO", "Texto"), ("COLOR_CITA_BORDE", "Borde"), ("COLOR_CITA_FONDO", "Fondo")]),
-            ("Caja Información adicional", [("color_info_texto", "Texto"), ("color_info_borde", "Borde"), ("color_info_fondo", "Fondo")]),
-            ("Caja NPC", [("color_npc_texto", "Texto"), ("color_npc_borde", "Borde"), ("color_npc_fondo", "Fondo")]),
-            ("Caja Enemigo", [("color_enemigo_texto", "Texto"), ("color_enemigo_borde", "Borde"), ("color_enemigo_fondo", "Fondo")]),
-            ("Caja Aliado", [("color_aliado_texto", "Texto"), ("color_aliado_borde", "Borde"), ("color_aliado_fondo", "Fondo")]),
-            ("Caja Tesoro/Premio", [("color_tesoro_texto", "Texto"), ("color_tesoro_borde", "Borde"), ("color_tesoro_fondo", "Fondo")]),
-            ("Caja Puzzle/Acertijo/Rompecabezas", [("color_puzzle_texto", "Texto"), ("color_puzzle_borde", "Borde"), ("color_puzzle_fondo", "Fondo")]),
-            ("Caja Objeto", [("color_objeto_texto", "Texto"), ("color_objeto_borde", "Borde"), ("color_objeto_fondo", "Fondo")]),
+            ("Caja Consejo para el DM", [("COLOR_CONSEJO_TEXTO", "Texto"), ("COLOR_CONSEJO_TITULO", "Título"), ("COLOR_CONSEJO_BORDE", "Borde"), ("COLOR_CONSEJO_FONDO", "Fondo")]),
+            ("Caja Cita", [("COLOR_CITA_TEXTO", "Texto"), ("COLOR_CITA_TITULO", "Título"), ("COLOR_CITA_BORDE", "Borde"), ("COLOR_CITA_FONDO", "Fondo")]),
+            ("Caja Información adicional", [("color_info_texto", "Texto"), ("color_info_titulo", "Título"), ("color_info_borde", "Borde"), ("color_info_fondo", "Fondo")]),
+            ("Caja NPC", [("color_npc_texto", "Texto"), ("color_npc_titulo", "Título"), ("color_npc_borde", "Borde"), ("color_npc_fondo", "Fondo")]),
+            ("Caja Enemigo", [("color_enemigo_texto", "Texto"), ("color_enemigo_titulo", "Título"), ("color_enemigo_borde", "Borde"), ("color_enemigo_fondo", "Fondo")]),
+            ("Caja Aliado", [("color_aliado_texto", "Texto"), ("color_aliado_titulo", "Título"), ("color_aliado_borde", "Borde"), ("color_aliado_fondo", "Fondo")]),
+            ("Caja Tesoro/Premio", [("color_tesoro_texto", "Texto"), ("color_tesoro_titulo", "Título"), ("color_tesoro_borde", "Borde"), ("color_tesoro_fondo", "Fondo")]),
+            ("Caja Puzzle/Acertijo/Rompecabezas", [("color_puzzle_texto", "Texto"), ("color_puzzle_titulo", "Título"), ("color_puzzle_borde", "Borde"), ("color_puzzle_fondo", "Fondo")]),
+            ("Caja Objeto", [("color_objeto_texto", "Texto"), ("color_objeto_titulo", "Título"), ("color_objeto_borde", "Borde"), ("color_objeto_fondo", "Fondo")]),
         ]
 
     def _crear_contenedor_tarjetas_colores(self, pestana):

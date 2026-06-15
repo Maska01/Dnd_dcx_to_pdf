@@ -17,38 +17,47 @@ COLOR_FONDO_PAGINA = HexColor("#000035")
 COLOR_CONSEJO_TEXTO = HexColor("#F1EFE8")
 COLOR_CONSEJO_BORDE = HexColor("#FFCE1B")
 COLOR_CONSEJO_FONDO = HexColor("#4B0082")
+COLOR_CONSEJO_TITULO = HexColor("#FFCE1B")
 
-COLOR_CITA_TEXTO = HexColor("#000080")
+COLOR_CITA_TEXTO = HexColor("#192F53")
 COLOR_CITA_BORDE = HexColor("#C69900")
 COLOR_CITA_FONDO = HexColor("#F5ECE2")
+COLOR_CITA_TITULO = HexColor("#C69900")
 
-COLOR_INFO_TEXTO = HexColor("#0F4C5C")
-COLOR_INFO_BORDE = HexColor("#2A9D8F")
-COLOR_INFO_FONDO = HexColor("#E6F7F5")
+COLOR_INFO_TEXTO = HexColor("#192F53")
+COLOR_INFO_BORDE = HexColor("#4A5E4F")
+COLOR_INFO_FONDO = HexColor("#9F7E59")
+COLOR_INFO_TITULO = HexColor("#4A5E4F")
 
 COLOR_ENEMIGO_TEXTO = HexColor("#7A1C1C")
 COLOR_ENEMIGO_BORDE = HexColor("#C0392B")
 COLOR_ENEMIGO_FONDO = HexColor("#FDECEC")
+COLOR_ENEMIGO_TITULO = HexColor("#C0392B")
 
 COLOR_NPC_TEXTO = HexColor("#444444")
 COLOR_NPC_BORDE = HexColor("#8D99AE")
 COLOR_NPC_FONDO = HexColor("#F1F3F5")
+COLOR_NPC_TITULO = HexColor("#8D99AE")
 
 COLOR_ALIADO_TEXTO = HexColor("#1E5631")
 COLOR_ALIADO_BORDE = HexColor("#4CAF50")
 COLOR_ALIADO_FONDO = HexColor("#EAF7EE")
+COLOR_ALIADO_TITULO = HexColor("#4CAF50")
 
 COLOR_TESORO_TEXTO = HexColor("#D0A933")
 COLOR_TESORO_BORDE = HexColor("#CD7F32")
 COLOR_TESORO_FONDO = HexColor("#6A3535")
+COLOR_TESORO_TITULO = HexColor("#CD7F32")
 
 COLOR_PUZZLE_TEXTO = HexColor("#D2D2D2")
 COLOR_PUZZLE_BORDE = HexColor("#A417E8")
 COLOR_PUZZLE_FONDO = HexColor("#272C56")
+COLOR_PUZZLE_TITULO = HexColor("#A417E8")
 
-COLOR_OBJETO_TEXTO = HexColor("#2F2F2F")
-COLOR_OBJETO_BORDE = HexColor("#BFC5CC")
-COLOR_OBJETO_FONDO = HexColor("#FFFFFF")
+COLOR_OBJETO_TEXTO = HexColor("#192F53")
+COLOR_OBJETO_BORDE = HexColor("#BBBBBB")
+COLOR_OBJETO_FONDO = HexColor("#FDF8E7")
+COLOR_OBJETO_TITULO = HexColor("#BBBBBB")
 
 FUENTE_TITULO = "Helvetica-Bold"
 FUENTE_TEXTO = "Helvetica"
@@ -336,30 +345,39 @@ def obtener_configuracion_visual_predeterminada():
         "COLOR_CONSEJO_TEXTO": _color_a_hex(COLOR_CONSEJO_TEXTO),
         "COLOR_CONSEJO_BORDE": _color_a_hex(COLOR_CONSEJO_BORDE),
         "COLOR_CONSEJO_FONDO": _color_a_hex(COLOR_CONSEJO_FONDO),
+        "COLOR_CONSEJO_TITULO": _color_a_hex(COLOR_CONSEJO_TITULO),
         "COLOR_CITA_TEXTO": _color_a_hex(COLOR_CITA_TEXTO),
         "COLOR_CITA_BORDE": _color_a_hex(COLOR_CITA_BORDE),
         "COLOR_CITA_FONDO": _color_a_hex(COLOR_CITA_FONDO),
+        "COLOR_CITA_TITULO": _color_a_hex(COLOR_CITA_TITULO),
         "color_info_texto": _color_a_hex(COLOR_INFO_TEXTO),
         "color_info_borde": _color_a_hex(COLOR_INFO_BORDE),
         "color_info_fondo": _color_a_hex(COLOR_INFO_FONDO),
+        "color_info_titulo": _color_a_hex(COLOR_INFO_TITULO),
         "color_enemigo_texto": _color_a_hex(COLOR_ENEMIGO_TEXTO),
         "color_enemigo_borde": _color_a_hex(COLOR_ENEMIGO_BORDE),
         "color_enemigo_fondo": _color_a_hex(COLOR_ENEMIGO_FONDO),
+        "color_enemigo_titulo": _color_a_hex(COLOR_ENEMIGO_TITULO),
         "color_npc_texto": _color_a_hex(COLOR_NPC_TEXTO),
         "color_npc_borde": _color_a_hex(COLOR_NPC_BORDE),
         "color_npc_fondo": _color_a_hex(COLOR_NPC_FONDO),
+        "color_npc_titulo": _color_a_hex(COLOR_NPC_TITULO),
         "color_aliado_texto": _color_a_hex(COLOR_ALIADO_TEXTO),
         "color_aliado_borde": _color_a_hex(COLOR_ALIADO_BORDE),
         "color_aliado_fondo": _color_a_hex(COLOR_ALIADO_FONDO),
+        "color_aliado_titulo": _color_a_hex(COLOR_ALIADO_TITULO),
         "color_tesoro_texto": _color_a_hex(COLOR_TESORO_TEXTO),
         "color_tesoro_borde": _color_a_hex(COLOR_TESORO_BORDE),
         "color_tesoro_fondo": _color_a_hex(COLOR_TESORO_FONDO),
+        "color_tesoro_titulo": _color_a_hex(COLOR_TESORO_TITULO),
         "color_puzzle_texto": _color_a_hex(COLOR_PUZZLE_TEXTO),
         "color_puzzle_borde": _color_a_hex(COLOR_PUZZLE_BORDE),
         "color_puzzle_fondo": _color_a_hex(COLOR_PUZZLE_FONDO),
+        "color_puzzle_titulo": _color_a_hex(COLOR_PUZZLE_TITULO),
         "color_objeto_texto": _color_a_hex(COLOR_OBJETO_TEXTO),
         "color_objeto_borde": _color_a_hex(COLOR_OBJETO_BORDE),
         "color_objeto_fondo": _color_a_hex(COLOR_OBJETO_FONDO),
+        "color_objeto_titulo": _color_a_hex(COLOR_OBJETO_TITULO),
     }
 
 
@@ -452,14 +470,23 @@ def aplicar_configuracion_documento(configuracion_documento):
 def aplicar_configuracion_visual(configuracion_visual):
     global COLOR_PRIMARIO, COLOR_SECUNDARIO, COLOR_TEXTO_GENERAL, COLOR_FONDO_PAGINA
     global COLOR_CONSEJO_TEXTO, COLOR_CONSEJO_BORDE, COLOR_CONSEJO_FONDO
+    global COLOR_CONSEJO_TITULO
     global COLOR_CITA_TEXTO, COLOR_CITA_BORDE, COLOR_CITA_FONDO
+    global COLOR_CITA_TITULO
     global COLOR_INFO_TEXTO, COLOR_INFO_BORDE, COLOR_INFO_FONDO
+    global COLOR_INFO_TITULO
     global COLOR_ENEMIGO_TEXTO, COLOR_ENEMIGO_BORDE, COLOR_ENEMIGO_FONDO
+    global COLOR_ENEMIGO_TITULO
     global COLOR_NPC_TEXTO, COLOR_NPC_BORDE, COLOR_NPC_FONDO
+    global COLOR_NPC_TITULO
     global COLOR_ALIADO_TEXTO, COLOR_ALIADO_BORDE, COLOR_ALIADO_FONDO
+    global COLOR_ALIADO_TITULO
     global COLOR_TESORO_TEXTO, COLOR_TESORO_BORDE, COLOR_TESORO_FONDO
+    global COLOR_TESORO_TITULO
     global COLOR_PUZZLE_TEXTO, COLOR_PUZZLE_BORDE, COLOR_PUZZLE_FONDO
+    global COLOR_PUZZLE_TITULO
     global COLOR_OBJETO_TEXTO, COLOR_OBJETO_BORDE, COLOR_OBJETO_FONDO
+    global COLOR_OBJETO_TITULO
 
     valores = obtener_configuracion_visual_predeterminada()
     valores.update(configuracion_visual or {})
@@ -471,30 +498,39 @@ def aplicar_configuracion_visual(configuracion_visual):
     COLOR_CONSEJO_TEXTO = HexColor(_normalizar_color_hex(valores["COLOR_CONSEJO_TEXTO"], _color_a_hex(COLOR_CONSEJO_TEXTO)))
     COLOR_CONSEJO_BORDE = HexColor(_normalizar_color_hex(valores["COLOR_CONSEJO_BORDE"], _color_a_hex(COLOR_CONSEJO_BORDE)))
     COLOR_CONSEJO_FONDO = HexColor(_normalizar_color_hex(valores["COLOR_CONSEJO_FONDO"], _color_a_hex(COLOR_CONSEJO_FONDO)))
+    COLOR_CONSEJO_TITULO = HexColor(_normalizar_color_hex(valores["COLOR_CONSEJO_TITULO"], _color_a_hex(COLOR_CONSEJO_TITULO)))
     COLOR_CITA_TEXTO = HexColor(_normalizar_color_hex(valores["COLOR_CITA_TEXTO"], _color_a_hex(COLOR_CITA_TEXTO)))
     COLOR_CITA_BORDE = HexColor(_normalizar_color_hex(valores["COLOR_CITA_BORDE"], _color_a_hex(COLOR_CITA_BORDE)))
     COLOR_CITA_FONDO = HexColor(_normalizar_color_hex(valores["COLOR_CITA_FONDO"], _color_a_hex(COLOR_CITA_FONDO)))
+    COLOR_CITA_TITULO = HexColor(_normalizar_color_hex(valores["COLOR_CITA_TITULO"], _color_a_hex(COLOR_CITA_TITULO)))
     COLOR_INFO_TEXTO = HexColor(_normalizar_color_hex(valores["color_info_texto"], _color_a_hex(COLOR_INFO_TEXTO)))
     COLOR_INFO_BORDE = HexColor(_normalizar_color_hex(valores["color_info_borde"], _color_a_hex(COLOR_INFO_BORDE)))
     COLOR_INFO_FONDO = HexColor(_normalizar_color_hex(valores["color_info_fondo"], _color_a_hex(COLOR_INFO_FONDO)))
+    COLOR_INFO_TITULO = HexColor(_normalizar_color_hex(valores["color_info_titulo"], _color_a_hex(COLOR_INFO_TITULO)))
     COLOR_ENEMIGO_TEXTO = HexColor(_normalizar_color_hex(valores["color_enemigo_texto"], _color_a_hex(COLOR_ENEMIGO_TEXTO)))
     COLOR_ENEMIGO_BORDE = HexColor(_normalizar_color_hex(valores["color_enemigo_borde"], _color_a_hex(COLOR_ENEMIGO_BORDE)))
     COLOR_ENEMIGO_FONDO = HexColor(_normalizar_color_hex(valores["color_enemigo_fondo"], _color_a_hex(COLOR_ENEMIGO_FONDO)))
+    COLOR_ENEMIGO_TITULO = HexColor(_normalizar_color_hex(valores["color_enemigo_titulo"], _color_a_hex(COLOR_ENEMIGO_TITULO)))
     COLOR_NPC_TEXTO = HexColor(_normalizar_color_hex(valores["color_npc_texto"], _color_a_hex(COLOR_NPC_TEXTO)))
     COLOR_NPC_BORDE = HexColor(_normalizar_color_hex(valores["color_npc_borde"], _color_a_hex(COLOR_NPC_BORDE)))
     COLOR_NPC_FONDO = HexColor(_normalizar_color_hex(valores["color_npc_fondo"], _color_a_hex(COLOR_NPC_FONDO)))
+    COLOR_NPC_TITULO = HexColor(_normalizar_color_hex(valores["color_npc_titulo"], _color_a_hex(COLOR_NPC_TITULO)))
     COLOR_ALIADO_TEXTO = HexColor(_normalizar_color_hex(valores["color_aliado_texto"], _color_a_hex(COLOR_ALIADO_TEXTO)))
     COLOR_ALIADO_BORDE = HexColor(_normalizar_color_hex(valores["color_aliado_borde"], _color_a_hex(COLOR_ALIADO_BORDE)))
     COLOR_ALIADO_FONDO = HexColor(_normalizar_color_hex(valores["color_aliado_fondo"], _color_a_hex(COLOR_ALIADO_FONDO)))
+    COLOR_ALIADO_TITULO = HexColor(_normalizar_color_hex(valores["color_aliado_titulo"], _color_a_hex(COLOR_ALIADO_TITULO)))
     COLOR_TESORO_TEXTO = HexColor(_normalizar_color_hex(valores["color_tesoro_texto"], _color_a_hex(COLOR_TESORO_TEXTO)))
     COLOR_TESORO_BORDE = HexColor(_normalizar_color_hex(valores["color_tesoro_borde"], _color_a_hex(COLOR_TESORO_BORDE)))
     COLOR_TESORO_FONDO = HexColor(_normalizar_color_hex(valores["color_tesoro_fondo"], _color_a_hex(COLOR_TESORO_FONDO)))
+    COLOR_TESORO_TITULO = HexColor(_normalizar_color_hex(valores["color_tesoro_titulo"], _color_a_hex(COLOR_TESORO_TITULO)))
     COLOR_PUZZLE_TEXTO = HexColor(_normalizar_color_hex(valores["color_puzzle_texto"], _color_a_hex(COLOR_PUZZLE_TEXTO)))
     COLOR_PUZZLE_BORDE = HexColor(_normalizar_color_hex(valores["color_puzzle_borde"], _color_a_hex(COLOR_PUZZLE_BORDE)))
     COLOR_PUZZLE_FONDO = HexColor(_normalizar_color_hex(valores["color_puzzle_fondo"], _color_a_hex(COLOR_PUZZLE_FONDO)))
+    COLOR_PUZZLE_TITULO = HexColor(_normalizar_color_hex(valores["color_puzzle_titulo"], _color_a_hex(COLOR_PUZZLE_TITULO)))
     COLOR_OBJETO_TEXTO = HexColor(_normalizar_color_hex(valores["color_objeto_texto"], _color_a_hex(COLOR_OBJETO_TEXTO)))
     COLOR_OBJETO_BORDE = HexColor(_normalizar_color_hex(valores["color_objeto_borde"], _color_a_hex(COLOR_OBJETO_BORDE)))
     COLOR_OBJETO_FONDO = HexColor(_normalizar_color_hex(valores["color_objeto_fondo"], _color_a_hex(COLOR_OBJETO_FONDO)))
+    COLOR_OBJETO_TITULO = HexColor(_normalizar_color_hex(valores["color_objeto_titulo"], _color_a_hex(COLOR_OBJETO_TITULO)))
 
 
 def construir_estilos():

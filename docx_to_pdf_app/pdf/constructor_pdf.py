@@ -11,8 +11,6 @@ from reportlab.platypus.tableofcontents import TableOfContents
 from ..core import configuracion_pdf as cfg
 from ..core.procesamiento_word import (
     agregar_imagenes_a_bloque,
-    decorar_consejo_dm_html,
-    decorar_info_adicional_html,
     es_consejo_dm,
     es_fin_bloque_manual,
     es_info_adicional,
@@ -39,6 +37,9 @@ from ..core.procesamiento_word import (
 )
 from .renderizado_cajas import (
     crear_flujos_imagenes,
+    decorar_citas_en_html,
+    decorar_consejo_dm_html,
+    decorar_info_adicional_html,
     decorar_acertijo_en_html,
     decorar_aliado_en_html,
     decorar_enemigo_en_html,
@@ -562,7 +563,7 @@ class EstadoConstruccionPdf:
 
     def vaciar_citas(self):
         if self.citas_pendientes:
-            self.agregar_caja_a_historia(self.citas_pendientes, "CajaCita")
+            self.agregar_caja_a_historia(self.citas_pendientes, "CajaCita", decorar_citas_en_html)
             self.citas_pendientes.clear()
 
     def vaciar_consejos(self):
@@ -587,7 +588,7 @@ class EstadoConstruccionPdf:
 
     def emitir_cita_manual(self):
         if self.bloque_cita_manual:
-            self.agregar_caja_a_historia(self.bloque_cita_manual, "CajaCita")
+            self.agregar_caja_a_historia(self.bloque_cita_manual, "CajaCita", decorar_citas_en_html)
             self.bloque_cita_manual.clear()
         self.dentro_cita_manual = False
 

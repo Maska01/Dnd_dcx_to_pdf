@@ -360,7 +360,7 @@ def decorar_consejo_dm_html(texto_html):
         if detalle:
             titulo = f"{titulo} {detalle}"
         cuerpo = _quitar_prefijo_visible_en_html(texto_html, len(match.group(0)))
-    etiqueta = f'<font color="#{cfg.COLOR_CONSEJO_TEXTO.hexval()[2:]}"><b>{titulo}</b></font><br/>'
+    etiqueta = f'<font color="#{cfg.COLOR_CONSEJO_BORDE.hexval()[2:]}"><b>{titulo}</b></font><br/>'
     return etiqueta + cuerpo
 
 

@@ -1,4 +1,5 @@
 import io
+import re
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
@@ -6,7 +7,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import CondPageBreak, Flowable, Image, Paragraph, Spacer, Table, TableStyle
 
 from ..core import configuracion_pdf as cfg
-from ..core.procesamiento_word import celda_docx_a_html, item_caja_plano
+from ..core.procesamiento_word import celda_docx_a_html, item_caja_plano, _quitar_prefijo_visible_en_html
 
 
 def crear_flujo_imagen_desde_descriptor(imagen, ancho_max, alto_max=None, permitir_ampliacion=True, usar_tamano_docx=False):
@@ -137,40 +138,70 @@ def crear_titulo_decorado(titulo, color):
     return f'<font color="#{color.hexval()[2:]}"><b>{titulo}</b></font><br/>'
 
 
+def crear_titulo_con_prefijo(texto_html, titulo, color, patron_prefijo):
+    texto_plano = re.sub(r"<[^>]+>", "", texto_html)
+    match = re.match(patron_prefijo, texto_plano, flags=re.IGNORECASE)
+    cuerpo = texto_html
+    if match:
+        cuerpo = _quitar_prefijo_visible_en_html(texto_html, len(match.group(0)))
+    return crear_titulo_decorado(titulo, color) + cuerpo
+
+
 def decorar_npc_en_html(texto_html):
-    return crear_titulo_decorado("NPC", cfg.COLOR_NPC_TEXTO) + texto_html
+    return crear_titulo_decorado("NPC", cfg.COLOR_NPC_TITULO) + texto_html
 
 
 def decorar_enemigo_en_html(texto_html):
-    return crear_titulo_decorado("Enemigo", cfg.COLOR_ENEMIGO_TEXTO) + texto_html
+    return crear_titulo_decorado("Enemigo", cfg.COLOR_ENEMIGO_TITULO) + texto_html
 
 
 def decorar_aliado_en_html(texto_html):
-    return crear_titulo_decorado("Aliado", cfg.COLOR_ALIADO_TEXTO) + texto_html
+    return crear_titulo_decorado("Aliado", cfg.COLOR_ALIADO_TITULO) + texto_html
 
 
 def decorar_tesoro_en_html(texto_html):
-    return crear_titulo_decorado("Tesoro", cfg.COLOR_TESORO_TEXTO) + texto_html
+    return crear_titulo_decorado("Tesoro", cfg.COLOR_TESORO_TITULO) + texto_html
 
 
 def decorar_premio_en_html(texto_html):
-    return crear_titulo_decorado("Premio", cfg.COLOR_TESORO_TEXTO) + texto_html
+    return crear_titulo_decorado("Premio", cfg.COLOR_TESORO_TITULO) + texto_html
+
+
+def decorar_citas_en_html(texto_html):
+    return crear_titulo_decorado("Cita", cfg.COLOR_CITA_TITULO) + texto_html
+
+
+def decorar_consejo_dm_html(texto_html):
+    texto_plano = re.sub(r"<[^>]+>", "", texto_html)
+    match = re.match(r'^\s*(?P<prefijo>consejo para el dm)\s*(?P<detalle>\([^)]*\))?\s*:?\s*', texto_plano, flags=re.IGNORECASE)
+    titulo = "Consejo para el DM"
+    if match:
+        detalle = (match.group('detalle') or '').strip()
+        if detalle:
+            titulo = f"{titulo} {detalle}"
+    patron_prefijo = r'^\s*consejo para el dm\s*(?:\([^)]*\))?\s*:\s*'
+    return crear_titulo_con_prefijo(texto_html, titulo, cfg.COLOR_CONSEJO_TITULO, patron_prefijo)
+
+
+def decorar_info_adicional_html(texto_html):
+    patron_prefijo = r'^\s*(información adicional|informacion adicional|info adicional|dato adicional)\s*:\s*'
+    return crear_titulo_con_prefijo(texto_html, "[i] Información adicional", cfg.COLOR_INFO_TITULO, patron_prefijo)
 
 
 def decorar_puzzle_en_html(texto_html):
-    return crear_titulo_decorado("Puzzle", cfg.COLOR_PUZZLE_TEXTO) + texto_html
+    return crear_titulo_decorado("Puzzle", cfg.COLOR_PUZZLE_TITULO) + texto_html
 
 
 def decorar_acertijo_en_html(texto_html):
-    return crear_titulo_decorado("Acertijo", cfg.COLOR_PUZZLE_TEXTO) + texto_html
+    return crear_titulo_decorado("Acertijo", cfg.COLOR_PUZZLE_TITULO) + texto_html
 
 
 def decorar_rompecabezas_en_html(texto_html):
-    return crear_titulo_decorado("Rompecabezas", cfg.COLOR_PUZZLE_TEXTO) + texto_html
+    return crear_titulo_decorado("Rompecabezas", cfg.COLOR_PUZZLE_TITULO) + texto_html
 
 
 def decorar_objeto_en_html(texto_html):
-    return crear_titulo_decorado("Objeto", cfg.COLOR_OBJETO_TEXTO) + texto_html
+    return crear_titulo_decorado("Objeto", cfg.COLOR_OBJETO_TITULO) + texto_html
 
 
 def estilo_interno_caja(estilo_base, item, sufijo):
