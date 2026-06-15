@@ -202,10 +202,10 @@ def _resolver_imagen_portada_predeterminada(ruta_portada):
 def _resolver_ruta_entrada(entrada):
     if entrada is not None:
         return entrada
-    print("📂 Selecciona el archivo Word de entrada...")
+    print("📂 Selecciona el archivo de entrada...")
     ruta = _seleccionar_archivo_dialogo(
-        "Selecciona el archivo Word de entrada",
-        [("Documentos Word", "*.docx"), ("Todos los archivos", "*.*")],
+        "Selecciona el archivo de entrada",
+        [("Documentos compatibles", "*.docx *.txt"), ("Documentos Word", "*.docx"), ("Archivos de texto", "*.txt"), ("Todos los archivos", "*.*")],
         modo="abrir",
     )
     if not ruta:
@@ -298,8 +298,8 @@ _crear_fila_de_imagenes = crear_fila_de_imagenes
 
 
 def principal():
-    parser = argparse.ArgumentParser(description="Convierte un .docx a PDF estilo Aventura.")
-    parser.add_argument("entrada", nargs="?", help="Archivo .docx de entrada")
+    parser = argparse.ArgumentParser(description="Convierte un .docx o .txt a PDF estilo Aventura.")
+    parser.add_argument("entrada", nargs="?", help="Archivo .docx o .txt de entrada")
     parser.add_argument("salida", nargs="?", help="Archivo .pdf de salida")
     parser.add_argument("--titulo", help="Título de la portada (opcional)")
     parser.add_argument("--subtitulo", help="Subtítulo de la portada (opcional)")

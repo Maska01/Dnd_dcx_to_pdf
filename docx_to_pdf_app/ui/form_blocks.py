@@ -7,7 +7,7 @@ def construir_bloque_archivos(dialog, interior):
     dialog._asignar_estado_ui("rutas", "entrada_var", dialog.tk.StringVar(value=dialog.entrada_inicial))
     salida_inicial = dialog._salida_inicial_normalizada()
     dialog._asignar_estado_ui("rutas", "salida_var", dialog.tk.StringVar(value=salida_inicial))
-    dialog._asignar_estado_ui("rutas", "estado_rutas_var", dialog.tk.StringVar(value="Selecciona un archivo Word de entrada y una ruta PDF de salida para continuar."))
+    dialog._asignar_estado_ui("rutas", "estado_rutas_var", dialog.tk.StringVar(value="Selecciona un archivo de entrada y una ruta PDF de salida para continuar."))
     dialog.ultima_salida_sugerida = salida_inicial if dialog._es_ruta_salida_valida(salida_inicial) else ""
 
     dialog.tk.Label(
@@ -19,7 +19,7 @@ def construir_bloque_archivos(dialog, interior):
         wraplength=760,
     ).grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 8))
 
-    dialog.tk.Label(archivos_frame, text="Entrada (.docx)", font=dialog.normalLabel_font_cnf).grid(row=1, column=0, sticky="w", pady=3)
+    dialog.tk.Label(archivos_frame, text="Entrada (.docx/.txt)", font=dialog.normalLabel_font_cnf).grid(row=1, column=0, sticky="w", pady=3)
     dialog._asignar_estado_ui("rutas", "entrada_archivo", dialog.tk.Entry(archivos_frame, textvariable=dialog.entrada_var, width=54))
     dialog.entrada_archivo.grid(row=1, column=1, sticky="ew", padx=(8, 8), pady=3)
     dialog.tk.Button(archivos_frame, text="Elegir archivo...", command=dialog.elegir_archivo_entrada).grid(row=1, column=2, sticky="w", pady=3)

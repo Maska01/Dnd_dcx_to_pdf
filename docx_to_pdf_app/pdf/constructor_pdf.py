@@ -1,5 +1,6 @@
 import os
 import re
+from pathlib import Path
 from dataclasses import dataclass, field
 
 from docx import Document
@@ -52,6 +53,48 @@ from .renderizado_cajas import (
     renderizar_caja,
     tabla_docx_a_flujo,
 )
+
+
+def _cargar_documento_entrada(ruta_entrada):
+    ruta_entrada = Path(ruta_entrada)
+    if ruta_entrada.suffix.lower() != ".txt":
+        return Document(str(ruta_entrada))
+
+    contenido = None
+    for codificacion in ("utf-8-sig", "utf-8", "cp1252"):
+        try:
+            contenido = ruta_entrada.read_text(encoding=codificacion)
+            break
+        except UnicodeDecodeError:
+            continue
+    if contenido is None:
+        contenido = ruta_entrada.read_text(encoding="utf-8", errors="replace")
+
+    documento = Document()
+    lineas = contenido.splitlines()
+    if not lineas:
+        documento.add_paragraph("")
+        return documento
+
+    for linea in lineas:
+        texto = linea.rstrip()
+        texto_limpio = texto.strip()
+        if not texto_limpio:
+            documento.add_paragraph("")
+            continue
+        if texto_limpio.startswith(":::"):
+            documento.add_paragraph(texto_limpio)
+            continue
+        nivel_titulo = 0
+        while nivel_titulo < len(texto_limpio) and texto_limpio[nivel_titulo] == "#":
+            nivel_titulo += 1
+        if 1 <= nivel_titulo <= 3 and (len(texto_limpio) == nivel_titulo or texto_limpio[nivel_titulo] != "#"):
+            estilo = f"Heading {nivel_titulo}"
+            contenido_titulo = texto_limpio[nivel_titulo:].strip()
+            documento.add_paragraph(contenido_titulo, style=estilo)
+            continue
+        documento.add_paragraph(texto_limpio)
+    return documento
 
 
 def _medir_altura_flowable(flowable, ancho_disponible, alto_disponible):
@@ -743,7 +786,7 @@ class EstadoConstruccionPdf:
 
 
 def construir_pdf(ruta_docx, ruta_pdf, titulo=None, autor=None, subtitulo=None, imagen_portada=None):
-    documento_word = Document(ruta_docx)
+    documento_word = _cargar_documento_entrada(ruta_docx)
     estilos = cfg.construir_estilos()
     documento_pdf = DocumentoConIndice(str(ruta_pdf), pagesize=cfg.TAMANO_PAGINA, leftMargin=cfg.MARGEN, rightMargin=cfg.MARGEN, topMargin=cfg.MARGEN, bottomMargin=cfg.MARGEN, title=titulo or "Aventura", author=autor or "")
     documento_pdf.configurar_portada_pagina_completa(imagen_portada=imagen_portada, activa=cfg.PORTADA_PAGINA_COMPLETA)

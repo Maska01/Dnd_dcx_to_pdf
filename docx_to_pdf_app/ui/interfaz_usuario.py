@@ -294,7 +294,7 @@ class DialogoConfiguracionInteractiva:
         encabezado_frame.pack(fill="x", pady=(0, 6))
         self.titulo_encabezado = self.tk.Label(encabezado_frame, text="Personaliza tu PDF antes de generarlo", font=("Segoe UI", 16, "bold"), anchor="w", bg=self.color_superficie, fg=self.COLOR_TEXTO)
         self.titulo_encabezado.pack(fill="x")
-        self.descripcion_encabezado = self.tk.Label(encabezado_frame, text="Primero elige un `.docx` y un destino `.pdf`. Después ajusta el estilo del documento.", justify="left", wraplength=self.ancho_contenido_compacto, anchor="w", bg=self.color_superficie, fg=self.color_texto_suave)
+        self.descripcion_encabezado = self.tk.Label(encabezado_frame, text="Primero elige un `.docx` o `.txt` y un destino `.pdf`. Después ajusta el estilo del documento.", justify="left", wraplength=self.ancho_contenido_compacto, anchor="w", bg=self.color_superficie, fg=self.color_texto_suave)
         self.descripcion_encabezado.pack(fill="x", pady=(4, 0))
         self.tk.Frame(encabezado_frame, height=1, bg=self.color_borde_suave).pack(fill="x", pady=(8, 0))
 
@@ -649,7 +649,7 @@ class DialogoConfiguracionInteractiva:
         if not texto:
             return False
         ruta = Path(texto)
-        return ruta.exists() and ruta.is_file() and ruta.suffix.lower() == ".docx"
+        return ruta.exists() and ruta.is_file() and ruta.suffix.lower() in {".docx", ".txt"}
 
     def _normalizar_ruta_salida(self, ruta_texto):
         texto = self._ruta_texto(ruta_texto)
@@ -696,7 +696,7 @@ class DialogoConfiguracionInteractiva:
         self._mostrar_pagina(
             "archivos",
             "Personaliza tu PDF antes de generarlo",
-            "Primero elige un `.docx` y un destino `.pdf`. Después ajusta el estilo del documento.",
+            "Primero elige un `.docx` o `.txt` y un destino `.pdf`. Después ajusta el estilo del documento.",
             [
                 (self.boton_cancelar, {"side": "left"}),
                 (self.boton_continuar, {"side": "left", "padx": (14, 0)}),
@@ -747,7 +747,7 @@ class DialogoConfiguracionInteractiva:
 
     def continuar_a_personalizacion(self):
         if not self._rutas_actuales_validas():
-            self.messagebox.showerror("Rutas inválidas", "Selecciona un archivo `.docx` existente y una salida `.pdf` válida antes de continuar.")
+            self.messagebox.showerror("Rutas inválidas", "Selecciona un archivo `.docx` o `.txt` existente y una salida `.pdf` válida antes de continuar.")
             return
         self._mostrar_pagina_personalizacion()
 
@@ -755,7 +755,7 @@ class DialogoConfiguracionInteractiva:
         self._mostrar_pagina_archivos()
 
     def elegir_archivo_entrada(self):
-        ruta = self.filedialog.askopenfilename(title="Selecciona el archivo Word de entrada", filetypes=[("Documentos Word", "*.docx"), ("Todos los archivos", "*.*")], parent=self.raiz)
+        ruta = self.filedialog.askopenfilename(title="Selecciona el archivo de entrada", filetypes=[("Documentos compatibles", "*.docx *.txt"), ("Documentos Word", "*.docx"), ("Archivos de texto", "*.txt"), ("Todos los archivos", "*.*")], parent=self.raiz)
         if not ruta:
             return
         salida_actual = self._normalizar_ruta_salida(self.salida_var.get())
@@ -1124,8 +1124,8 @@ class DialogoConfiguracionInteractiva:
 
         estado_por_ruta = {
             (True, True): ("Rutas válidas. Pulsa `Continuar` para abrir las opciones de personalización.", "#1E5631"),
-            (False, False): ("Selecciona un archivo Word de entrada y una ruta PDF de salida para continuar.", "#7A1C1C"),
-            (False, True): ("La entrada debe apuntar a un archivo `.docx` existente.", "#7A1C1C"),
+            (False, False): ("Selecciona un archivo de entrada y una ruta PDF de salida para continuar.", "#7A1C1C"),
+            (False, True): ("La entrada debe apuntar a un archivo `.docx` o `.txt` existente.", "#7A1C1C"),
             (True, False): ("La salida debe ser una ruta `.pdf` válida en una carpeta existente.", "#7A1C1C"),
         }
         texto, color = estado_por_ruta[(entrada_valida, salida_valida)]
@@ -1290,7 +1290,7 @@ class DialogoConfiguracionInteractiva:
         entrada = self._valor_limpio_variable(rutas.entrada_var)
         salida = self._normalizar_ruta_salida(self._valor_variable(rutas.salida_var, ""))
         if not self._es_ruta_entrada_valida(entrada):
-            self._reportar_error_generacion("Entrada inválida", "Selecciona un archivo `.docx` de entrada válido.")
+            self._reportar_error_generacion("Entrada inválida", "Selecciona un archivo `.docx` o `.txt` de entrada válido.")
             return None
         if not self._es_ruta_salida_valida(salida):
             self._reportar_error_generacion("Salida inválida", "Selecciona una ruta de salida `.pdf` válida.")

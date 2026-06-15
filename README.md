@@ -1,6 +1,6 @@
 # Word → PDF estilo Aventura
 
-Conversor de `.docx` a PDF pensado para aventuras y material de rol. Genera un documento con portada opcional, índice, marcadores de navegación, estilos jerárquicos, cajas temáticas, enlaces, imágenes y tablas dentro de bloques especiales.
+Conversor de `.docx` o `.txt` a PDF pensado para aventuras y material de rol. Genera un documento con portada opcional, índice, marcadores de navegación, estilos jerárquicos, cajas temáticas, enlaces, imágenes y tablas dentro de bloques especiales.
 
 ## Estructura del proyecto
 
@@ -32,6 +32,14 @@ python -m docx_to_pdf_app mi_aventura.docx mi_aventura.pdf `
     --autor "Tu Nombre" `
     --portada "C:\ruta\a\tu\imagen.jpg"
 ```
+
+También puedes pasar un archivo `.txt` como entrada. El conversor interpreta:
+
+- líneas vacías como separaciones de párrafo,
+- líneas que empiecen por `#`, `##` o `###` como títulos de nivel 1, 2 o 3, con o sin espacio después del marcador,
+- líneas que empiecen por `:::` como bloques especiales sin alterarlas.
+
+El resto del flujo de personalización se mantiene igual.
 
 Si ejecutas `python -m docx_to_pdf_app` sin indicar entrada y salida, se abrirá directamente el menú interactivo unificado. Primero verás una pantalla compacta para elegir el `.docx` de entrada y la ruta `.pdf` de salida. Cuando ambas rutas sean válidas, podrás pulsar `Continuar` para pasar a la personalización.
 
